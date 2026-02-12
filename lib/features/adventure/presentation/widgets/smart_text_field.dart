@@ -65,16 +65,12 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
 
     final int cursor = selection.baseOffset;
 
-    // Find the nearest '@' before the cursor
     int atIndex = -1;
     for (int i = cursor - 1; i >= 0; i--) {
       if (text[i] == '@') {
         atIndex = i;
         break;
       }
-      // Stop if we hit a space or newline (optional: allow spaces in names?)
-      // For now, let's allow spaces to support "Rei Goblin", but maybe limit the lookback?
-      // A common pattern is to stop at newlines or if too far back.
       if (text[i] == '\n') break;
     }
 
@@ -109,13 +105,11 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
     return OverlayEntry(
       builder: (context) {
         return Positioned(
-          width: 300, // Fixed width for now
+          width: 300,
           child: CompositedTransformFollower(
             link: _layerLink,
             showWhenUnlinked: false,
-            offset: const Offset(0, 50), // Offset below the field
-            // Ideally we want to position it near the cursor, but that's complex without specialized packages.
-            // For now, let's position it below the text field.
+            offset: const Offset(0, 50),
             child: Material(
               elevation: 4,
               borderRadius: BorderRadius.circular(8),
@@ -142,7 +136,6 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
     final selection = _controller.selection;
     final int cursor = selection.baseOffset;
 
-    // Replace @query with [Name](Type:ID)
     final String replacement = '[$name]($type:$id) ';
 
     final newText = text.replaceRange(_monitorStartIndex!, cursor, replacement);
@@ -171,21 +164,18 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
           suffixIcon: IconButton(
             icon: const Icon(Icons.link),
             onPressed: () {
-              // Manual trigger logic could go here
               final text = _controller.text;
               final selection = _controller.selection;
               int cursor = selection.isValid
                   ? selection.baseOffset
                   : text.length;
 
-              // Insert '@' and trigger logic
               final newText = text.replaceRange(cursor, cursor, '@');
               _controller.text = newText;
               _controller.selection = TextSelection.collapsed(
                 offset: cursor + 1,
               );
               _focusNode.requestFocus();
-              // The listener will pick it up
             },
             tooltip: 'Inserir Link (@)',
           ),

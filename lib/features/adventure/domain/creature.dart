@@ -1,10 +1,5 @@
 import 'package:uuid/uuid.dart';
 
-/// Creature or NPC with motivations and behaviors
-///
-/// Unlike typical stat blocks, creatures in Adventure Sites have:
-/// - Clear motivations (what they want)
-/// - Reactive behaviors (what they do when losing)
 enum CreatureType { monster, npc }
 
 extension CreatureTypeExtension on CreatureType {
@@ -24,20 +19,10 @@ class Creature {
   String name;
   CreatureType type;
   String description;
-
-  /// What the creature wants (food, gold, to be left alone, etc.)
   String motivation;
-
-  /// What they do if losing (flee, negotiate, call reinforcements)
   String losingBehavior;
-
-  /// Where they are located (room number or area)
   String? location;
-
-  /// Combat stats or game mechanics (system agnostic)
   String stats;
-
-  /// Image path for the creature (URL or local path)
   String? imagePath;
 
   Creature({

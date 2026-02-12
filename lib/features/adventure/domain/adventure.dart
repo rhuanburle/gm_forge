@@ -1,42 +1,21 @@
 import 'package:uuid/uuid.dart';
 
-/// Main Adventure entity - the "Adventure Site"
-///
-/// An adventure is not a linear sequence of scenes, but a
-/// static ecosystem that comes alive through player interaction.
 class Adventure {
   String id;
   String name;
   String description;
 
-  // === The Seed (Central Concept) ===
-
-  /// What is the location? (e.g., submerged temple, abandoned space station)
   String conceptWhat;
-
-  /// What's happening there now? (e.g., two factions fighting for an artifact)
   String conceptConflict;
-
-  // === Metadata ===
 
   DateTime createdAt;
   DateTime updatedAt;
 
-  /// Is this adventure complete/ready to run?
   bool isComplete;
 
-  // === Campaign Links ===
-
-  /// Tags for organization
   List<String> tags;
-
-  /// The campaign this adventure belongs to (optional)
   String? campaignId;
-
-  /// Narrative hook leading to the next adventure (The "Ponta Solta")
   String? nextAdventureHint;
-
-  /// Path to the dungeon/map image representing all locations
   String? dungeonMapPath;
 
   Adventure({

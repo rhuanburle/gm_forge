@@ -1,13 +1,10 @@
 import 'package:uuid/uuid.dart';
 
-/// Campaign entity - a container for linked adventures
 class Campaign {
   String id;
   String name;
   String description;
 
-  /// List of Adventure IDs that belong to this campaign
-  /// Order matters for the campaign flow
   List<String> adventureIds;
 
   DateTime createdAt;

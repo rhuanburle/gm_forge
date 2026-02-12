@@ -35,9 +35,7 @@ class CloudSyncButton extends ConsumerWidget {
                   : Icons.cloud_upload,
               color: syncStatus == SyncStatus.error
                   ? AppTheme.error
-                  : (hasUnsyncedChanges
-                        ? Colors.orange
-                        : AppTheme.secondary), // Orange if dirty
+                  : (hasUnsyncedChanges ? Colors.orange : AppTheme.secondary),
             ),
       tooltip: syncStatus == SyncStatus.syncing
           ? 'Sincronizando...'
@@ -55,7 +53,6 @@ class CloudSyncButton extends ConsumerWidget {
                 ref.read(syncStatusProvider.notifier).state =
                     SyncStatus.success;
                 ref.read(unsyncedChangesProvider.notifier).state = false;
-                // Refresh relevant providers
                 ref.read(adventureListProvider.notifier).refresh();
                 ref.read(campaignListProvider.notifier).refresh();
               } catch (e) {

@@ -1,16 +1,12 @@
 import 'package:uuid/uuid.dart';
 
-/// Represents a Zone or Area within an Adventure (e.g., "Dungeon Level 1", "The Village")
-///
-/// Locations can contain Points of Interest (Rooms/Spots).
 class Location {
   String id;
   String adventureId;
   String name;
   String description;
   String? imagePath;
-  String?
-  parentLocationId; // For potential nested zones (Region -> City -> District)
+  String? parentLocationId;
 
   Location({
     String? id,

@@ -7,7 +7,6 @@ import '../../features/adventure/presentation/pages/adventure_editor_page.dart';
 import '../../features/adventure/presentation/pages/adventure_play_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 
-/// App Router configuration using go_router with auth redirect
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
@@ -15,12 +14,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = ref.read(isLoggedInProvider);
       final isLoggingIn = state.matchedLocation == '/login';
 
-      // If not logged in and not on login page, redirect to login
       if (!isLoggedIn && !isLoggingIn) {
         return '/login';
       }
 
-      // If logged in and on login page, redirect to home
       if (isLoggedIn && isLoggingIn) {
         return '/';
       }
@@ -48,7 +45,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Legacy appRouter for backward compatibility during migration
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [

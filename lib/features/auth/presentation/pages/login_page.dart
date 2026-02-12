@@ -5,11 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/theme/app_theme.dart';
 
-/// LoginPage - Authentication screen
-///
-/// Offers:
-/// - Google Sign-In (primary)
-/// - Guest mode (anonymous auth)
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -73,7 +68,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
                   Image.asset(
                     'assets/images/logo_quest_script.png',
                     height: 180,
@@ -81,7 +75,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Title
                   Text(
                     'Quest Script',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
@@ -98,7 +91,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                   const SizedBox(height: 48),
 
-                  // Error message
                   if (_error != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -115,11 +107,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                     ),
 
-                  // Loading indicator
                   if (_isLoading)
                     CircularProgressIndicator(color: AppTheme.secondary)
                   else ...[
-                    // Google Sign-In Button
                     SizedBox(
                       width: 280,
                       child: ElevatedButton.icon(
@@ -138,7 +128,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Guest mode
                     TextButton(
                       onPressed: _continueAsGuest,
                       child: Text(

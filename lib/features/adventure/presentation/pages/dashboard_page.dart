@@ -13,9 +13,6 @@ import '../../application/adventure_providers.dart';
 import '../../domain/adventure.dart';
 import '../../domain/campaign.dart';
 
-/// Dashboard - Main landing page
-///
-/// Shows list of adventures with ability to create new ones.
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
@@ -105,7 +102,6 @@ class DashboardPage extends ConsumerStatefulWidget {
                   if (context.mounted) {
                     Navigator.pop(context);
 
-                    // Mark as dirty
                     ref.read(unsyncedChangesProvider.notifier).state = true;
                   }
                 } else {
@@ -116,12 +112,10 @@ class DashboardPage extends ConsumerStatefulWidget {
                         description: descController.text,
                         conceptWhat: whatController.text,
                         conceptConflict: conflictController.text,
-                        // campaignId: selectedCampaignId,
                       );
                   if (context.mounted) {
                     Navigator.pop(context);
 
-                    // Mark as dirty
                     ref.read(unsyncedChangesProvider.notifier).state = true;
 
                     context.go('/adventure/${adventure.id}');
@@ -199,7 +193,6 @@ class DashboardPage extends ConsumerStatefulWidget {
                       );
                 }
 
-                // Mark as dirty
                 ref.read(unsyncedChangesProvider.notifier).state = true;
 
                 if (context.mounted) {
@@ -221,7 +214,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // Use addPostFrameCallback to safely read providers after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkInitialSync();
     });
@@ -261,7 +253,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen for auth changes (e.g. login after logout)
     ref.listen<User?>(currentUserProvider, (previous, next) {
       if (previous == null && next != null && !next.isAnonymous) {
         _performSync();
@@ -273,7 +264,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       child: Scaffold(
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            // Hero Section
             SliverToBoxAdapter(
               child: Container(
                 decoration: const BoxDecoration(
@@ -283,12 +273,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Logo/Title
                     Row(
                       children: [
                         Image.asset(
                           'assets/images/logo_quest_script.png',
-                          height: 120, // Increased from 80
+                          height: 120,
                           fit: BoxFit.contain,
                         ),
                         const SizedBox(width: 16),
@@ -309,7 +298,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                             ],
                           ),
                         ),
-                        // Account & Sync buttons
                         _AccountMenu(),
                       ],
                     ),
@@ -378,7 +366,6 @@ class _AdventuresList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final adventures = ref.watch(adventureListProvider);
 
-    // Sort by updated recently
     final sortedAdventures = List<Adventure>.from(adventures)
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
@@ -392,7 +379,7 @@ class _AdventuresList extends ConsumerWidget {
               Icon(
                 Icons.explore_outlined,
                 size: 80,
-                color: AppTheme.textMuted.withOpacity(0.3),
+                color: AppTheme.textMuted.withValues(alpha: 0.3),
               ),
               const SizedBox(height: 16),
               Text(
@@ -487,7 +474,6 @@ class _CampaignsList extends ConsumerWidget {
                       .read(campaignListProvider.notifier)
                       .delete(campaign.id);
 
-                  // Auto-sync delete
                   ref.read(syncServiceProvider).deleteCampaign(campaign.id);
                 }
               },
@@ -539,7 +525,7 @@ class _AdventureCard extends ConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: AppTheme.primaryDark.withOpacity(0.5),
+          color: AppTheme.primaryDark.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -548,7 +534,6 @@ class _AdventureCard extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Background Image or Gradient
             if (hasImage)
               ShaderMask(
                 shaderCallback: (rect) {
@@ -576,7 +561,7 @@ class _AdventureCard extends ConsumerWidget {
                     end: Alignment.bottomRight,
                     colors: [
                       AppTheme.surface,
-                      AppTheme.primaryDark.withOpacity(0.4),
+                      AppTheme.primaryDark.withValues(alpha: 0.4),
                     ],
                   ),
                 ),
@@ -584,12 +569,11 @@ class _AdventureCard extends ConsumerWidget {
                   child: Icon(
                     Icons.map,
                     size: 64,
-                    color: AppTheme.primary.withOpacity(0.1),
+                    color: AppTheme.primary.withValues(alpha: 0.1),
                   ),
                 ),
               ),
 
-            // Dark gradient overlay for text readability (bottom)
             if (!hasImage)
               Align(
                 alignment: Alignment.bottomCenter,
@@ -601,24 +585,21 @@ class _AdventureCard extends ConsumerWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.8),
+                        Colors.black.withValues(alpha: 0.8),
                       ],
                     ),
                   ),
                 ),
               ),
 
-            // Content Overlay
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Status Icon
                       if (adventure.isComplete)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -626,7 +607,7 @@ class _AdventureCard extends ConsumerWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.success.withOpacity(0.9),
+                            color: AppTheme.success.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Row(
@@ -646,7 +627,6 @@ class _AdventureCard extends ConsumerWidget {
                           ),
                         ),
                       const Spacer(),
-                      // Menu
                       PopupMenuButton<String>(
                         icon: const Icon(
                           Icons.more_vert,
@@ -706,7 +686,6 @@ class _AdventureCard extends ConsumerWidget {
                     ],
                   ),
                   const Spacer(),
-                  // Title
                   Hero(
                     tag: 'adventure_title_${adventure.id}',
                     child: Material(
@@ -731,7 +710,6 @@ class _AdventureCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  // Description / Concept
                   Text(
                     adventure.conceptWhat.isNotEmpty
                         ? adventure.conceptWhat
@@ -743,7 +721,6 @@ class _AdventureCard extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
-                  // Action Buttons
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -772,7 +749,6 @@ class _AdventureCard extends ConsumerWidget {
   }
 }
 
-/// Account menu with sync and logout options
 class _AccountMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -781,10 +757,8 @@ class _AccountMenu extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Sync button
         CloudSyncButton(),
 
-        // Account popup menu
         PopupMenuButton<String>(
           icon: CircleAvatar(
             backgroundColor: AppTheme.secondary.withValues(alpha: 0.2),

@@ -1,12 +1,6 @@
 import 'package:uuid/uuid.dart';
 
-/// Purpose types for Points of Interest
-enum RoomPurpose {
-  rest, // Safe area for players to recuperate
-  danger, // Combat or hazard
-  puzzle, // Mental challenge
-  narrative, // Story/lore discovery
-}
+enum RoomPurpose { rest, danger, puzzle, narrative }
 
 extension RoomPurposeExtension on RoomPurpose {
   String get displayName {
@@ -23,46 +17,19 @@ extension RoomPurposeExtension on RoomPurpose {
   }
 }
 
-/// A Point of Interest (room/location) on the adventure map
-///
-/// Each room follows the description pattern:
-/// 1. First Impression (senses) - what they feel/hear/smell immediately
-/// 2. The Obvious - what's impossible to miss
-/// 3. The Detail - what's discovered on investigation
 class PointOfInterest {
   String id;
   String adventureId;
-
-  /// Room number on the map
   int number;
-
   String name;
-
-  /// Room purpose (rest, danger, puzzle, narrative)
   RoomPurpose purpose;
-
-  /// What players sense immediately (smell, sound, temperature)
   String firstImpression;
-
-  /// What's impossible not to see
   String obvious;
-
-  /// What's discovered on investigation (treasures, traps)
   String detail;
-
-  /// Connected room numbers (for non-linear navigation)
   List<int> connections;
-
-  /// Loot or rewards found in the room
   String treasure;
-
-  /// IDs of Creatures/NPCs in this location
   List<String> creatureIds;
-
-  /// Image path for the location (URL or local path)
   String? imagePath;
-
-  /// The Zone/Area this POI belongs to (optional)
   String? locationId;
 
   PointOfInterest({

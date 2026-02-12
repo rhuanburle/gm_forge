@@ -25,7 +25,6 @@ class SmartNetworkImage extends StatelessWidget {
       return _buildPlaceholder();
     }
 
-    // Asset image fallback
     if (imageUrl.startsWith('assets/')) {
       return Image.asset(
         imageUrl,

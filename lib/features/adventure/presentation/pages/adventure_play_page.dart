@@ -8,7 +8,6 @@ import '../../domain/domain.dart';
 import '../widgets/smart_text_renderer.dart';
 import '../../../../core/widgets/smart_network_image.dart';
 
-// Placeholder widgets for panels
 class LocationNavigator extends ConsumerStatefulWidget {
   final String adventureId;
   const LocationNavigator({super.key, required this.adventureId});
@@ -33,14 +32,12 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
     final locations = ref.watch(locationsProvider(widget.adventureId));
     final activeState = ref.watch(activeAdventureProvider);
 
-    // Filter logic
     final filteredPois = pois.where((poi) {
       if (_searchQuery.isEmpty) return true;
       return poi.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           poi.number.toString().contains(_searchQuery);
     }).toList();
 
-    // Group by Location
     final poisByLocation = <String, List<PointOfInterest>>{};
     final orphanedPois = <PointOfInterest>[];
 
@@ -53,7 +50,6 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
       }
     }
 
-    // Sort POIs within groups
     for (final list in poisByLocation.values) {
       list.sort((a, b) => a.number.compareTo(b.number));
     }
@@ -61,7 +57,6 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
 
     return Column(
       children: [
-        // Search Header
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: TextField(
@@ -89,20 +84,16 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
           ),
         ),
 
-        // List
         Expanded(
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              // 1. Locations (Zones)
               ...locations.map((location) {
                 final locationPois = poisByLocation[location.id] ?? [];
-                // If searching and no matches in this zone, hide it
                 if (_searchQuery.isNotEmpty && locationPois.isEmpty) {
                   return const SizedBox.shrink();
                 }
 
-                // Check if any POI in this location is active to auto-expand
                 final hasActivePoi = locationPois.any(
                   (p) => p.id == activeState.currentLocationId,
                 );
@@ -122,7 +113,6 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                 );
               }),
 
-              // 2. Orphaned POIs (if any)
               if (orphanedPois.isNotEmpty) ...[
                 if (locations.isNotEmpty) ...[
                   const Padding(
@@ -155,10 +145,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
       dense: true,
       selected: isSelected,
       selectedTileColor: AppTheme.primary.withValues(alpha: 0.1),
-      contentPadding: const EdgeInsets.only(
-        left: 16,
-        right: 16,
-      ), // Indent items in ExpansionTile
+      contentPadding: const EdgeInsets.only(left: 16, right: 16),
       leading: CircleAvatar(
         radius: 12,
         backgroundColor: isSelected ? AppTheme.primary : Colors.grey.shade300,
@@ -233,7 +220,6 @@ class SceneViewer extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Text(
@@ -255,7 +241,6 @@ class SceneViewer extends ConsumerWidget {
           ),
           const Divider(height: 32),
 
-          // Image if exists
           if (location.imagePath != null && location.imagePath!.isNotEmpty) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
@@ -269,7 +254,6 @@ class SceneViewer extends ConsumerWidget {
             const SizedBox(height: 24),
           ],
 
-          // Impressions
           _SectionTitle(icon: Icons.visibility, title: 'Primeira Impressão'),
           SmartTextRenderer(
             text: location.firstImpression,
@@ -278,7 +262,6 @@ class SceneViewer extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
-          // Obvious
           _SectionTitle(icon: Icons.center_focus_strong, title: 'O Óbvio'),
           SmartTextRenderer(
             text: location.obvious,
@@ -287,7 +270,6 @@ class SceneViewer extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
-          // Details (Spoiler / Investigation)
           ExpansionTile(
             title: const Text('Detalhes & Segredos'),
             leading: const Icon(Icons.search),
@@ -327,7 +309,6 @@ class SceneViewer extends ConsumerWidget {
             ],
           ),
 
-          // Creatures Section
           if (location.creatureIds.isNotEmpty) ...[
             const SizedBox(height: 24),
             _SectionTitle(icon: Icons.pets, title: 'Criaturas & NPCs'),
@@ -349,13 +330,12 @@ class _CreatureList extends ConsumerWidget {
   const _CreatureList({required this.adventureId, required this.creatureIds});
 
   int _parseMaxHp(String stats) {
-    // Try to find HP or PV in stats string (e.g. "HP: 10", "PV 20")
     final regex = RegExp(r'(?:HP|PV|Vida)[: ]\s*(\d+)', caseSensitive: false);
     final match = regex.firstMatch(stats);
     if (match != null) {
       return int.tryParse(match.group(1) ?? '') ?? 10;
     }
-    return 10; // Default
+    return 10;
   }
 
   @override
@@ -363,7 +343,6 @@ class _CreatureList extends ConsumerWidget {
     final allCreatures = ref.watch(creaturesProvider(adventureId));
     final activeState = ref.watch(activeAdventureProvider);
 
-    // Filter creatures directly referenced by ID
     final creatures = allCreatures
         .where((c) => creatureIds.contains(c.id))
         .toList();
@@ -410,7 +389,6 @@ class _CreatureList extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    // HP Tracker
                     Row(
                       children: [
                         IconButton(
@@ -547,7 +525,6 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
       ),
       body: Row(
         children: [
-          // Left Panel: Location Navigator (25%)
           Expanded(
             flex: 3,
             child: Container(
@@ -560,7 +537,6 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
             ),
           ),
 
-          // Center Panel: Scene Viewer (75%)
           Expanded(
             flex: 9,
             child: SceneViewer(adventureId: widget.adventureId),

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class ActiveAdventureState {
   final String? currentLocationId;
   final Set<String> revealedRumors;
-  final Map<String, int> monsterHp; // creatureId -> HP
+  final Map<String, int> monsterHp;
   final List<String> eventLog;
 
   const ActiveAdventureState({
@@ -34,7 +34,7 @@ class ActiveAdventureNotifier extends StateNotifier<ActiveAdventureState> {
   void setLocation(String locationId) {
     if (state.currentLocationId != locationId) {
       state = state.copyWith(currentLocationId: locationId);
-      logEvent('Mudou para o local: $locationId'); // In real app, resolve name
+      logEvent('Mudou para o local: $locationId');
     }
   }
 

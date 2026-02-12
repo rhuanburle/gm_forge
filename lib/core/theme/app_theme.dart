@@ -1,33 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// GM Forge Design System
-///
-/// Medieval fantasy theme with dark mode and rich aesthetics.
 class AppTheme {
   AppTheme._();
 
-  // === Colors ===
+  static const Color primary = Color(0xFF8B4513);
+  static const Color primaryDark = Color(0xFF5D2E0C);
+  static const Color secondary = Color(0xFFDAA520);
+  static const Color accent = Color(0xFF9B2335);
 
-  static const Color primary = Color(0xFF8B4513); // Saddle Brown
-  static const Color primaryDark = Color(0xFF5D2E0C); // Dark Brown
-  static const Color secondary = Color(0xFFDAA520); // Goldenrod
-  static const Color accent = Color(0xFF9B2335); // Deep Red
+  static const Color background = Color(0xFF1A1A1A);
+  static const Color surface = Color(0xFF2D2D2D);
+  static const Color surfaceLight = Color(0xFF3D3D3D);
 
-  static const Color background = Color(0xFF1A1A1A); // Near Black
-  static const Color surface = Color(0xFF2D2D2D); // Dark Gray
-  static const Color surfaceLight = Color(0xFF3D3D3D); // Lighter Gray
-
-  static const Color textPrimary = Color(0xFFF5F5DC); // Beige
+  static const Color textPrimary = Color(0xFFF5F5DC);
   static const Color textSecondary = Color(0xFFB8B8A0);
   static const Color textMuted = Color(0xFF808080);
 
-  static const Color success = Color(0xFF228B22); // Forest Green
-  static const Color warning = Color(0xFFDAA520); // Goldenrod
-  static const Color error = Color(0xFF9B2335); // Deep Red
-  static const Color info = Color(0xFF4169E1); // Royal Blue
-
-  // === Gradients ===
+  static const Color success = Color(0xFF228B22);
+  static const Color warning = Color(0xFFDAA520);
+  static const Color error = Color(0xFF9B2335);
+  static const Color info = Color(0xFF4169E1);
 
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primary, primaryDark],
@@ -40,8 +33,6 @@ class AppTheme {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
-
-  // === Theme Data ===
 
   static ThemeData get darkTheme {
     return ThemeData(
@@ -170,7 +161,6 @@ class AppTheme {
 
   static TextTheme _buildTextTheme() {
     return TextTheme(
-      // Display styles - for hero sections
       displayLarge: GoogleFonts.cinzel(
         fontSize: 48,
         fontWeight: FontWeight.w700,
@@ -187,7 +177,6 @@ class AppTheme {
         color: textPrimary,
       ),
 
-      // Headlines - for page titles
       headlineLarge: GoogleFonts.cinzel(
         fontSize: 24,
         fontWeight: FontWeight.w600,
@@ -204,7 +193,6 @@ class AppTheme {
         color: textPrimary,
       ),
 
-      // Titles - for cards and sections
       titleLarge: GoogleFonts.lato(
         fontSize: 18,
         fontWeight: FontWeight.w600,
@@ -221,7 +209,6 @@ class AppTheme {
         color: textSecondary,
       ),
 
-      // Body - for content
       bodyLarge: GoogleFonts.lato(
         fontSize: 16,
         fontWeight: FontWeight.w400,
@@ -238,7 +225,6 @@ class AppTheme {
         color: textSecondary,
       ),
 
-      // Labels - for buttons and inputs
       labelLarge: GoogleFonts.lato(
         fontSize: 14,
         fontWeight: FontWeight.w600,
@@ -256,8 +242,6 @@ class AppTheme {
       ),
     );
   }
-
-  // === Decorations ===
 
   static BoxDecoration get cardDecoration => BoxDecoration(
     color: surface,

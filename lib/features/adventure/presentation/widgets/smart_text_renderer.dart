@@ -5,7 +5,6 @@ import '../../domain/creature.dart';
 import '../../domain/point_of_interest.dart';
 import '../../application/adventure_providers.dart';
 
-/// Renders text with smart links in the format [Display Name](Type:ID)
 class SmartTextRenderer extends ConsumerWidget {
   final String text;
   final String adventureId;
@@ -41,9 +40,7 @@ class SmartTextRenderer extends ConsumerWidget {
 
     int start = 0;
 
-    // Iterate through all matches
     for (final Match match in exp.allMatches(text)) {
-      // Add text before the match
       if (match.start > start) {
         spans.add(TextSpan(text: text.substring(start, match.start)));
       }
@@ -52,13 +49,11 @@ class SmartTextRenderer extends ConsumerWidget {
       final String type = match.group(2)!;
       final String id = match.group(3)!;
 
-      // Add the link
       spans.add(_createLinkSpan(context, ref, label, type, id));
 
       start = match.end;
     }
 
-    // Add remaining text
     if (start < text.length) {
       spans.add(TextSpan(text: text.substring(start)));
     }
@@ -93,10 +88,6 @@ class SmartTextRenderer extends ConsumerWidget {
         linkColor = AppTheme.secondary;
         icon = Icons.link;
     }
-
-    // Using WidgetSpan for a chip-like look, or TextSpan for a classic link look.
-    // Let's go with a styled TextSpan with icon for better flow in paragraphs,
-    // or a very small inline Container.
 
     return WidgetSpan(
       alignment: PlaceholderAlignment.middle,
@@ -229,10 +220,7 @@ class SmartTextRenderer extends ConsumerWidget {
   void _showLocationDetails(BuildContext context, WidgetRef ref, String id) {
     final pois = ref.read(pointsOfInterestProvider(adventureId));
     try {
-      // Navigate to location logic if needed
-      final poi = pois.firstWhere(
-        (p) => p.id == id,
-      ); // Searching by ID, not number
+      final poi = pois.firstWhere((p) => p.id == id);
 
       showDialog(
         context: context,
@@ -282,14 +270,10 @@ class SmartTextRenderer extends ConsumerWidget {
         ),
       );
     } catch (_) {
-      // Fallback: try to find by number if ID lookup fails (legacy support possibility)
       try {
         final number = int.tryParse(id);
         if (number != null) {
           pois.firstWhere((p) => p.number == number);
-          // Recursively call with correct ID to reuse display logic, or just copy paste?
-          // Reuse logic is better but requires refactoring. Let's just duplicated display for now or simply handle it here.
-          // Actually, let's just show an error if exact ID not found to encourage correct linking.
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Local não encontrado pelo ID')),
           );

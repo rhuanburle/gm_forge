@@ -1,9 +1,6 @@
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import '../../features/adventure/domain/domain.dart';
 
-/// Hive Database wrapper
-///
-/// Provides access to all boxes for CRUD operations.
 class HiveDatabase {
   static const String _adventuresBox = 'adventures';
   static const String _legendsBox = 'legends';
@@ -11,11 +8,10 @@ class HiveDatabase {
   static const String _eventsBox = 'random_events';
   static const String _creaturesBox = 'creatures';
   static const String _campaignsBox = 'campaigns';
-  static const String _locationsBox = 'locations'; // [NEW]
+  static const String _locationsBox = 'locations';
 
   static HiveDatabase? _instance;
 
-  /// Singleton instance
   static HiveDatabase get instance {
     if (_instance == null) {
       throw StateError('HiveDatabase not initialized. Call init() first.');
@@ -23,28 +19,24 @@ class HiveDatabase {
     return _instance!;
   }
 
-  /// Initialize the database
   static Future<HiveDatabase> init() async {
     if (_instance != null) return _instance!;
 
     await Hive.initFlutter();
 
-    // Open all boxes
     await Hive.openBox<Map>(_adventuresBox);
     await Hive.openBox<Map>(_legendsBox);
     await Hive.openBox<Map>(_poisBox);
     await Hive.openBox<Map>(_eventsBox);
     await Hive.openBox<Map>(_creaturesBox);
     await Hive.openBox<Map>(_campaignsBox);
-    await Hive.openBox<Map>(_locationsBox); // [NEW]
+    await Hive.openBox<Map>(_locationsBox);
 
     _instance = HiveDatabase._();
     return _instance!;
   }
 
   HiveDatabase._();
-
-  // === Campaigns ===
 
   Box<Map> get _campaigns => Hive.box<Map>(_campaignsBox);
 
@@ -70,8 +62,6 @@ class HiveDatabase {
   }
 
   Future<void> deleteCampaign(String id) async {
-    // Optional: Unlink adventures instead of deleting them?
-    // For now, let's just unlink them to avoid data loss.
     final campaign = getCampaign(id);
     if (campaign != null) {
       for (final adventureId in campaign.adventureIds) {
@@ -84,8 +74,6 @@ class HiveDatabase {
     }
     await _campaigns.delete(id);
   }
-
-  // === Adventures ===
 
   Box<Map> get _adventures => Hive.box<Map>(_adventuresBox);
 
@@ -111,7 +99,6 @@ class HiveDatabase {
   }
 
   Future<void> deleteAdventure(String id) async {
-    // Remove from campaign if needed
     final adventure = getAdventure(id);
     if (adventure != null && adventure.campaignId != null) {
       final campaign = getCampaign(adventure.campaignId!);
@@ -122,15 +109,12 @@ class HiveDatabase {
     }
 
     await _adventures.delete(id);
-    // Delete related entities
     await _deleteByAdventureId(_legends, id);
     await _deleteByAdventureId(_pois, id);
     await _deleteByAdventureId(_events, id);
     await _deleteByAdventureId(_creatures, id);
-    await _deleteByAdventureId(_locations, id); // [NEW]
+    await _deleteByAdventureId(_locations, id);
   }
-
-  // === Locations (Zones) ===
 
   Box<Map> get _locations => Hive.box<Map>(_locationsBox);
 
@@ -143,7 +127,6 @@ class HiveDatabase {
         locations.add(location);
       }
     }
-    // Sort by name for now, or add an order field later
     locations.sort((a, b) => a.name.compareTo(b.name));
     return locations;
   }
@@ -153,20 +136,8 @@ class HiveDatabase {
   }
 
   Future<void> deleteLocation(String id) async {
-    // When deleting a location, we might want to unlink POIs or delete them.
-    // For now, let's just make them orphaned (null locationId) or maybe we should enforce it?
-    // Let's orphaned them to be safe.
-    // However, iterating over all POIs to check locationId is expensive.
-    // Given the scale of this app, it's probably fine.
-
-    // Actually, Hive doesn't support easy querying.
-    // Let's just delete the location. POIs will still point to it but it won't exist.
-    // The UI handles null locationId.
-
     await _locations.delete(id);
   }
-
-  // === Legends ===
 
   Box<Map> get _legends => Hive.box<Map>(_legendsBox);
 
@@ -189,8 +160,6 @@ class HiveDatabase {
   Future<void> deleteLegend(String id) async {
     await _legends.delete(id);
   }
-
-  // === Points of Interest ===
 
   Box<Map> get _pois => Hive.box<Map>(_poisBox);
 
@@ -215,8 +184,6 @@ class HiveDatabase {
     await _pois.delete(id);
   }
 
-  // === Random Events ===
-
   Box<Map> get _events => Hive.box<Map>(_eventsBox);
 
   List<RandomEvent> getRandomEvents(String adventureId) {
@@ -238,8 +205,6 @@ class HiveDatabase {
   Future<void> deleteRandomEvent(String id) async {
     await _events.delete(id);
   }
-
-  // === Creatures ===
 
   Box<Map> get _creatures => Hive.box<Map>(_creaturesBox);
 
@@ -263,8 +228,6 @@ class HiveDatabase {
     await _creatures.delete(id);
   }
 
-  // === Helpers ===
-
   Future<void> _deleteByAdventureId(Box<Map> box, String adventureId) async {
     final keysToDelete = <dynamic>[];
     for (final entry in box.toMap().entries) {
@@ -278,7 +241,6 @@ class HiveDatabase {
     }
   }
 
-  /// Close all boxes
   Future<void> close() async {
     await Hive.close();
     _instance = null;

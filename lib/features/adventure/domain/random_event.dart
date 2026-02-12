@@ -1,12 +1,6 @@
 import 'package:uuid/uuid.dart';
 
-/// Event types for the random event table
-enum EventType {
-  patrol, // Enemies find player tracks
-  environment, // Environmental change (torch dies, floor shakes)
-  sound, // Distant hint of what's coming
-  calm, // Time for players to plan
-}
+enum EventType { patrol, environment, sound, calm }
 
 extension EventTypeExtension on EventType {
   String get displayName {
@@ -23,27 +17,12 @@ extension EventTypeExtension on EventType {
   }
 }
 
-/// Random Event for the "pulse" of the adventure site
-///
-/// Rolled every X turns to keep the site feeling alive:
-/// 1: Patrol - enemies find player tracks
-/// 2: Environment change - torch dies, door locks
-/// 3: Distant sound - hint without immediate combat
-/// 4-6: Calm - time for planning
 class RandomEvent {
   String id;
   String adventureId;
-
-  /// Dice range that triggers this event (e.g., "1", "2", "4-6")
   String diceRange;
-
-  /// Event type
   EventType eventType;
-
-  /// Event description
   String description;
-
-  /// Impact on the game
   String impact;
 
   RandomEvent({
