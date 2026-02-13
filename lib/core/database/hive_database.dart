@@ -1,5 +1,6 @@
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import '../../features/adventure/domain/domain.dart';
+import '../../features/adventure/domain/fact.dart';
 
 class HiveDatabase {
   static const String _adventuresBox = 'adventures';
@@ -9,6 +10,7 @@ class HiveDatabase {
   static const String _creaturesBox = 'creatures';
   static const String _campaignsBox = 'campaigns';
   static const String _locationsBox = 'locations';
+  static const String _factsBox = 'facts';
 
   static HiveDatabase? _instance;
 
@@ -31,6 +33,7 @@ class HiveDatabase {
     await Hive.openBox<Map>(_creaturesBox);
     await Hive.openBox<Map>(_campaignsBox);
     await Hive.openBox<Map>(_locationsBox);
+    await Hive.openBox<Map>(_factsBox);
 
     _instance = HiveDatabase._();
     return _instance!;
@@ -114,6 +117,7 @@ class HiveDatabase {
     await _deleteByAdventureId(_events, id);
     await _deleteByAdventureId(_creatures, id);
     await _deleteByAdventureId(_locations, id);
+    await _deleteByAdventureId(_facts, id);
   }
 
   Box<Map> get _locations => Hive.box<Map>(_locationsBox);
@@ -226,6 +230,29 @@ class HiveDatabase {
 
   Future<void> deleteCreature(String id) async {
     await _creatures.delete(id);
+  }
+
+  Box<Map> get _facts => Hive.box<Map>(_factsBox);
+
+  List<Fact> getFacts(String adventureId) {
+    final facts = <Fact>[];
+    for (final entry in _facts.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final fact = Fact.fromJson(data);
+      if (fact.adventureId == adventureId) {
+        facts.add(fact);
+      }
+    }
+    facts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return facts;
+  }
+
+  Future<void> saveFact(Fact fact) async {
+    await _facts.put(fact.id, fact.toJson());
+  }
+
+  Future<void> deleteFact(String id) async {
+    await _facts.delete(id);
   }
 
   Future<void> _deleteByAdventureId(Box<Map> box, String adventureId) async {

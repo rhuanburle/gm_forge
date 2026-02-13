@@ -29,6 +29,9 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
   late TextEditingController _dungeonMapController;
   String? _selectedCampaignId;
 
+  // Controllers for secondary conflicts
+  final List<TextEditingController> _secondaryConflictControllers = [];
+
   final _debouncer = Debouncer(milliseconds: 1000);
 
   @override
@@ -51,6 +54,13 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
     );
     _selectedCampaignId = widget.adventure.campaignId;
 
+    // Initialize secondary conflicts
+    for (final conflict in widget.adventure.conceptSecondaryConflicts) {
+      final ctrl = TextEditingController(text: conflict);
+      ctrl.addListener(_onFieldChanged);
+      _secondaryConflictControllers.add(ctrl);
+    }
+
     _nameController.addListener(_onFieldChanged);
     _descController.addListener(_onFieldChanged);
     _whatController.addListener(_onFieldChanged);
@@ -70,11 +80,33 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
     _nextHintController.dispose();
     _tagsController.dispose();
     _dungeonMapController.dispose();
+    for (final ctrl in _secondaryConflictControllers) {
+      ctrl.dispose();
+    }
     super.dispose();
   }
 
   void _onFieldChanged() {
     _debouncer.run(() => _save(silent: true));
+  }
+
+  void _addSecondaryConflict() {
+    final ctrl = TextEditingController();
+    ctrl.addListener(_onFieldChanged);
+    setState(() {
+      _secondaryConflictControllers.add(ctrl);
+    });
+    // Mark unsynced immediately or wait for text input?
+    // Better wait for text input, but adding a field technically changes nothing in the model until saved.
+    // However, if we save the list of strings, an empty string might be added.
+  }
+
+  void _removeSecondaryConflict(int index) {
+    setState(() {
+      final ctrl = _secondaryConflictControllers.removeAt(index);
+      ctrl.dispose();
+    });
+    _onFieldChanged();
   }
 
   Future<void> _save({bool silent = false}) async {
@@ -92,6 +124,11 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
+        .toList();
+
+    widget.adventure.conceptSecondaryConflicts = _secondaryConflictControllers
+        .map((c) => c.text)
+        .where((text) => text.isNotEmpty)
         .toList();
 
     await ref.read(hiveDatabaseProvider).saveAdventure(widget.adventure);
@@ -209,25 +246,87 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Qual conflito está acontecendo lá agora?',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: AppTheme.secondary),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "ex: Duas facções lutam por um artefato, uma maldição desperta, a natureza retoma as ruínas",
-                  style: Theme.of(context).textTheme.bodySmall,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Conflitos',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: AppTheme.secondary),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "O conflito principal e outros secundários.",
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _addSecondaryConflict,
+                      icon: const Icon(
+                        Icons.add_circle,
+                        color: AppTheme.primary,
+                      ),
+                      tooltip: 'Adicionar Conflito Secundário',
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 SmartTextField(
                   controller: _conflictController,
                   adventureId: widget.adventure.id,
-                  label: 'Conflito',
-                  hint: 'Descreva o conflito...',
+                  label: 'Conflito Principal',
+                  hint:
+                      'ex: Duas facções lutam por um artefato, uma maldição desperta...',
                   maxLines: 3,
                 ),
+                if (_secondaryConflictControllers.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Conflitos Secundários',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...List.generate(_secondaryConflictControllers.length, (
+                    index,
+                  ) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: SmartTextField(
+                              controller: _secondaryConflictControllers[index],
+                              adventureId: widget.adventure.id,
+                              label: 'Conflito Secundário #${index + 1}',
+                              hint: 'Outro problema acontecendo...',
+                              maxLines: 2,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete,
+                              color: AppTheme.error,
+                              size: 20,
+                            ),
+                            onPressed: () => _removeSecondaryConflict(index),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
               ],
             ),
           ),

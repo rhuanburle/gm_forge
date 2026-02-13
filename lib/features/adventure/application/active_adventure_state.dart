@@ -1,16 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../presentation/widgets/play_mode/scene_lenses.dart';
 
 class ActiveAdventureState {
   final String? currentLocationId;
   final Set<String> revealedRumors;
   final Map<String, int> monsterHp;
   final List<String> eventLog;
+  final SceneLens currentLens;
 
   const ActiveAdventureState({
     this.currentLocationId,
     this.revealedRumors = const {},
     this.monsterHp = const {},
     this.eventLog = const [],
+    this.currentLens = SceneLens.narrative,
   });
 
   ActiveAdventureState copyWith({
@@ -18,18 +21,26 @@ class ActiveAdventureState {
     Set<String>? revealedRumors,
     Map<String, int>? monsterHp,
     List<String>? eventLog,
+    SceneLens? currentLens,
   }) {
     return ActiveAdventureState(
       currentLocationId: currentLocationId ?? this.currentLocationId,
       revealedRumors: revealedRumors ?? this.revealedRumors,
       monsterHp: monsterHp ?? this.monsterHp,
       eventLog: eventLog ?? this.eventLog,
+      currentLens: currentLens ?? this.currentLens,
     );
   }
 }
 
 class ActiveAdventureNotifier extends StateNotifier<ActiveAdventureState> {
   ActiveAdventureNotifier() : super(const ActiveAdventureState());
+
+  void setLens(SceneLens lens) {
+    if (state.currentLens != lens) {
+      state = state.copyWith(currentLens: lens);
+    }
+  }
 
   void setLocation(String locationId) {
     if (state.currentLocationId != locationId) {

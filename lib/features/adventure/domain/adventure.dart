@@ -7,6 +7,7 @@ class Adventure {
 
   String conceptWhat;
   String conceptConflict;
+  List<String> conceptSecondaryConflicts;
 
   DateTime createdAt;
   DateTime updatedAt;
@@ -24,6 +25,7 @@ class Adventure {
     required this.description,
     required this.conceptWhat,
     required this.conceptConflict,
+    this.conceptSecondaryConflicts = const [],
     DateTime? createdAt,
     DateTime? updatedAt,
     this.isComplete = false,
@@ -42,6 +44,7 @@ class Adventure {
     'description': description,
     'conceptWhat': conceptWhat,
     'conceptConflict': conceptConflict,
+    'conceptSecondaryConflicts': conceptSecondaryConflicts,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
     'isComplete': isComplete,
@@ -57,6 +60,9 @@ class Adventure {
     description: json['description'] as String,
     conceptWhat: json['conceptWhat'] as String,
     conceptConflict: json['conceptConflict'] as String,
+    conceptSecondaryConflicts:
+        (json['conceptSecondaryConflicts'] as List<dynamic>?)?.cast<String>() ??
+        [],
     createdAt: DateTime.parse(json['createdAt'] as String),
     updatedAt: DateTime.parse(json['updatedAt'] as String),
     isComplete: json['isComplete'] as bool? ?? false,
@@ -71,6 +77,7 @@ class Adventure {
     String? description,
     String? conceptWhat,
     String? conceptConflict,
+    List<String>? conceptSecondaryConflicts,
     bool? isComplete,
     List<String>? tags,
     String? campaignId,
@@ -82,6 +89,8 @@ class Adventure {
     description: description ?? this.description,
     conceptWhat: conceptWhat ?? this.conceptWhat,
     conceptConflict: conceptConflict ?? this.conceptConflict,
+    conceptSecondaryConflicts:
+        conceptSecondaryConflicts ?? this.conceptSecondaryConflicts,
     createdAt: createdAt,
     updatedAt: DateTime.now(),
     isComplete: isComplete ?? this.isComplete,

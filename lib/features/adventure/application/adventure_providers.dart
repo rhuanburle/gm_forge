@@ -55,6 +55,11 @@ final locationsProvider = Provider.family<List<Location>, String>((
   return db.getLocations(adventureId);
 });
 
+final factsProvider = Provider.family<List<Fact>, String>((ref, adventureId) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getFacts(adventureId);
+});
+
 class AdventureListNotifier extends Notifier<List<Adventure>> {
   @override
   List<Adventure> build() {
