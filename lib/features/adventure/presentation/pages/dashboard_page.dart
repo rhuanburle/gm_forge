@@ -313,6 +313,70 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withValues(alpha: 0.1),
+                        border: Border.all(
+                          color: AppTheme.warning.withValues(alpha: 0.5),
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: AppTheme.warning,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Modo Protótipo',
+                                  style: Theme.of(context).textTheme.labelLarge
+                                      ?.copyWith(
+                                        color: AppTheme.warning,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                RichText(
+                                  text: TextSpan(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: AppTheme.warning),
+                                    children: [
+                                      const TextSpan(
+                                        text:
+                                            'Este aplicativo é um protótipo. Lembre-se de salvar suas alterações manualmente clicando no ícone de nuvem ',
+                                      ),
+                                      const WidgetSpan(
+                                        child: Icon(
+                                          Icons.cloud_upload,
+                                          size: 18,
+                                          color: AppTheme.warning,
+                                        ),
+                                      ),
+                                      const TextSpan(
+                                        text:
+                                            ' no canto superior direito. O salvamento automático não está ativo.',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Row(
                       children: [
                         Image.asset(

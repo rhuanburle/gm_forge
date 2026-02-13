@@ -7,6 +7,7 @@ import 'core/database/hive_database.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
+import 'core/widgets/mobile_warning_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,9 @@ class QuestScriptApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: ref.watch(appRouterProvider),
+      builder: (context, child) {
+        return MobileWarningWrapper(child: child!);
+      },
     );
   }
 }
