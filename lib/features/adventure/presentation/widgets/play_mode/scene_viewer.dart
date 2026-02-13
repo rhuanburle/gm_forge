@@ -74,9 +74,19 @@ class SceneViewer extends ConsumerWidget {
                 child: Text(
                   location.name,
                   style: Theme.of(context).textTheme.headlineMedium,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Chip(label: Text(location.purpose.displayName)),
+              const SizedBox(width: 8),
+              Chip(
+                label: Text(
+                  location.purpose.displayName,
+                  style: const TextStyle(fontSize: 10),
+                ),
+                padding: EdgeInsets.zero,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ],
           ),
           const Divider(height: 32),

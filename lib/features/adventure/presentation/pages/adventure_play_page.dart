@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../application/adventure_providers.dart';
 import '../widgets/play_mode/location_navigator.dart';
+import '../../application/active_adventure_state.dart';
+import '../../domain/domain.dart';
 import '../widgets/play_mode/scene_viewer.dart';
+import '../widgets/play_mode/dm_tools_sidebar.dart';
 
 class AdventurePlayPage extends ConsumerStatefulWidget {
   final String adventureId;
@@ -17,8 +20,42 @@ class AdventurePlayPage extends ConsumerStatefulWidget {
 
 class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initSelection();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Clear state when leaving the screen
+    ref.read(activeAdventureProvider.notifier).clear();
+    super.dispose();
+  }
+
+  void _initSelection() {
+    final activeState = ref.read(activeAdventureProvider);
+    if (activeState.currentLocationId != null) return;
+
+    final pois = ref.read(pointsOfInterestProvider(widget.adventureId));
+    if (pois.isNotEmpty) {
+      // Sort to find the "first" logical location (usually #1 or lowest number)
+      final sortedPois = List<PointOfInterest>.from(pois)
+        ..sort((a, b) => a.number.compareTo(b.number));
+
+      ref
+          .read(activeAdventureProvider.notifier)
+          .setLocation(sortedPois.first.id);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Watch to ensure we have data, but selection logic is one-off in initState/callback
     final adventure = ref.watch(adventureProvider(widget.adventureId));
+
+    // ... rest of build
 
     return Scaffold(
       appBar: AppBar(
@@ -27,7 +64,7 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
           child: Material(
             color: Colors.transparent,
             child: Text(
-              adventure?.name ?? 'Aventura ...',
+              'Escudo do Mestre: ${adventure?.name ?? ""}',
               style: Theme.of(context).appBarTheme.titleTextStyle,
             ),
           ),
@@ -42,12 +79,7 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showEventRoll(context),
-        backgroundColor: AppTheme.secondary,
-        child: const Icon(Icons.casino),
-        tooltip: 'Rolar Evento (d66)',
-      ),
+
       body: Row(
         children: [
           Expanded(
@@ -63,53 +95,10 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
           ),
 
           Expanded(
-            flex: 9,
+            flex: 7,
             child: SceneViewer(adventureId: widget.adventureId),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showEventRoll(BuildContext context) {
-    final d1 = (DateTime.now().millisecondsSinceEpoch % 6) + 1;
-    final d2 = (DateTime.now().microsecondsSinceEpoch % 6) + 1;
-    final result = int.parse('$d1$d2');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.casino, color: AppTheme.primary),
-            SizedBox(width: 8),
-            Text('Evento Aleatório (d66)'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$result',
-              style: const TextStyle(
-                fontSize: 64,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Consulte a tabela de eventos na aba "Eventos".',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
+          const DMToolsSidebar(),
         ],
       ),
     );

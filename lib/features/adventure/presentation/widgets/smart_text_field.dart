@@ -161,7 +161,16 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
       cursor = text.length;
     }
 
-    final String replacement = '[$name]($type:$id) ';
+    String replacement;
+    if (type == 'Creature') {
+      replacement = '[@$name] ';
+    } else if (type == 'Location') {
+      replacement = '[#$name] ';
+    } else if (type == 'Fact') {
+      replacement = '[!$name] ';
+    } else {
+      replacement = '[$name] ';
+    }
     final newText = text.replaceRange(startIndex, cursor, replacement);
 
     _controller.text = newText;

@@ -36,96 +36,136 @@ class DashboardPage extends ConsumerStatefulWidget {
       text: adventureToEdit?.conceptConflict,
     );
 
+    // Campaign handling
+    final campaigns = ref.read(campaignListProvider);
+    String? selectedCampaignId = adventureToEdit?.campaignId;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isEditing ? 'Editar Aventura' : 'Criar Nova Aventura'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome da Aventura',
-                  hintText: 'ex: O Templo Submerso',
-                ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text(isEditing ? 'Editar Aventura' : 'Criar Nova Aventura'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome da Aventura',
+                      hintText: 'ex: O Templo Submerso',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descController,
+                    decoration: const InputDecoration(
+                      labelText: 'Descrição',
+                      hintText: 'Breve visão geral...',
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
+                  if (campaigns.isNotEmpty) ...[
+                    DropdownButtonFormField<String>(
+                      value: selectedCampaignId,
+                      decoration: const InputDecoration(
+                        labelText: 'Campanha (Opcional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Nenhuma'),
+                        ),
+                        ...campaigns.map(
+                          (c) => DropdownMenuItem(
+                            value: c.id,
+                            child: Text(
+                              c.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCampaignId = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  TextField(
+                    controller: whatController,
+                    decoration: const InputDecoration(
+                      labelText: 'Qual é o local?',
+                      hintText: 'ex: Um templo submerso sob o lago',
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: conflictController,
+                    decoration: const InputDecoration(
+                      labelText: 'Qual conflito está acontecendo?',
+                      hintText: 'ex: Duas facções lutam por um artefato antigo',
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descController,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição',
-                  hintText: 'Breve visão geral...',
-                ),
-                maxLines: 2,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: whatController,
-                decoration: const InputDecoration(
-                  labelText: 'Qual é o local?',
-                  hintText: 'ex: Um templo submerso sob o lago',
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: conflictController,
-                decoration: const InputDecoration(
-                  labelText: 'Qual conflito está acontecendo?',
-                  hintText: 'ex: Duas facções lutam por um artefato antigo',
-                ),
-                maxLines: 2,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isNotEmpty) {
-                if (isEditing) {
-                  final updatedAdventure = adventureToEdit.copyWith(
-                    name: nameController.text,
-                    description: descController.text,
-                    conceptWhat: whatController.text,
-                    conceptConflict: conflictController.text,
-                  );
-                  await ref
-                      .read(adventureListProvider.notifier)
-                      .update(updatedAdventure);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-
-                    ref.read(unsyncedChangesProvider.notifier).state = true;
-                  }
-                } else {
-                  final adventure = await ref
-                      .read(adventureListProvider.notifier)
-                      .create(
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameController.text.isNotEmpty) {
+                    if (isEditing) {
+                      final updatedAdventure = adventureToEdit.copyWith(
                         name: nameController.text,
                         description: descController.text,
                         conceptWhat: whatController.text,
                         conceptConflict: conflictController.text,
+                        campaignId: selectedCampaignId,
                       );
-                  if (context.mounted) {
-                    Navigator.pop(context);
+                      await ref
+                          .read(adventureListProvider.notifier)
+                          .update(updatedAdventure);
+                      if (context.mounted) {
+                        Navigator.pop(context);
 
-                    ref.read(unsyncedChangesProvider.notifier).state = true;
+                        ref.read(unsyncedChangesProvider.notifier).state = true;
+                      }
+                    } else {
+                      final adventure = await ref
+                          .read(adventureListProvider.notifier)
+                          .create(
+                            name: nameController.text,
+                            description: descController.text,
+                            conceptWhat: whatController.text,
+                            conceptConflict: conflictController.text,
+                            campaignId: selectedCampaignId,
+                          );
+                      if (context.mounted) {
+                        Navigator.pop(context);
 
-                    context.go('/adventure/${adventure.id}');
+                        ref.read(unsyncedChangesProvider.notifier).state = true;
+
+                        context.go('/adventure/${adventure.id}');
+                      }
+                    }
                   }
-                }
-              }
-            },
-            child: Text(isEditing ? 'Salvar' : 'Criar'),
-          ),
-        ],
+                },
+                child: Text(isEditing ? 'Salvar' : 'Criar'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -725,7 +765,7 @@ class _AdventureCard extends ConsumerWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.play_arrow),
-                      label: const Text('JOGAR'),
+                      label: const Text('ESCUDO DO MESTRE'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.secondary,
                         foregroundColor: AppTheme.background,

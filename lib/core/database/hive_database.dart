@@ -97,6 +97,31 @@ class HiveDatabase {
   }
 
   Future<void> saveAdventure(Adventure adventure) async {
+    // Handle campaign relationship
+    final oldAdventure = getAdventure(adventure.id);
+
+    // 1. If campaign changed, remove from old campaign
+    if (oldAdventure != null &&
+        oldAdventure.campaignId != null &&
+        oldAdventure.campaignId != adventure.campaignId) {
+      final oldCampaign = getCampaign(oldAdventure.campaignId!);
+      if (oldCampaign != null) {
+        oldCampaign.adventureIds.remove(adventure.id);
+        await saveCampaign(oldCampaign);
+      }
+    }
+
+    // 2. Add to new campaign if needed
+    if (adventure.campaignId != null) {
+      final newCampaign = getCampaign(adventure.campaignId!);
+      if (newCampaign != null) {
+        if (!newCampaign.adventureIds.contains(adventure.id)) {
+          newCampaign.adventureIds.add(adventure.id);
+          await saveCampaign(newCampaign);
+        }
+      }
+    }
+
     adventure.updatedAt = DateTime.now();
     await _adventures.put(adventure.id, adventure.toJson());
   }
