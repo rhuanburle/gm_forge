@@ -1,21 +1,38 @@
 import 'package:uuid/uuid.dart';
 
 class Location {
-  String id;
-  String adventureId;
-  String name;
-  String description;
-  String? imagePath;
-  String? parentLocationId;
+  final String id;
+  final String adventureId;
+  final String name;
+  final String description;
+  final String? imagePath;
+  final String? parentLocationId;
 
-  Location({
-    String? id,
+  const Location({
+    required this.id,
     required this.adventureId,
     required this.name,
     this.description = '',
     this.imagePath,
     this.parentLocationId,
-  }) : id = id ?? const Uuid().v4();
+  });
+
+  factory Location.create({
+    required String adventureId,
+    required String name,
+    String description = '',
+    String? imagePath,
+    String? parentLocationId,
+  }) {
+    return Location(
+      id: const Uuid().v4(),
+      adventureId: adventureId,
+      name: name,
+      description: description,
+      imagePath: imagePath,
+      parentLocationId: parentLocationId,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

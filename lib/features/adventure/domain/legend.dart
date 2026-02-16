@@ -1,17 +1,17 @@
 import 'package:uuid/uuid.dart';
 
 class Legend {
-  String id;
-  String adventureId;
-  String text;
-  bool isTrue;
-  String? source;
-  String diceResult;
-  String? relatedCreatureId;
-  String? relatedLocationId;
+  final String id;
+  final String adventureId;
+  final String text;
+  final bool isTrue;
+  final String? source;
+  final String diceResult;
+  final String? relatedCreatureId;
+  final String? relatedLocationId;
 
-  Legend({
-    String? id,
+  const Legend({
+    required this.id,
     required this.adventureId,
     required this.text,
     required this.isTrue,
@@ -19,7 +19,28 @@ class Legend {
     required this.diceResult,
     this.relatedCreatureId,
     this.relatedLocationId,
-  }) : id = id ?? const Uuid().v4();
+  });
+
+  factory Legend.create({
+    required String adventureId,
+    required String text,
+    required bool isTrue,
+    String? source,
+    required String diceResult,
+    String? relatedCreatureId,
+    String? relatedLocationId,
+  }) {
+    return Legend(
+      id: const Uuid().v4(),
+      adventureId: adventureId,
+      text: text,
+      isTrue: isTrue,
+      source: source,
+      diceResult: diceResult,
+      relatedCreatureId: relatedCreatureId,
+      relatedLocationId: relatedLocationId,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

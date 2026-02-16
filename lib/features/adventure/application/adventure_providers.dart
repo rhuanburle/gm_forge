@@ -78,7 +78,7 @@ class AdventureListNotifier extends Notifier<List<Adventure>> {
     String? campaignId,
   }) async {
     final db = ref.read(hiveDatabaseProvider);
-    final adventure = Adventure(
+    final adventure = Adventure.create(
       name: name,
       description: description,
       conceptWhat: conceptWhat,
@@ -123,7 +123,7 @@ class CampaignListNotifier extends Notifier<List<Campaign>> {
     required String description,
   }) async {
     final db = ref.read(hiveDatabaseProvider);
-    final campaign = Campaign(name: name, description: description);
+    final campaign = Campaign.create(name: name, description: description);
     await db.saveCampaign(campaign);
     refresh();
     return campaign;

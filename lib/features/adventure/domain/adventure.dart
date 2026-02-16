@@ -1,42 +1,64 @@
 import 'package:uuid/uuid.dart';
 
 class Adventure {
-  String id;
-  String name;
-  String description;
+  final String id;
+  final String name;
+  final String description;
 
-  String conceptWhat;
-  String conceptConflict;
-  List<String> conceptSecondaryConflicts;
+  final String conceptWhat;
+  final String conceptConflict;
+  final List<String> conceptSecondaryConflicts;
 
-  DateTime createdAt;
-  DateTime updatedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
-  bool isComplete;
+  final bool isComplete;
 
-  List<String> tags;
-  String? campaignId;
-  String? nextAdventureHint;
-  String? dungeonMapPath;
+  final List<String> tags;
+  final String? campaignId;
+  final String? nextAdventureHint;
+  final String? dungeonMapPath;
 
-  Adventure({
-    String? id,
+  const Adventure({
+    required this.id,
     required this.name,
     required this.description,
     required this.conceptWhat,
     required this.conceptConflict,
     this.conceptSecondaryConflicts = const [],
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    required this.createdAt,
+    required this.updatedAt,
     this.isComplete = false,
-    List<String>? tags,
+    this.tags = const [],
     this.campaignId,
     this.nextAdventureHint,
     this.dungeonMapPath,
-  }) : id = id ?? const Uuid().v4(),
-       createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now(),
-       tags = tags ?? [];
+  });
+
+  factory Adventure.create({
+    required String name,
+    required String description,
+    required String conceptWhat,
+    required String conceptConflict,
+    List<String> conceptSecondaryConflicts = const [],
+    String? campaignId,
+    String? nextAdventureHint,
+    String? dungeonMapPath,
+  }) {
+    return Adventure(
+      id: const Uuid().v4(),
+      name: name,
+      description: description,
+      conceptWhat: conceptWhat,
+      conceptConflict: conceptConflict,
+      conceptSecondaryConflicts: conceptSecondaryConflicts,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      campaignId: campaignId,
+      nextAdventureHint: nextAdventureHint,
+      dungeonMapPath: dungeonMapPath,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -81,8 +103,10 @@ class Adventure {
     bool? isComplete,
     List<String>? tags,
     String? campaignId,
+    bool clearCampaignId = false,
     String? nextAdventureHint,
     String? dungeonMapPath,
+    DateTime? updatedAt,
   }) => Adventure(
     id: id,
     name: name ?? this.name,
@@ -92,10 +116,10 @@ class Adventure {
     conceptSecondaryConflicts:
         conceptSecondaryConflicts ?? this.conceptSecondaryConflicts,
     createdAt: createdAt,
-    updatedAt: DateTime.now(),
+    updatedAt: updatedAt ?? this.updatedAt,
     isComplete: isComplete ?? this.isComplete,
     tags: tags ?? this.tags,
-    campaignId: campaignId ?? this.campaignId,
+    campaignId: clearCampaignId ? null : (campaignId ?? this.campaignId),
     nextAdventureHint: nextAdventureHint ?? this.nextAdventureHint,
     dungeonMapPath: dungeonMapPath ?? this.dungeonMapPath,
   );

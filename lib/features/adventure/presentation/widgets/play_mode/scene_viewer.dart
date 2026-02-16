@@ -41,7 +41,7 @@ class SceneViewer extends ConsumerWidget {
 
     final location = pois.firstWhere(
       (p) => p.id == activeState.currentLocationId,
-      orElse: () => PointOfInterest(
+      orElse: () => PointOfInterest.create(
         adventureId: adventureId,
         number: 0,
         name: 'Local Desconhecido',
@@ -129,7 +129,7 @@ class SceneViewer extends ConsumerWidget {
             title: const Text('Detalhes & Segredos'),
             leading: const Icon(Icons.search),
             childrenPadding: const EdgeInsets.all(16),
-            backgroundColor: Colors.black.withOpacity(0.02),
+            backgroundColor: Colors.black.withValues(alpha: 0.02),
             children: [
               Align(
                 alignment: Alignment.topLeft,
@@ -200,7 +200,7 @@ class SceneViewer extends ConsumerWidget {
               children: location.connections.map((connNumber) {
                 final target = pois.firstWhere(
                   (p) => p.number == connNumber,
-                  orElse: () => PointOfInterest(
+                  orElse: () => PointOfInterest.create(
                     adventureId: adventureId,
                     number: connNumber,
                     name: 'Desconhecido',
@@ -212,7 +212,7 @@ class SceneViewer extends ConsumerWidget {
                 return ActionChip(
                   avatar: CircleAvatar(
                     radius: 10,
-                    backgroundColor: AppTheme.primary.withOpacity(0.2),
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                     child: Text(
                       '$connNumber',
                       style: const TextStyle(
@@ -460,9 +460,11 @@ class _FactList extends ConsumerWidget {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Text(fact.content, style: const TextStyle(fontSize: 12)),
               );

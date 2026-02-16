@@ -110,28 +110,29 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
   }
 
   Future<void> _save({bool silent = false}) async {
-    widget.adventure.name = _nameController.text;
-    widget.adventure.description = _descController.text;
-    widget.adventure.conceptWhat = _whatController.text;
-    widget.adventure.conceptConflict = _conflictController.text;
-    widget.adventure.nextAdventureHint = _nextHintController.text;
-    widget.adventure.dungeonMapPath = _dungeonMapController.text.isEmpty
-        ? null
-        : _dungeonMapController.text;
-    widget.adventure.campaignId = _selectedCampaignId;
+    final updatedAdventure = widget.adventure.copyWith(
+      name: _nameController.text,
+      description: _descController.text,
+      conceptWhat: _whatController.text,
+      conceptConflict: _conflictController.text,
+      nextAdventureHint: _nextHintController.text,
+      dungeonMapPath: _dungeonMapController.text.isEmpty
+          ? null
+          : _dungeonMapController.text,
+      campaignId: _selectedCampaignId,
+      clearCampaignId: _selectedCampaignId == null,
+      tags: _tagsController.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      conceptSecondaryConflicts: _secondaryConflictControllers
+          .map((c) => c.text)
+          .where((text) => text.isNotEmpty)
+          .toList(),
+    );
 
-    widget.adventure.tags = _tagsController.text
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-
-    widget.adventure.conceptSecondaryConflicts = _secondaryConflictControllers
-        .map((c) => c.text)
-        .where((text) => text.isNotEmpty)
-        .toList();
-
-    await ref.read(hiveDatabaseProvider).saveAdventure(widget.adventure);
+    await ref.read(hiveDatabaseProvider).saveAdventure(updatedAdventure);
     ref.read(adventureListProvider.notifier).refresh();
 
     final user = ref.read(authServiceProvider).currentUser;

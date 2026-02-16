@@ -46,7 +46,7 @@ class LensSelector extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: SceneLens.values.map((lens) {
@@ -59,11 +59,13 @@ class LensSelector extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppTheme.primary.withOpacity(0.1)
+                      ? AppTheme.primary.withValues(alpha: 0.1)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: isSelected
-                      ? Border.all(color: AppTheme.primary.withOpacity(0.5))
+                      ? Border.all(
+                          color: AppTheme.primary.withValues(alpha: 0.5),
+                        )
                       : null,
                 ),
                 child: Column(

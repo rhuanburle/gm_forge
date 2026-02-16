@@ -10,17 +10,24 @@ import '../../features/adventure/domain/creature.dart';
 import '../../features/adventure/domain/legend.dart';
 import '../../features/adventure/domain/point_of_interest.dart';
 import '../../features/adventure/domain/random_event.dart';
+import '../../features/adventure/domain/location.dart';
+import '../../features/adventure/domain/fact.dart';
 
 class SyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final HiveDatabase _hiveDb;
   final String? _userId;
+  final bool _isAnonymous;
 
-  SyncService({required HiveDatabase hiveDb, required String? userId})
-    : _hiveDb = hiveDb,
-      _userId = userId;
+  SyncService({
+    required HiveDatabase hiveDb,
+    required String? userId,
+    bool isAnonymous = false,
+  }) : _hiveDb = hiveDb,
+       _userId = userId,
+       _isAnonymous = isAnonymous;
 
-  bool get _isAuthenticated => _userId != null;
+  bool get _isAuthenticated => _userId != null && !_isAnonymous;
 
   CollectionReference<Map<String, dynamic>> get _adventuresRef =>
       _firestore.collection('users').doc(_userId).collection('adventures');
@@ -38,6 +45,8 @@ class SyncService {
     final creatures = _hiveDb.getCreatures(adventureId);
     final legends = _hiveDb.getLegends(adventureId);
     final events = _hiveDb.getRandomEvents(adventureId);
+    final locations = _hiveDb.getLocations(adventureId);
+    final facts = _hiveDb.getFacts(adventureId);
 
     final payload = {
       'adventure': adventure.toJson(),
@@ -45,6 +54,8 @@ class SyncService {
       'creatures': creatures.map((c) => c.toJson()).toList(),
       'legends': legends.map((l) => l.toJson()).toList(),
       'events': events.map((e) => e.toJson()).toList(),
+      'locations': locations.map((l) => l.toJson()).toList(),
+      'facts': facts.map((f) => f.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
       'version': 1,
     };
@@ -63,6 +74,8 @@ class SyncService {
       final creatures = _hiveDb.getCreatures(adventure.id);
       final legends = _hiveDb.getLegends(adventure.id);
       final events = _hiveDb.getRandomEvents(adventure.id);
+      final locations = _hiveDb.getLocations(adventure.id);
+      final facts = _hiveDb.getFacts(adventure.id);
 
       final payload = {
         'adventure': adventure.toJson(),
@@ -70,6 +83,8 @@ class SyncService {
         'creatures': creatures.map((c) => c.toJson()).toList(),
         'legends': legends.map((l) => l.toJson()).toList(),
         'events': events.map((e) => e.toJson()).toList(),
+        'locations': locations.map((l) => l.toJson()).toList(),
+        'facts': facts.map((f) => f.toJson()).toList(),
         'updatedAt': FieldValue.serverTimestamp(),
         'version': 1,
       };
@@ -156,6 +171,18 @@ class SyncService {
       await _hiveDb.saveRandomEvent(event);
     }
 
+    final locationsJson = data['locations'] as List<dynamic>? ?? [];
+    for (final locationJson in locationsJson) {
+      final location = Location.fromJson(locationJson as Map<String, dynamic>);
+      await _hiveDb.saveLocation(location);
+    }
+
+    final factsJson = data['facts'] as List<dynamic>? ?? [];
+    for (final factJson in factsJson) {
+      final fact = Fact.fromJson(factJson as Map<String, dynamic>);
+      await _hiveDb.saveFact(fact);
+    }
+
     return true;
   }
 
@@ -199,7 +226,11 @@ class SyncService {
 final syncServiceProvider = Provider<SyncService>((ref) {
   final hiveDb = ref.watch(hiveDatabaseProvider);
   final user = ref.watch(currentUserProvider);
-  return SyncService(hiveDb: hiveDb, userId: user?.uid);
+  return SyncService(
+    hiveDb: hiveDb,
+    userId: user?.uid,
+    isAnonymous: user?.isAnonymous ?? false,
+  );
 });
 
 final syncStatusProvider = StateProvider<SyncStatus>((ref) => SyncStatus.idle);

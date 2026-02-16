@@ -172,6 +172,7 @@ class LegendsTab extends ConsumerWidget {
     );
     bool isTrue = legendToEdit?.isTrue ?? true;
     String? selectedCreatureId = legendToEdit?.relatedCreatureId;
+    String? selectedLocationId = legendToEdit?.relatedLocationId;
     final creatures = ref.read(creaturesProvider(adventureId));
 
     showDialog(
@@ -210,7 +211,7 @@ class LegendsTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String?>(
-                  initialValue: legendToEdit?.relatedLocationId,
+                  initialValue: selectedLocationId,
                   decoration: const InputDecoration(
                     labelText: 'Relacionado a Local (Opcional)',
                     hintText: 'Selecione um local...',
@@ -229,8 +230,7 @@ class LegendsTab extends ConsumerWidget {
                           ),
                         ),
                   ],
-                  onChanged: (v) =>
-                      setState(() => legendToEdit?.relatedLocationId = v),
+                  onChanged: (v) => setState(() => selectedLocationId = v),
                 ),
                 const SizedBox(height: 16),
                 SmartTextField(
@@ -281,12 +281,13 @@ class LegendsTab extends ConsumerWidget {
                           : sourceController.text,
                       diceResult: diceController.text,
                       relatedCreatureId: selectedCreatureId,
+                      relatedLocationId: selectedLocationId,
                     );
                     await ref
                         .read(hiveDatabaseProvider)
                         .saveLegend(updatedLegend);
                   } else {
-                    final legend = Legend(
+                    final legend = Legend.create(
                       adventureId: adventureId,
                       text: textController.text,
                       isTrue: isTrue,
@@ -295,6 +296,7 @@ class LegendsTab extends ConsumerWidget {
                           : sourceController.text,
                       diceResult: diceController.text,
                       relatedCreatureId: selectedCreatureId,
+                      relatedLocationId: selectedLocationId,
                     );
                     await ref.read(hiveDatabaseProvider).saveLegend(legend);
                   }

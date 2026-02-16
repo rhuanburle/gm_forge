@@ -264,7 +264,7 @@ class CreaturesTab extends ConsumerWidget {
                         .read(hiveDatabaseProvider)
                         .saveCreature(updatedCreature);
                   } else {
-                    final creature = Creature(
+                    final creature = Creature.create(
                       adventureId: adventureId,
                       name: nameController.text,
                       description: descController.text,

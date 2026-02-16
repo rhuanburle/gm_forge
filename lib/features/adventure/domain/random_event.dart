@@ -18,21 +18,38 @@ extension EventTypeExtension on EventType {
 }
 
 class RandomEvent {
-  String id;
-  String adventureId;
-  String diceRange;
-  EventType eventType;
-  String description;
-  String impact;
+  final String id;
+  final String adventureId;
+  final String diceRange;
+  final EventType eventType;
+  final String description;
+  final String impact;
 
-  RandomEvent({
-    String? id,
+  const RandomEvent({
+    required this.id,
     required this.adventureId,
     required this.diceRange,
     this.eventType = EventType.calm,
     required this.description,
     required this.impact,
-  }) : id = id ?? const Uuid().v4();
+  });
+
+  factory RandomEvent.create({
+    required String adventureId,
+    required String diceRange,
+    EventType eventType = EventType.calm,
+    required String description,
+    required String impact,
+  }) {
+    return RandomEvent(
+      id: const Uuid().v4(),
+      adventureId: adventureId,
+      diceRange: diceRange,
+      eventType: eventType,
+      description: description,
+      impact: impact,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

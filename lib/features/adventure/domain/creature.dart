@@ -14,19 +14,19 @@ extension CreatureTypeExtension on CreatureType {
 }
 
 class Creature {
-  String id;
-  String adventureId;
-  String name;
-  CreatureType type;
-  String description;
-  String motivation;
-  String losingBehavior;
-  String? location;
-  String stats;
-  String? imagePath;
+  final String id;
+  final String adventureId;
+  final String name;
+  final CreatureType type;
+  final String description;
+  final String motivation;
+  final String losingBehavior;
+  final String? location;
+  final String stats;
+  final String? imagePath;
 
-  Creature({
-    String? id,
+  const Creature({
+    required this.id,
     required this.adventureId,
     required this.name,
     this.type = CreatureType.monster,
@@ -36,7 +36,32 @@ class Creature {
     this.location,
     this.stats = '',
     this.imagePath,
-  }) : id = id ?? const Uuid().v4();
+  });
+
+  factory Creature.create({
+    required String adventureId,
+    required String name,
+    CreatureType type = CreatureType.monster,
+    required String description,
+    required String motivation,
+    required String losingBehavior,
+    String? location,
+    String stats = '',
+    String? imagePath,
+  }) {
+    return Creature(
+      id: const Uuid().v4(),
+      adventureId: adventureId,
+      name: name,
+      type: type,
+      description: description,
+      motivation: motivation,
+      losingBehavior: losingBehavior,
+      location: location,
+      stats: stats,
+      imagePath: imagePath,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

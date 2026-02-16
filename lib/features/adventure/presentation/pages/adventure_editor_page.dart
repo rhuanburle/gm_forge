@@ -101,8 +101,12 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
                 ? 'Marcar como incompleta'
                 : 'Marcar como completa',
             onPressed: () async {
-              adventure.isComplete = !adventure.isComplete;
-              await ref.read(hiveDatabaseProvider).saveAdventure(adventure);
+              final updatedAdventure = adventure.copyWith(
+                isComplete: !adventure.isComplete,
+              );
+              await ref
+                  .read(hiveDatabaseProvider)
+                  .saveAdventure(updatedAdventure);
               ref.read(adventureListProvider.notifier).refresh();
               ref.invalidate(adventureProvider(widget.adventureId));
             },

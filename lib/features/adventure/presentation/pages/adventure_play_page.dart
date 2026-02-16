@@ -87,7 +87,7 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
-                  right: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                  right: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
                 ),
               ),
               child: LocationNavigator(adventureId: widget.adventureId),

@@ -51,7 +51,9 @@ class _DMToolsSidebarState extends State<DMToolsSidebar> {
       width: 250,
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        border: Border(left: BorderSide(color: Colors.grey.withOpacity(0.2))),
+        border: Border(
+          left: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+        ),
       ),
       child: Column(
         children: [

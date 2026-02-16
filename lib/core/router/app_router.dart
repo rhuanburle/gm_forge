@@ -9,10 +9,11 @@ import '../../features/adventure/presentation/pages/adventure_play_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authStateProvider);
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      final isLoggedIn = ref.read(isLoggedInProvider);
+      final isLoggedIn = authState.valueOrNull != null;
       final isLoggingIn = state.matchedLocation == '/login';
 
       if (!isLoggedIn && !isLoggingIn) {
@@ -53,33 +54,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-final appRouter = GoRouter(
-  initialLocation: '/',
-  routes: [
-    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(path: '/', builder: (context, state) => const DashboardPage()),
-    GoRoute(
-      path: '/adventure/:id',
-      builder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
-        return AdventureEditorPage(adventureId: id);
-      },
-    ),
-    GoRoute(
-      path: '/adventure/:id/location/:locationId',
-      builder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
-        final locationId = state.pathParameters['locationId'] ?? '';
-        return LocationEditorPage(adventureId: id, locationId: locationId);
-      },
-    ),
-    GoRoute(
-      path: '/adventure/play/:id',
-      builder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
-        return AdventurePlayPage(adventureId: id);
-      },
-    ),
-  ],
-);

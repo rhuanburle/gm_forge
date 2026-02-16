@@ -295,8 +295,9 @@ class _SuggestionList extends ConsumerWidget {
           .where((l) => l.name.toLowerCase().contains(lowerQuery))
           .toList();
 
-      if (filteredPois.isEmpty && filteredLocations.isEmpty)
+      if (filteredPois.isEmpty && filteredLocations.isEmpty) {
         return _emptyState();
+      }
 
       return ListView(
         padding: EdgeInsets.zero,

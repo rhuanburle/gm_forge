@@ -324,7 +324,7 @@ class SmartTextRenderer extends ConsumerWidget {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.lightbulb, color: AppTheme.secondary),
               const SizedBox(width: 8),

@@ -18,22 +18,22 @@ extension RoomPurposeExtension on RoomPurpose {
 }
 
 class PointOfInterest {
-  String id;
-  String adventureId;
-  int number;
-  String name;
-  RoomPurpose purpose;
-  String firstImpression;
-  String obvious;
-  String detail;
-  List<int> connections;
-  String treasure;
-  List<String> creatureIds;
-  String? imagePath;
-  String? locationId;
+  final String id;
+  final String adventureId;
+  final int number;
+  final String name;
+  final RoomPurpose purpose;
+  final String firstImpression;
+  final String obvious;
+  final String detail;
+  final List<int> connections;
+  final String treasure;
+  final List<String> creatureIds;
+  final String? imagePath;
+  final String? locationId;
 
-  PointOfInterest({
-    String? id,
+  const PointOfInterest({
+    required this.id,
     required this.adventureId,
     required this.number,
     required this.name,
@@ -41,14 +41,43 @@ class PointOfInterest {
     required this.firstImpression,
     required this.obvious,
     required this.detail,
-    List<int>? connections,
+    this.connections = const [],
     this.treasure = '',
-    List<String>? creatureIds,
+    this.creatureIds = const [],
     this.imagePath,
     this.locationId,
-  }) : id = id ?? const Uuid().v4(),
-       connections = connections ?? [],
-       creatureIds = creatureIds ?? [];
+  });
+
+  factory PointOfInterest.create({
+    required String adventureId,
+    required int number,
+    required String name,
+    RoomPurpose purpose = RoomPurpose.narrative,
+    required String firstImpression,
+    required String obvious,
+    required String detail,
+    List<int> connections = const [],
+    String treasure = '',
+    List<String> creatureIds = const [],
+    String? imagePath,
+    String? locationId,
+  }) {
+    return PointOfInterest(
+      id: const Uuid().v4(),
+      adventureId: adventureId,
+      number: number,
+      name: name,
+      purpose: purpose,
+      firstImpression: firstImpression,
+      obvious: obvious,
+      detail: detail,
+      connections: connections,
+      treasure: treasure,
+      creatureIds: creatureIds,
+      imagePath: imagePath,
+      locationId: locationId,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

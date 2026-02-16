@@ -1,6 +1,5 @@
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import '../../features/adventure/domain/domain.dart';
-import '../../features/adventure/domain/fact.dart';
 
 class HiveDatabase {
   static const String _adventuresBox = 'adventures';
@@ -60,8 +59,8 @@ class HiveDatabase {
   }
 
   Future<void> saveCampaign(Campaign campaign) async {
-    campaign.updatedAt = DateTime.now();
-    await _campaigns.put(campaign.id, campaign.toJson());
+    final updatedCampaign = campaign.copyWith(updatedAt: DateTime.now());
+    await _campaigns.put(updatedCampaign.id, updatedCampaign.toJson());
   }
 
   Future<void> deleteCampaign(String id) async {
@@ -70,8 +69,9 @@ class HiveDatabase {
       for (final adventureId in campaign.adventureIds) {
         final adventure = getAdventure(adventureId);
         if (adventure != null) {
-          adventure.campaignId = null;
-          await saveAdventure(adventure);
+          // Removes campaign association
+          final updatedAdventure = adventure.copyWith(clearCampaignId: true);
+          await saveAdventure(updatedAdventure);
         }
       }
     }
@@ -106,8 +106,9 @@ class HiveDatabase {
         oldAdventure.campaignId != adventure.campaignId) {
       final oldCampaign = getCampaign(oldAdventure.campaignId!);
       if (oldCampaign != null) {
-        oldCampaign.adventureIds.remove(adventure.id);
-        await saveCampaign(oldCampaign);
+        final newAdventureIds = List<String>.from(oldCampaign.adventureIds);
+        newAdventureIds.remove(adventure.id);
+        await saveCampaign(oldCampaign.copyWith(adventureIds: newAdventureIds));
       }
     }
 
@@ -116,14 +117,17 @@ class HiveDatabase {
       final newCampaign = getCampaign(adventure.campaignId!);
       if (newCampaign != null) {
         if (!newCampaign.adventureIds.contains(adventure.id)) {
-          newCampaign.adventureIds.add(adventure.id);
-          await saveCampaign(newCampaign);
+          final newAdventureIds = List<String>.from(newCampaign.adventureIds);
+          newAdventureIds.add(adventure.id);
+          await saveCampaign(
+            newCampaign.copyWith(adventureIds: newAdventureIds),
+          );
         }
       }
     }
 
-    adventure.updatedAt = DateTime.now();
-    await _adventures.put(adventure.id, adventure.toJson());
+    final updatedAdventure = adventure.copyWith(updatedAt: DateTime.now());
+    await _adventures.put(updatedAdventure.id, updatedAdventure.toJson());
   }
 
   Future<void> deleteAdventure(String id) async {
@@ -131,8 +135,9 @@ class HiveDatabase {
     if (adventure != null && adventure.campaignId != null) {
       final campaign = getCampaign(adventure.campaignId!);
       if (campaign != null) {
-        campaign.adventureIds.remove(id);
-        await saveCampaign(campaign);
+        final newAdventureIds = List<String>.from(campaign.adventureIds);
+        newAdventureIds.remove(id);
+        await saveCampaign(campaign.copyWith(adventureIds: newAdventureIds));
       }
     }
 

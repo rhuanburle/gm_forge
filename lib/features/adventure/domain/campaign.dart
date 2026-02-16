@@ -1,26 +1,33 @@
 import 'package:uuid/uuid.dart';
 
 class Campaign {
-  String id;
-  String name;
-  String description;
+  final String id;
+  final String name;
+  final String description;
 
-  List<String> adventureIds;
+  final List<String> adventureIds;
 
-  DateTime createdAt;
-  DateTime updatedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
-  Campaign({
-    String? id,
+  const Campaign({
+    required this.id,
     required this.name,
     required this.description,
-    List<String>? adventureIds,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) : id = id ?? const Uuid().v4(),
-       adventureIds = adventureIds ?? [],
-       createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+    this.adventureIds = const [],
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory Campaign.create({required String name, required String description}) {
+    return Campaign(
+      id: const Uuid().v4(),
+      name: name,
+      description: description,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -45,12 +52,13 @@ class Campaign {
     String? name,
     String? description,
     List<String>? adventureIds,
+    DateTime? updatedAt,
   }) => Campaign(
     id: id,
     name: name ?? this.name,
     description: description ?? this.description,
     adventureIds: adventureIds ?? this.adventureIds,
     createdAt: createdAt,
-    updatedAt: DateTime.now(),
+    updatedAt: updatedAt ?? this.updatedAt,
   );
 }

@@ -127,7 +127,7 @@ class LocationsTab extends ConsumerWidget {
           Center(
             child: ElevatedButton.icon(
               onPressed: () async {
-                final newLocation = Location(
+                final newLocation = Location.create(
                   adventureId: adventureId,
                   name: 'Novo Local',
                   description: '',

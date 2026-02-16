@@ -113,7 +113,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
               label: 'Descrição do Ambiente',
               hint: 'Iluminação, cheiros, sons...',
               maxLines: 3,
-              onChanged: (_, __) => _markUnsynced(),
+              onChanged: (value, _) => _markUnsynced(),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -149,7 +149,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                 padding: const EdgeInsets.all(32),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -186,7 +186,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       leading: CircleAvatar(
                         backgroundColor: _getPoiColor(
                           poi.purpose,
-                        ).withOpacity(0.2),
+                        ).withValues(alpha: 0.2),
                         child: Text(
                           '${poi.number}',
                           style: TextStyle(
@@ -370,7 +370,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<RoomPurpose>(
-                  value: selectedPurpose,
+                  initialValue: selectedPurpose,
                   decoration: const InputDecoration(labelText: 'Tipo de Sala'),
                   items: RoomPurpose.values.map((p) {
                     return DropdownMenuItem(
@@ -441,7 +441,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                         .read(hiveDatabaseProvider)
                         .savePointOfInterest(updatedPoi);
                   } else {
-                    final newPoi = PointOfInterest(
+                    final newPoi = PointOfInterest.create(
                       adventureId: widget.adventureId,
                       locationId: widget.locationId,
                       number: number,

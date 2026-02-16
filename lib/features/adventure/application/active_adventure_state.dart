@@ -33,8 +33,11 @@ class ActiveAdventureState {
   }
 }
 
-class ActiveAdventureNotifier extends StateNotifier<ActiveAdventureState> {
-  ActiveAdventureNotifier() : super(const ActiveAdventureState());
+class ActiveAdventureNotifier extends Notifier<ActiveAdventureState> {
+  @override
+  ActiveAdventureState build() {
+    return const ActiveAdventureState();
+  }
 
   void setLens(SceneLens lens) {
     if (state.currentLens != lens) {
@@ -78,6 +81,6 @@ class ActiveAdventureNotifier extends StateNotifier<ActiveAdventureState> {
 }
 
 final activeAdventureProvider =
-    StateNotifierProvider<ActiveAdventureNotifier, ActiveAdventureState>((ref) {
-      return ActiveAdventureNotifier();
-    });
+    NotifierProvider<ActiveAdventureNotifier, ActiveAdventureState>(
+      ActiveAdventureNotifier.new,
+    );

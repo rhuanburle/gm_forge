@@ -285,7 +285,7 @@ class EventsTab extends ConsumerWidget {
                       .read(hiveDatabaseProvider)
                       .saveRandomEvent(updatedEvent);
                 } else {
-                  final event = RandomEvent(
+                  final event = RandomEvent.create(
                     adventureId: adventureId,
                     description: descController.text,
                     diceRange: diceController.text,
