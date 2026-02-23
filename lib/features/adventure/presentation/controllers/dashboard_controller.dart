@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/ai/ai_prompts.dart';
+import '../../../../core/widgets/ai_assist_button.dart';
 import '../../../../core/sync/unsynced_changes_provider.dart';
 import '../../application/adventure_providers.dart';
 import '../../domain/adventure.dart';
@@ -40,17 +42,27 @@ class DashboardController {
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Nome da Aventura',
                       hintText: 'ex: O Templo Submerso',
+                      suffixIcon: AiAssistButton(
+                        controller: nameController,
+                        fieldType: AiFieldType.adventureName,
+                        adventureContext: const {},
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: descController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Descrição',
                       hintText: 'Breve visão geral...',
+                      suffixIcon: AiAssistButton(
+                        controller: descController,
+                        fieldType: AiFieldType.adventureDescription,
+                        adventureContext: const {},
+                      ),
                     ),
                     maxLines: 2,
                   ),
@@ -85,18 +97,28 @@ class DashboardController {
                   ],
                   TextField(
                     controller: whatController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Qual é o local?',
                       hintText: 'ex: Um templo submerso sob o lago',
+                      suffixIcon: AiAssistButton(
+                        controller: whatController,
+                        fieldType: AiFieldType.conceptLocation,
+                        adventureContext: const {},
+                      ),
                     ),
                     maxLines: 2,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: conflictController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Qual conflito está acontecendo?',
                       hintText: 'ex: Duas facções lutam por um artefato antigo',
+                      suffixIcon: AiAssistButton(
+                        controller: conflictController,
+                        fieldType: AiFieldType.conceptConflict,
+                        adventureContext: const {},
+                      ),
                     ),
                     maxLines: 2,
                   ),
@@ -177,17 +199,27 @@ class DashboardController {
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Nome da Campanha',
                   hintText: 'ex: Guerra do Anel',
+                  suffixIcon: AiAssistButton(
+                    controller: nameController,
+                    fieldType: AiFieldType.campaignName,
+                    adventureContext: const {},
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: descController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Descrição',
                   hintText: 'A história abrangente...',
+                  suffixIcon: AiAssistButton(
+                    controller: descController,
+                    fieldType: AiFieldType.campaignDescription,
+                    adventureContext: const {},
+                  ),
                 ),
                 maxLines: 2,
               ),

@@ -98,7 +98,7 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
             flex: 7,
             child: SceneViewer(adventureId: widget.adventureId),
           ),
-          const DMToolsSidebar(),
+          DMToolsSidebar(adventureId: widget.adventureId),
         ],
       ),
     );

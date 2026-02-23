@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../../core/ai/ai_prompts.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/utils/debouncer.dart';
 import '../../../../../../core/auth/auth_service.dart';
@@ -162,22 +163,22 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
             subtitle: 'Defina o coração do seu Local de Aventura',
           ),
           const SizedBox(height: 16),
-          TextField(
+          SmartTextField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Nome da Aventura',
-              prefixIcon: Icon(Icons.title),
-            ),
+            adventureId: widget.adventure.id,
+            label: 'Nome da Aventura',
+            aiFieldType: AiFieldType.adventureName,
+            aiContext: {},
           ),
           const SizedBox(height: 16),
-          TextField(
+          SmartTextField(
             controller: _descController,
-            decoration: const InputDecoration(
-              labelText: 'Descrição',
-              prefixIcon: Icon(Icons.description),
-              hintText: 'Uma breve visão geral para sua referência...',
-            ),
+            adventureId: widget.adventure.id,
+            label: 'Descrição',
+            hint: 'Uma breve visão geral para sua referência...',
             maxLines: 3,
+            aiFieldType: AiFieldType.adventureDescription,
+            aiContext: {},
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
@@ -236,6 +237,11 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                   label: 'Descrição do Local',
                   hint: 'Descreva o local...',
                   maxLines: 3,
+                  aiFieldType: AiFieldType.conceptLocation,
+                  aiContext: {
+                    'adventureName': widget.adventure.name,
+                    'conceptConflict': widget.adventure.conceptConflict,
+                  },
                 ),
               ],
             ),
@@ -285,6 +291,11 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                   hint:
                       'ex: Duas facções lutam por um artefato, uma maldição desperta...',
                   maxLines: 3,
+                  aiFieldType: AiFieldType.conceptConflict,
+                  aiContext: {
+                    'adventureName': widget.adventure.name,
+                    'conceptLocation': widget.adventure.conceptWhat,
+                  },
                 ),
                 if (_secondaryConflictControllers.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -313,6 +324,13 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                               label: 'Conflito Secundário #${index + 1}',
                               hint: 'Outro problema acontecendo...',
                               maxLines: 2,
+                              aiFieldType: AiFieldType.conceptConflictSecondary,
+                              aiContext: {
+                                'adventureName': widget.adventure.name,
+                                'conceptLocation': widget.adventure.conceptWhat,
+                                'conceptConflict':
+                                    widget.adventure.conceptConflict,
+                              },
                             ),
                           ),
                           IconButton(
@@ -357,6 +375,12 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                   hint:
                       'ex: Um mapa encontrado no corpo do capitão aponta para...',
                   maxLines: 2,
+                  aiFieldType: AiFieldType.narrativeHook,
+                  aiContext: {
+                    'adventureName': widget.adventure.name,
+                    'conceptLocation': widget.adventure.conceptWhat,
+                    'conceptConflict': widget.adventure.conceptConflict,
+                  },
                 ),
               ],
             ),

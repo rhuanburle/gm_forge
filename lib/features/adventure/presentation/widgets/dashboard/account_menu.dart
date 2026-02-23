@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../core/ai/ai_providers.dart';
 import '../../../../../core/auth/auth_service.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/sync_button.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
+import '../../../../../core/widgets/ai_settings_dialog.dart';
 import '../../../../../core/sync/sync_service.dart';
 import '../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../application/adventure_providers.dart';
@@ -14,6 +16,7 @@ class AccountMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
+    final hasAi = ref.watch(hasAiConfiguredProvider);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -41,6 +44,8 @@ class AccountMenu extends ConsumerWidget {
           ),
           onSelected: (value) async {
             if (value == 'logout') {
+              await ref.read(apiKeyRepositoryProvider).clearApiKey();
+              ref.invalidate(apiKeyProvider);
               await ref.read(authServiceProvider).signOut();
             } else if (value == 'sync') {
               ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
@@ -53,6 +58,13 @@ class AccountMenu extends ConsumerWidget {
                 ref.read(campaignListProvider.notifier).refresh();
               } catch (e) {
                 ref.read(syncStatusProvider.notifier).state = SyncStatus.error;
+              }
+            } else if (value == 'ai_settings') {
+              if (context.mounted) {
+                await showDialog(
+                  context: context,
+                  builder: (_) => const AiSettingsDialog(),
+                );
               }
             }
           },
@@ -82,6 +94,25 @@ class AccountMenu extends ConsumerWidget {
               ),
             ),
             const PopupMenuDivider(),
+            PopupMenuItem(
+              value: 'ai_settings',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    color: hasAi ? AppTheme.primary : AppTheme.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    hasAi ? 'IA Configurada ✓' : 'Configurar IA',
+                    style: TextStyle(
+                      color: hasAi ? AppTheme.primary : null,
+                      fontWeight: hasAi ? FontWeight.w600 : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             if (user != null && !user.isAnonymous)
               const PopupMenuItem(
                 value: 'sync',

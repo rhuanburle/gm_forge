@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../../core/ai/ai_prompts.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../application/adventure_providers.dart';
@@ -239,6 +240,9 @@ class LegendsTab extends ConsumerWidget {
                   label: 'Texto do Rumor',
                   hint: "O que os jogadores ouvirão...",
                   maxLines: 3,
+                  aiFieldType: AiFieldType.legendText,
+                  aiContext: {},
+                  aiExtraContext: {'isTrue': isTrue.toString()},
                 ),
                 const SizedBox(height: 16),
                 TextField(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../../core/ai/ai_prompts.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../application/adventure_providers.dart';
@@ -215,22 +216,38 @@ class CreaturesTab extends ConsumerWidget {
                   label: 'Descrição / Comportamento',
                   hint: "Aparência, táticas, personalidade...",
                   maxLines: 3,
+                  aiFieldType: AiFieldType.creatureDescription,
+                  aiContext: {
+                    'creatureName': nameController.text,
+                    'creatureType': selectedType.displayName,
+                  },
+                  aiExtraContext: {'creatureType': selectedType.displayName},
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                SmartTextField(
                   controller: motivationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Motivação',
-                    hintText: 'O que ele quer? (ex: Proteger o ninho)',
-                  ),
+                  adventureId: adventureId,
+                  label: 'Motivação',
+                  hint: 'O que ele quer? (ex: Proteger o ninho)',
+                  maxLines: 2,
+                  aiFieldType: AiFieldType.creatureMotivation,
+                  aiContext: {
+                    'creatureName': nameController.text,
+                    'creatureType': selectedType.displayName,
+                  },
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                SmartTextField(
                   controller: losingBehaviorController,
-                  decoration: const InputDecoration(
-                    labelText: 'Comportamento ao Perder',
-                    hintText: 'ex: Foge, negocia, luta até a morte',
-                  ),
+                  adventureId: adventureId,
+                  label: 'Comportamento ao Perder',
+                  hint: 'ex: Foge, negocia, luta até a morte',
+                  maxLines: 2,
+                  aiFieldType: AiFieldType.creatureLosingBehavior,
+                  aiContext: {
+                    'creatureName': nameController.text,
+                    'creatureType': selectedType.displayName,
+                  },
                 ),
                 const SizedBox(height: 16),
                 SmartTextField(
@@ -239,6 +256,11 @@ class CreaturesTab extends ConsumerWidget {
                   label: 'Estatísticas Resumidas',
                   hint: 'PV 10, CA 12, Ataque +3 (1d6)',
                   maxLines: 2,
+                  aiFieldType: AiFieldType.creatureStats,
+                  aiContext: {
+                    'creatureName': nameController.text,
+                    'creatureType': selectedType.displayName,
+                  },
                 ),
               ],
             ),

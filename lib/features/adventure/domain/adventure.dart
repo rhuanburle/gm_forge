@@ -18,6 +18,7 @@ class Adventure {
   final String? campaignId;
   final String? nextAdventureHint;
   final String? dungeonMapPath;
+  final String? sessionNotes;
 
   const Adventure({
     required this.id,
@@ -33,6 +34,7 @@ class Adventure {
     this.campaignId,
     this.nextAdventureHint,
     this.dungeonMapPath,
+    this.sessionNotes,
   });
 
   factory Adventure.create({
@@ -44,6 +46,7 @@ class Adventure {
     String? campaignId,
     String? nextAdventureHint,
     String? dungeonMapPath,
+    String? sessionNotes,
   }) {
     return Adventure(
       id: const Uuid().v4(),
@@ -57,6 +60,7 @@ class Adventure {
       campaignId: campaignId,
       nextAdventureHint: nextAdventureHint,
       dungeonMapPath: dungeonMapPath,
+      sessionNotes: sessionNotes,
     );
   }
 
@@ -74,6 +78,7 @@ class Adventure {
     'campaignId': campaignId,
     'nextAdventureHint': nextAdventureHint,
     'dungeonMapPath': dungeonMapPath,
+    'sessionNotes': sessionNotes,
   };
 
   factory Adventure.fromJson(Map<String, dynamic> json) => Adventure(
@@ -92,6 +97,7 @@ class Adventure {
     campaignId: json['campaignId'] as String?,
     nextAdventureHint: json['nextAdventureHint'] as String?,
     dungeonMapPath: json['dungeonMapPath'] as String?,
+    sessionNotes: json['sessionNotes'] as String?,
   );
 
   Adventure copyWith({
@@ -106,6 +112,7 @@ class Adventure {
     bool clearCampaignId = false,
     String? nextAdventureHint,
     String? dungeonMapPath,
+    String? sessionNotes,
     DateTime? updatedAt,
   }) => Adventure(
     id: id,
@@ -122,5 +129,6 @@ class Adventure {
     campaignId: clearCampaignId ? null : (campaignId ?? this.campaignId),
     nextAdventureHint: nextAdventureHint ?? this.nextAdventureHint,
     dungeonMapPath: dungeonMapPath ?? this.dungeonMapPath,
+    sessionNotes: sessionNotes ?? this.sessionNotes,
   );
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/ai/ai_prompts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/sync/unsynced_changes_provider.dart';
 import '../../application/adventure_providers.dart';
@@ -114,6 +115,8 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
               hint: 'Iluminação, cheiros, sons...',
               maxLines: 3,
               onChanged: (value, _) => _markUnsynced(),
+              aiFieldType: AiFieldType.locationDescription,
+              aiContext: {'locationName': _nameController.text},
             ),
             const SizedBox(height: 16),
             TextField(
@@ -389,6 +392,13 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   label: 'Primeira Impressão (Sentidos)',
                   hint: 'O que eles veem/sentem ao chegar?',
                   maxLines: 2,
+                  aiFieldType: AiFieldType.poiFirstImpression,
+                  aiContext: {
+                    'locationName': _nameController.text,
+                    'poiName': nameCtrl.text,
+                    'poiPurpose': selectedPurpose.displayName,
+                  },
+                  aiExtraContext: {'poiPurpose': selectedPurpose.displayName},
                 ),
                 const SizedBox(height: 16),
                 SmartTextField(
@@ -397,6 +407,12 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   label: 'O Óbvio',
                   hint: 'O que está claramente na sala?',
                   maxLines: 2,
+                  aiFieldType: AiFieldType.poiObvious,
+                  aiContext: {
+                    'locationName': _nameController.text,
+                    'poiName': nameCtrl.text,
+                    'poiPurpose': selectedPurpose.displayName,
+                  },
                 ),
                 const SizedBox(height: 16),
                 SmartTextField(
@@ -405,6 +421,12 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   label: 'Detalhes/Segredos',
                   hint: 'O que descobrem ao investigar?',
                   maxLines: 3,
+                  aiFieldType: AiFieldType.poiDetail,
+                  aiContext: {
+                    'locationName': _nameController.text,
+                    'poiName': nameCtrl.text,
+                    'poiPurpose': selectedPurpose.displayName,
+                  },
                 ),
                 const SizedBox(height: 16),
                 SmartTextField(
@@ -413,6 +435,12 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   label: 'Tesouro (Opcional)',
                   hint: 'O que encontram de valor?',
                   maxLines: 1,
+                  aiFieldType: AiFieldType.poiTreasure,
+                  aiContext: {
+                    'locationName': _nameController.text,
+                    'poiName': nameCtrl.text,
+                    'poiPurpose': selectedPurpose.displayName,
+                  },
                 ),
               ],
             ),

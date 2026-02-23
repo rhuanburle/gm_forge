@@ -1,52 +1,52 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
-import '../../../../../core/theme/app_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class DMToolsSidebar extends StatefulWidget {
-  const DMToolsSidebar({super.key});
+import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/utils/debouncer.dart';
+import '../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../application/adventure_providers.dart';
+import '../../../application/active_adventure_state.dart';
+
+class DMToolsSidebar extends ConsumerStatefulWidget {
+  final String adventureId;
+
+  const DMToolsSidebar({super.key, required this.adventureId});
 
   @override
-  State<DMToolsSidebar> createState() => _DMToolsSidebarState();
+  ConsumerState<DMToolsSidebar> createState() => _DMToolsSidebarState();
 }
 
-class _DMToolsSidebarState extends State<DMToolsSidebar> {
-  final List<String> _rollHistory = [];
+class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
+  late TextEditingController _notesController;
+  final _debouncer = Debouncer(milliseconds: 1000);
+  bool _initialized = false;
 
-  void _rollDice(String dice) {
-    int result = 0;
-    String details = '';
+  @override
+  void initState() {
+    super.initState();
+    _notesController = TextEditingController();
+  }
 
-    if (dice == 'd6') {
-      result = Random().nextInt(6) + 1;
-      details = 'd6';
-    } else if (dice == '2d6') {
-      final d1 = Random().nextInt(6) + 1;
-      final d2 = Random().nextInt(6) + 1;
-      result = d1 + d2;
-      details = '($d1 + $d2)';
-    } else if (dice == 'd20') {
-      result = Random().nextInt(20) + 1;
-      details = 'd20';
-    } else if (dice == 'd66') {
-      final d1 = Random().nextInt(6) + 1;
-      final d2 = Random().nextInt(6) + 1;
-      result = int.parse('$d1$d2');
-      details = 'Evento (d66)';
-    } else if (dice == 'd100') {
-      result = Random().nextInt(100) + 1;
-      details = 'd100';
-    }
-
-    setState(() {
-      _rollHistory.insert(0, '$result - $details');
-      if (_rollHistory.length > 20) {
-        _rollHistory.removeLast();
-      }
-    });
+  @override
+  void dispose() {
+    _notesController.dispose();
+    _debouncer.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final adventure = ref.watch(adventureProvider(widget.adventureId));
+    final activeState = ref.watch(activeAdventureProvider);
+
+    if (adventure == null) return const SizedBox.shrink();
+
+    if (!_initialized) {
+      _notesController.text = adventure.sessionNotes ?? '';
+      _initialized = true;
+    }
+
     return Container(
       width: 250,
       decoration: BoxDecoration(
@@ -62,7 +62,7 @@ class _DMToolsSidebarState extends State<DMToolsSidebar> {
             color: AppTheme.secondary.withValues(alpha: 0.1),
             width: double.infinity,
             child: const Text(
-              'Ferramentas',
+              'Escudo do Mestre',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppTheme.secondary,
@@ -70,93 +70,116 @@ class _DMToolsSidebarState extends State<DMToolsSidebar> {
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Dados',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Ações Rápidas',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              _DiceButton('d6', () => _rollDice('d6')),
-              _DiceButton('2d6', () => _rollDice('2d6')),
-              _DiceButton('d66', () => _rollDice('d66'), highlight: true),
-              _DiceButton('d20', () => _rollDice('d20')),
-              _DiceButton('d100', () => _rollDice('d100')),
-            ],
-          ),
-          const Divider(height: 24),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Histórico de Rolagens',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () {
+                    context.push('/adventure/${widget.adventureId}');
+                  },
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text(
+                    'Editar Aventura',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: activeState.currentLocationId == null
+                      ? null
+                      : () {
+                          context.push(
+                            '/adventure/${widget.adventureId}/location/${activeState.currentLocationId}',
+                          );
+                        },
+                  icon: const Icon(Icons.map, size: 16),
+                  label: const Text(
+                    'Editar Local Atual',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Bloco de Notas da Partida',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: _rollHistory.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4,
-                    horizontal: 8,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: TextField(
+                controller: _notesController,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: InputDecoration(
+                  hintText: 'Anotações da sessão (HP, iniciativa, ideias)...',
+                  hintStyle: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.withValues(alpha: 0.6),
                   ),
-                  decoration: BoxDecoration(
-                    color: index == 0
-                        ? AppTheme.primary.withValues(alpha: 0.1)
-                        : null,
-                    borderRadius: BorderRadius.circular(4),
+                  filled: true,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
                   ),
-                  child: Text(
-                    _rollHistory[index],
-                    style: TextStyle(
-                      fontWeight: index == 0
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      fontSize: 13,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              },
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                style: const TextStyle(fontSize: 13, height: 1.4),
+                onChanged: (text) {
+                  _debouncer.run(() {
+                    ref
+                        .read(adventureListProvider.notifier)
+                        .update(adventure.copyWith(sessionNotes: text));
+                    ref.read(unsyncedChangesProvider.notifier).state = true;
+                  });
+                },
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DiceButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final bool highlight;
-
-  const _DiceButton(this.label, this.onPressed, {this.highlight = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 50,
-      height: 40,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          backgroundColor: highlight ? AppTheme.secondary : Colors.grey[200],
-          foregroundColor: highlight ? Colors.white : Colors.black87,
-          elevation: highlight ? 2 : 0,
-        ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }

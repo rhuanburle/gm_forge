@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/adventure_providers.dart';
 import '../../domain/domain.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/ai/ai_prompts.dart';
+import '../../../../../core/widgets/ai_assist_button.dart';
 
 class SmartTextField extends ConsumerStatefulWidget {
   final TextEditingController? controller;
@@ -12,6 +14,9 @@ class SmartTextField extends ConsumerStatefulWidget {
   final String? hint;
   final int maxLines;
   final IconData? prefixIcon;
+  final AiFieldType? aiFieldType;
+  final Map<String, String>? aiContext;
+  final Map<String, String>? aiExtraContext;
 
   const SmartTextField({
     super.key,
@@ -22,6 +27,9 @@ class SmartTextField extends ConsumerStatefulWidget {
     this.maxLines = 1,
     this.prefixIcon,
     this.onChanged,
+    this.aiFieldType,
+    this.aiContext,
+    this.aiExtraContext,
   });
 
   final void Function(String, Map<String, dynamic>?)? onChanged;
@@ -198,6 +206,13 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (widget.aiFieldType != null)
+                AiAssistButton(
+                  controller: _controller,
+                  fieldType: widget.aiFieldType!,
+                  adventureContext: widget.aiContext ?? {},
+                  extraContext: widget.aiExtraContext,
+                ),
               IconButton(
                 icon: const Icon(Icons.link, size: 20),
                 onPressed: () => _insertTrigger('@'),
