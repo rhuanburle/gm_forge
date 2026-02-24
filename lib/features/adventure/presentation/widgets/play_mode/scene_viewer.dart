@@ -21,19 +21,28 @@ class SceneViewer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeState = ref.watch(activeAdventureProvider);
     final pois = ref.watch(pointsOfInterestProvider(adventureId));
+    final locations = ref.watch(locationsProvider(adventureId));
 
     if (activeState.currentLocationId == null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.map, size: 64, color: Colors.black12),
+            Icon(
+              Icons.map,
+              size: 64,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white24
+                  : Colors.black12,
+            ),
             const SizedBox(height: 16),
             Text(
               'Selecione um local para iniciar',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.black45),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white54
+                    : Colors.black45,
+              ),
             ),
           ],
         ),
@@ -56,11 +65,66 @@ class SceneViewer extends ConsumerWidget {
       return const Center(child: Text("Local inválido ou excluído."));
     }
 
+    Location? parentLocation;
+    if (location.locationId != null) {
+      try {
+        parentLocation = locations.firstWhere(
+          (loc) => loc.id == location.locationId,
+        );
+      } catch (_) {}
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (parentLocation != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.map, color: AppTheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          parentLocation.name,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primary,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (parentLocation.description.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      parentLocation.description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
           Row(
             children: [
               Text(
@@ -130,7 +194,9 @@ class SceneViewer extends ConsumerWidget {
             title: const Text('Detalhes & Segredos'),
             leading: const Icon(Icons.search),
             childrenPadding: const EdgeInsets.all(16),
-            backgroundColor: Colors.black.withValues(alpha: 0.02),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.02),
             children: [
               Align(
                 alignment: Alignment.topLeft,

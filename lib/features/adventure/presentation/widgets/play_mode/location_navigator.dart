@@ -53,9 +53,9 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
     }
     orphanedPois.sort((a, b) => a.number.compareTo(b.number));
 
-    // Filter logic for Creatures and Facts
     final creatures = ref.watch(creaturesProvider(widget.adventureId));
     final facts = ref.watch(factsProvider(widget.adventureId));
+    final randomEvents = ref.watch(randomEventsProvider(widget.adventureId));
 
     final filteredCreatures = creatures.where((c) {
       if (_searchQuery.isEmpty) return true;
@@ -67,8 +67,14 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
       return f.content.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
+    final filteredEvents = randomEvents.where((e) {
+      if (_searchQuery.isEmpty) return true;
+      return e.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          e.impact.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Column(
         children: [
           Padding(
@@ -102,6 +108,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
               Tab(text: 'Locais'),
               Tab(text: 'NPCs'),
               Tab(text: 'Fatos'),
+              Tab(text: 'Eventos'),
             ],
             labelColor: AppTheme.primary,
             unselectedLabelColor: Colors.grey,
@@ -213,6 +220,31 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                     );
                   },
                 ),
+
+                // EVENTS TAB
+                ListView.builder(
+                  itemCount: filteredEvents.length,
+                  itemBuilder: (context, index) {
+                    final event = filteredEvents[index];
+                    return ListTile(
+                      leading: const Icon(
+                        Icons.casino,
+                        color: AppTheme.warning,
+                      ),
+                      title: Text(
+                        '[${event.diceRange}] ${event.eventType.displayName}',
+                      ),
+                      subtitle: Text(
+                        event.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () {
+                        _showEventDetails(context, event);
+                      },
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -308,6 +340,40 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
     );
   }
 
+  void _showEventDetails(BuildContext context, RandomEvent event) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.casino, color: AppTheme.warning),
+            const SizedBox(width: 8),
+            Text('Evento: ${event.eventType.displayName}'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DetailRow('Rolagem', event.diceRange),
+              const SizedBox(height: 8),
+              DetailRow('Descrição', event.description),
+              const SizedBox(height: 8),
+              DetailRow('Impacto', event.impact),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPoiTile(PointOfInterest poi, ActiveAdventureState activeState) {
     final isSelected = activeState.currentLocationId == poi.id;
     return ListTile(
@@ -317,12 +383,20 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
       contentPadding: const EdgeInsets.only(left: 16, right: 16),
       leading: CircleAvatar(
         radius: 12,
-        backgroundColor: isSelected ? AppTheme.primary : Colors.grey.shade300,
+        backgroundColor: isSelected
+            ? AppTheme.primary
+            : (Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade700
+                  : Colors.grey.shade300),
         child: Text(
           '${poi.number}',
           style: TextStyle(
             fontSize: 10,
-            color: isSelected ? Colors.white : Colors.black87,
+            color: isSelected
+                ? Colors.white
+                : (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87),
           ),
         ),
       ),

@@ -1,7 +1,7 @@
 name: gm_forge
 description: "Quest Script - Construtor de Aventuras RPG baseado na metodologia Adventure Sites"
 publish_to: 'none'
-version: 1.0.0+7
+version: 1.0.0+8
 
 environment:
   sdk: ^3.10.7
