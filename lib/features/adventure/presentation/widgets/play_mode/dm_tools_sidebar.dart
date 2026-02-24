@@ -170,9 +170,16 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                 style: const TextStyle(fontSize: 13, height: 1.4),
                 onChanged: (text) {
                   _debouncer.run(() {
+                    if (!mounted) return;
+                    // Always read the latest adventure from the provider to avoid stale reference
+                    final latestAdventure = ref.read(
+                      adventureProvider(widget.adventureId),
+                    );
+                    if (latestAdventure == null) return;
+
                     ref
                         .read(adventureListProvider.notifier)
-                        .update(adventure.copyWith(sessionNotes: text));
+                        .update(latestAdventure.copyWith(sessionNotes: text));
                     ref.read(unsyncedChangesProvider.notifier).state = true;
                   });
                 },

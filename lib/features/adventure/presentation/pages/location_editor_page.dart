@@ -26,6 +26,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
   late TextEditingController _nameController;
   late TextEditingController _descController;
   late TextEditingController _imageController;
+  String? _loadedLocationId;
 
   @override
   void initState() {
@@ -60,16 +61,12 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
     }
     final location = locations[locationIndex];
 
-    // Update controllers only if text is empty (initial load) or verification logic could be added
-    if (_nameController.text.isEmpty && location.name.isNotEmpty) {
+    // Sync controllers on first load or when location data changes externally
+    if (_loadedLocationId != location.id) {
+      _loadedLocationId = location.id;
       _nameController.text = location.name;
-    }
-    if (_descController.text.isEmpty && location.description.isNotEmpty) {
       _descController.text = location.description;
-    }
-    if (_imageController.text.isEmpty &&
-        (location.imagePath?.isNotEmpty ?? false)) {
-      _imageController.text = location.imagePath!;
+      _imageController.text = location.imagePath ?? '';
     }
 
     // Filter POIs for this location

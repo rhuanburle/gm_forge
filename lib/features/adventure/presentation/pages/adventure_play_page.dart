@@ -30,7 +30,11 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
   @override
   void dispose() {
     // Clear state when leaving the screen
-    ref.read(activeAdventureProvider.notifier).clear();
+    try {
+      ref.read(activeAdventureProvider.notifier).clear();
+    } catch (_) {
+      // Ignore if provider is already disposed or inaccessible
+    }
     super.dispose();
   }
 

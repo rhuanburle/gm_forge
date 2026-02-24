@@ -14,6 +14,7 @@ class SceneViewer extends ConsumerWidget {
   Future<void> _updatePoi(WidgetRef ref, PointOfInterest poi) async {
     final db = ref.read(hiveDatabaseProvider);
     await db.savePointOfInterest(poi);
+    ref.invalidate(pointsOfInterestProvider(adventureId));
   }
 
   @override

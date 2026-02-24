@@ -67,7 +67,7 @@ class SyncService {
     if (!_isAuthenticated) return;
 
     final adventures = _hiveDb.getAllAdventures();
-    final batch = _firestore.batch();
+    final allPayloads = <String, Map<String, dynamic>>{};
 
     for (final adventure in adventures) {
       final pois = _hiveDb.getPointsOfInterest(adventure.id);
@@ -77,7 +77,7 @@ class SyncService {
       final locations = _hiveDb.getLocations(adventure.id);
       final facts = _hiveDb.getFacts(adventure.id);
 
-      final payload = {
+      allPayloads[adventure.id] = {
         'adventure': adventure.toJson(),
         'pois': pois.map((p) => p.toJson()).toList(),
         'creatures': creatures.map((c) => c.toJson()).toList(),
@@ -88,11 +88,19 @@ class SyncService {
         'updatedAt': FieldValue.serverTimestamp(),
         'version': 1,
       };
-
-      batch.set(_adventuresRef.doc(adventure.id), payload);
     }
 
-    await batch.commit();
+    // Firebase batch limit is 500 operations — split if needed
+    const batchLimit = 400;
+    final entries = allPayloads.entries.toList();
+    for (int i = 0; i < entries.length; i += batchLimit) {
+      final batch = _firestore.batch();
+      final chunk = entries.skip(i).take(batchLimit);
+      for (final entry in chunk) {
+        batch.set(_adventuresRef.doc(entry.key), entry.value);
+      }
+      await batch.commit();
+    }
   }
 
   Future<void> pushCampaign(String campaignId) async {
@@ -201,14 +209,18 @@ class SyncService {
   Future<void> fullSync() async {
     if (!_isAuthenticated) return;
 
-    await pullAllAdventures();
-    await pullAllCampaigns();
+    try {
+      await pullAllAdventures();
+      await pullAllCampaigns();
 
-    await pushAllAdventures();
+      await pushAllAdventures();
 
-    final campaigns = _hiveDb.getAllCampaigns();
-    for (final campaign in campaigns) {
-      await pushCampaign(campaign.id);
+      final campaigns = _hiveDb.getAllCampaigns();
+      for (final campaign in campaigns) {
+        await pushCampaign(campaign.id);
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 

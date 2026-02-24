@@ -59,7 +59,11 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
   void dispose() {
     if (widget.controller == null) _controller.dispose();
     _focusNode.dispose();
-    _removeOverlay();
+    try {
+      _removeOverlay();
+    } catch (_) {
+      _overlayEntry = null;
+    }
     super.dispose();
   }
 

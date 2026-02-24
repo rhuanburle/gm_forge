@@ -111,6 +111,8 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
   }
 
   Future<void> _save({bool silent = false}) async {
+    if (!mounted) return;
+
     final updatedAdventure = widget.adventure.copyWith(
       name: _nameController.text,
       description: _descController.text,
@@ -135,6 +137,7 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
 
     await ref.read(hiveDatabaseProvider).saveAdventure(updatedAdventure);
     ref.read(adventureListProvider.notifier).refresh();
+    ref.invalidate(adventureProvider(widget.adventure.id));
 
     final user = ref.read(authServiceProvider).currentUser;
     if (user != null && !user.isAnonymous) {
@@ -239,8 +242,8 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                   maxLines: 3,
                   aiFieldType: AiFieldType.conceptLocation,
                   aiContext: {
-                    'adventureName': widget.adventure.name,
-                    'conceptConflict': widget.adventure.conceptConflict,
+                    'adventureName': _nameController.text,
+                    'conceptConflict': _conflictController.text,
                   },
                 ),
               ],
@@ -293,8 +296,8 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                   maxLines: 3,
                   aiFieldType: AiFieldType.conceptConflict,
                   aiContext: {
-                    'adventureName': widget.adventure.name,
-                    'conceptLocation': widget.adventure.conceptWhat,
+                    'adventureName': _nameController.text,
+                    'conceptLocation': _whatController.text,
                   },
                 ),
                 if (_secondaryConflictControllers.isNotEmpty) ...[
@@ -326,10 +329,9 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                               maxLines: 2,
                               aiFieldType: AiFieldType.conceptConflictSecondary,
                               aiContext: {
-                                'adventureName': widget.adventure.name,
-                                'conceptLocation': widget.adventure.conceptWhat,
-                                'conceptConflict':
-                                    widget.adventure.conceptConflict,
+                                'adventureName': _nameController.text,
+                                'conceptLocation': _whatController.text,
+                                'conceptConflict': _conflictController.text,
                               },
                             ),
                           ),
@@ -377,9 +379,9 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                   maxLines: 2,
                   aiFieldType: AiFieldType.narrativeHook,
                   aiContext: {
-                    'adventureName': widget.adventure.name,
-                    'conceptLocation': widget.adventure.conceptWhat,
-                    'conceptConflict': widget.adventure.conceptConflict,
+                    'adventureName': _nameController.text,
+                    'conceptLocation': _whatController.text,
+                    'conceptConflict': _conflictController.text,
                   },
                 ),
               ],

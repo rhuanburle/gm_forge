@@ -12,7 +12,7 @@ class GeminiService {
       systemInstruction: Content.system(AiPrompts.getSystemPrompt()),
       generationConfig: GenerationConfig(
         temperature: 0.8,
-        maxOutputTokens: 512,
+        maxOutputTokens: 2048,
       ),
     );
   }
@@ -54,6 +54,22 @@ class GeminiService {
 
   Future<String> _generate(String prompt) async {
     final response = await _model.generateContent([Content.text(prompt)]);
+
+    final candidates = response.candidates;
+    if (candidates.isEmpty) {
+      throw Exception('No candidates in Gemini API response');
+    }
+
+    final candidate = candidates.first;
+    if (candidate.finishReason == FinishReason.maxTokens) {
+      // Response was truncated due to token limit
+      final partial = candidate.text ?? '';
+      if (partial.isNotEmpty) {
+        return partial.trim();
+      }
+      throw Exception('Response truncated and empty');
+    }
+
     final text = response.text;
     if (text == null || text.isEmpty) {
       throw Exception('Empty response from Gemini API');
