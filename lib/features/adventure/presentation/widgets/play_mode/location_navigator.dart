@@ -138,7 +138,8 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                         leading: const Icon(Icons.map, size: 20),
                         title: Text(
                           location.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         subtitle: locationPois.isEmpty
                             ? const Text("Vazio")
@@ -281,7 +282,9 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
               if (creature.description.isNotEmpty) ...[
                 Text(
                   creature.description,
-                  style: const TextStyle(fontStyle: FontStyle.italic),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -301,7 +304,9 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                   color: Colors.black12,
                   child: Text(
                     creature.stats,
-                    style: const TextStyle(fontFamily: 'monospace'),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
                   ),
                 ),
               ],
@@ -390,7 +395,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                   : Colors.grey.shade300),
         child: Text(
           '${poi.number}',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontSize: 10,
             color: isSelected
                 ? Colors.white
@@ -402,7 +407,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
       ),
       title: Text(
         poi.name,
-        style: TextStyle(
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -410,7 +415,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
         poi.purpose.displayName,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 10),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
       ),
       onTap: () {
         ref.read(activeAdventureProvider.notifier).setLocation(poi.id);

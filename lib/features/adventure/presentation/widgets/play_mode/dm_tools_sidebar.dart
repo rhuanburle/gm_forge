@@ -163,7 +163,9 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         adventure.conceptWhat,
-                        style: const TextStyle(fontSize: 12),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(fontSize: 12),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -184,7 +186,9 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         adventure.conceptConflict,
-                        style: const TextStyle(fontSize: 12),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(fontSize: 12),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -234,7 +238,9 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                   ),
                   contentPadding: const EdgeInsets.all(12),
                 ),
-                style: const TextStyle(fontSize: 13, height: 1.4),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontSize: 13, height: 1.4),
                 onChanged: (text) {
                   _debouncer.run(() {
                     if (!mounted) return;

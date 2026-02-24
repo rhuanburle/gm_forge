@@ -27,7 +27,7 @@ class SmartTextRenderer extends ConsumerWidget {
     return RichText(
       text: TextSpan(
         children: spans,
-        style: style ?? Theme.of(context).textTheme.bodyMedium,
+        style: Theme.of(context).textTheme.bodyMedium?.merge(style),
       ),
       textAlign: textAlign,
     );

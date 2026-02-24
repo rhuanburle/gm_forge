@@ -146,7 +146,9 @@ class SceneViewer extends ConsumerWidget {
               Chip(
                 label: Text(
                   location.purpose.displayName,
-                  style: const TextStyle(fontSize: 10),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(fontSize: 10),
                 ),
                 padding: EdgeInsets.zero,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 8),
@@ -174,7 +176,10 @@ class SceneViewer extends ConsumerWidget {
             text: location.firstImpression,
             adventureId: adventureId,
             label: 'Primeira Impressão',
-            style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              fontSize: 16,
+              fontStyle: FontStyle.italic,
+            ),
             onSave: (val) =>
                 _updatePoi(ref, location.copyWith(firstImpression: val)),
           ),
@@ -185,7 +190,9 @@ class SceneViewer extends ConsumerWidget {
             text: location.obvious,
             adventureId: adventureId,
             label: 'O Óbvio',
-            style: const TextStyle(fontSize: 16),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontSize: 16),
             onSave: (val) => _updatePoi(ref, location.copyWith(obvious: val)),
           ),
           const SizedBox(height: 24),
@@ -204,7 +211,9 @@ class SceneViewer extends ConsumerWidget {
                   text: location.detail,
                   adventureId: adventureId,
                   label: 'Detalhes & Segredos',
-                  style: const TextStyle(fontSize: 15),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontSize: 15),
                   onSave: (val) =>
                       _updatePoi(ref, location.copyWith(detail: val)),
                 ),
@@ -239,7 +248,9 @@ class SceneViewer extends ConsumerWidget {
                   text: location.treasure,
                   adventureId: adventureId,
                   label: 'Tesouro / Itens',
-                  style: const TextStyle(fontSize: 14),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 14),
                   onSave: (val) =>
                       _updatePoi(ref, location.copyWith(treasure: val)),
                 ),
@@ -282,9 +293,10 @@ class SceneViewer extends ConsumerWidget {
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                     child: Text(
                       '$connNumber',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
                       ),
                     ),
                   ),

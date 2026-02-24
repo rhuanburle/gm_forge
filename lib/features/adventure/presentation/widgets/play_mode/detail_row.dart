@@ -29,7 +29,10 @@ class DetailRow extends StatelessWidget {
             ),
           ],
         ),
-        Text(text.isEmpty ? '-' : text),
+        Text(
+          text.isEmpty ? '-' : text,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       ],
     );
   }
