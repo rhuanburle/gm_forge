@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../database/hive_database.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -39,10 +40,6 @@ class AuthService {
     } catch (e) {
       rethrow;
     }
-  }
-
-  Future<UserCredential> signInAnonymously() async {
-    return await _auth.signInAnonymously();
   }
 
   Future<void> signOut() async {
@@ -89,6 +86,23 @@ final currentUserProvider = Provider<User?>((ref) {
   return ref.watch(authStateProvider).valueOrNull;
 });
 
+class GuestModeNotifier extends StateNotifier<bool> {
+  GuestModeNotifier() : super(HiveDatabase.instance.isGuestMode);
+
+  Future<void> setGuestMode(bool value) async {
+    await HiveDatabase.instance.setGuestMode(value);
+    state = value;
+  }
+}
+
+final isGuestModeProvider = StateNotifierProvider<GuestModeNotifier, bool>((
+  ref,
+) {
+  return GuestModeNotifier();
+});
+
 final isLoggedInProvider = Provider<bool>((ref) {
-  return ref.watch(currentUserProvider) != null;
+  final hasUser = ref.watch(currentUserProvider) != null;
+  final isGuest = ref.watch(isGuestModeProvider);
+  return hasUser || isGuest;
 });

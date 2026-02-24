@@ -10,6 +10,7 @@ class HiveDatabase {
   static const String _campaignsBox = 'campaigns';
   static const String _locationsBox = 'locations';
   static const String _factsBox = 'facts';
+  static const String _settingsBox = 'settings';
 
   static HiveDatabase? _instance;
 
@@ -33,12 +34,22 @@ class HiveDatabase {
     await Hive.openBox<Map>(_campaignsBox);
     await Hive.openBox<Map>(_locationsBox);
     await Hive.openBox<Map>(_factsBox);
+    await Hive.openBox<dynamic>(_settingsBox);
 
     _instance = HiveDatabase._();
     return _instance!;
   }
 
   HiveDatabase._();
+
+  Box<dynamic> get _settings => Hive.box<dynamic>(_settingsBox);
+
+  bool get isGuestMode =>
+      _settings.get('isGuestMode', defaultValue: false) as bool;
+
+  Future<void> setGuestMode(bool value) async {
+    await _settings.put('isGuestMode', value);
+  }
 
   Box<Map> get _campaigns => Hive.box<Map>(_campaignsBox);
 

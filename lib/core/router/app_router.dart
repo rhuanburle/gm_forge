@@ -9,11 +9,10 @@ import '../../features/adventure/presentation/pages/adventure_play_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final isLoggedIn = ref.watch(isLoggedInProvider);
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull != null;
       final isLoggingIn = state.matchedLocation == '/login';
 
       if (!isLoggedIn && !isLoggingIn) {

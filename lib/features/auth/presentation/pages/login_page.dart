@@ -43,8 +43,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     try {
-      final authService = ref.read(authServiceProvider);
-      await authService.signInAnonymously();
+      await ref.read(isGuestModeProvider.notifier).setGuestMode(true);
 
       if (mounted) {
         context.go('/');

@@ -46,6 +46,7 @@ class AccountMenu extends ConsumerWidget {
             if (value == 'logout') {
               await ref.read(apiKeyRepositoryProvider).clearApiKey();
               ref.invalidate(apiKeyProvider);
+              await ref.read(isGuestModeProvider.notifier).setGuestMode(false);
               await ref.read(authServiceProvider).signOut();
             } else if (value == 'sync') {
               ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
@@ -83,7 +84,7 @@ class AccountMenu extends ConsumerWidget {
                       user?.email ?? '',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                  if (user?.isAnonymous == true)
+                  if (user == null)
                     Text(
                       'Dados salvos apenas localmente',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -113,7 +114,7 @@ class AccountMenu extends ConsumerWidget {
                 ],
               ),
             ),
-            if (user != null && !user.isAnonymous)
+            if (user != null)
               const PopupMenuItem(
                 value: 'sync',
                 child: Row(
