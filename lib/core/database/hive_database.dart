@@ -27,27 +27,7 @@ class HiveDatabase {
 
     await Hive.initFlutter();
 
-    // Check version and clear boxes if needed
-    final packageInfo = await PackageInfo.fromPlatform();
-    final currentVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
-
     await Hive.openBox<dynamic>(_settingsBox);
-    final settingsBox = Hive.box<dynamic>(_settingsBox);
-    final storedVersion = settingsBox.get('appVersion') as String?;
-
-    if (storedVersion != null && storedVersion != currentVersion) {
-      await Hive.deleteBoxFromDisk(_adventuresBox);
-      await Hive.deleteBoxFromDisk(_legendsBox);
-      await Hive.deleteBoxFromDisk(_poisBox);
-      await Hive.deleteBoxFromDisk(_eventsBox);
-      await Hive.deleteBoxFromDisk(_creaturesBox);
-      await Hive.deleteBoxFromDisk(_campaignsBox);
-      await Hive.deleteBoxFromDisk(_locationsBox);
-      await Hive.deleteBoxFromDisk(_factsBox);
-    }
-
-    await settingsBox.put('appVersion', currentVersion);
-
     await Hive.openBox<Map>(_adventuresBox);
     await Hive.openBox<Map>(_legendsBox);
     await Hive.openBox<Map>(_poisBox);
@@ -56,6 +36,29 @@ class HiveDatabase {
     await Hive.openBox<Map>(_campaignsBox);
     await Hive.openBox<Map>(_locationsBox);
     await Hive.openBox<Map>(_factsBox);
+
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion =
+          '${packageInfo.version}+${packageInfo.buildNumber}';
+      final settingsBox = Hive.box<dynamic>(_settingsBox);
+      final storedVersion = settingsBox.get('appVersion') as String?;
+
+      if (storedVersion != null && storedVersion != currentVersion) {
+        await Hive.box<Map>(_adventuresBox).clear();
+        await Hive.box<Map>(_legendsBox).clear();
+        await Hive.box<Map>(_poisBox).clear();
+        await Hive.box<Map>(_eventsBox).clear();
+        await Hive.box<Map>(_creaturesBox).clear();
+        await Hive.box<Map>(_campaignsBox).clear();
+        await Hive.box<Map>(_locationsBox).clear();
+        await Hive.box<Map>(_factsBox).clear();
+      }
+
+      await settingsBox.put('appVersion', currentVersion);
+    } catch (_) {
+      // Version check is best-effort; never block app startup
+    }
 
     _instance = HiveDatabase._();
     return _instance!;
