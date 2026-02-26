@@ -31,6 +31,7 @@ class PointOfInterest {
   final List<String> creatureIds;
   final String? imagePath;
   final String? locationId;
+  final bool isVisited;
 
   const PointOfInterest({
     required this.id,
@@ -46,6 +47,7 @@ class PointOfInterest {
     this.creatureIds = const [],
     this.imagePath,
     this.locationId,
+    this.isVisited = false,
   });
 
   factory PointOfInterest.create({
@@ -61,6 +63,7 @@ class PointOfInterest {
     List<String> creatureIds = const [],
     String? imagePath,
     String? locationId,
+    bool isVisited = false,
   }) {
     return PointOfInterest(
       id: const Uuid().v4(),
@@ -76,6 +79,7 @@ class PointOfInterest {
       creatureIds: creatureIds,
       imagePath: imagePath,
       locationId: locationId,
+      isVisited: isVisited,
     );
   }
 
@@ -93,6 +97,7 @@ class PointOfInterest {
     'creatureIds': creatureIds,
     'imagePath': imagePath,
     'locationId': locationId,
+    'isVisited': isVisited,
   };
 
   factory PointOfInterest.fromJson(Map<String, dynamic> json) =>
@@ -111,6 +116,7 @@ class PointOfInterest {
             (json['creatureIds'] as List<dynamic>?)?.cast<String>() ?? [],
         imagePath: json['imagePath'] as String?,
         locationId: json['locationId'] as String?,
+        isVisited: json['isVisited'] as bool? ?? false,
       );
 
   PointOfInterest copyWith({
@@ -125,6 +131,7 @@ class PointOfInterest {
     List<String>? creatureIds,
     String? imagePath,
     String? locationId,
+    bool? isVisited,
   }) {
     return PointOfInterest(
       id: id,
@@ -140,6 +147,7 @@ class PointOfInterest {
       creatureIds: creatureIds ?? this.creatureIds,
       imagePath: imagePath ?? this.imagePath,
       locationId: locationId ?? this.locationId,
+      isVisited: isVisited ?? this.isVisited,
     );
   }
 }

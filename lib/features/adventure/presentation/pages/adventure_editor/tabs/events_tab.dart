@@ -124,13 +124,20 @@ class EventsTab extends ConsumerWidget {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: AppTheme.secondary,
-                            foregroundColor: Colors.white,
+                          leading: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: AppTheme.secondary,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            alignment: Alignment.center,
                             child: Text(
                               event.diceRange,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: 10,
                               ),
                             ),
                           ),

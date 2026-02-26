@@ -25,7 +25,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
     if (adventure == null) return const SizedBox.shrink();
 
     return Container(
-      width: 250,
+      width: 320,
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(
