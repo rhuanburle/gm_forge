@@ -6,3 +6,4 @@ export 'point_of_interest.dart';
 export 'random_event.dart';
 export 'location.dart';
 export 'fact.dart';
+export 'session_entry.dart';

@@ -278,24 +278,55 @@ class _SuggestionList extends ConsumerWidget {
           .where((c) => c.name.toLowerCase().contains(lowerQuery))
           .toList();
 
-      if (filteredCreatures.isEmpty) return _emptyState();
+      final showCreate =
+          query.isNotEmpty &&
+          !creatures.any((c) => c.name.toLowerCase() == lowerQuery);
+
+      if (filteredCreatures.isEmpty && !showCreate) return _emptyState();
 
       return ListView(
         padding: EdgeInsets.zero,
         shrinkWrap: true,
         children: [
-          const _Header('Criaturas & NPCs'),
-          ...filteredCreatures.map(
-            (c) => ListTile(
+          if (showCreate)
+            ListTile(
               dense: true,
-              leading: Icon(
-                c.type == CreatureType.npc ? Icons.person : Icons.pets,
-                size: 16,
-              ),
-              title: Text(c.name),
-              onTap: () => onSelected(c.name, 'Creature', c.id, startIndex),
+              leading: const Icon(Icons.add_circle, color: AppTheme.accent),
+              title: Text('Criar criatura: "$query"'),
+              onTap: () async {
+                final db = ref.read(hiveDatabaseProvider);
+                final newCreature = Creature.create(
+                  adventureId: adventureId,
+                  name: query,
+                  type: CreatureType.npc,
+                  description: '',
+                  motivation: '',
+                  losingBehavior: '',
+                );
+                await db.saveCreature(newCreature);
+                ref.invalidate(creaturesProvider(adventureId));
+                onSelected(
+                  newCreature.name,
+                  'Creature',
+                  newCreature.id,
+                  startIndex,
+                );
+              },
             ),
-          ),
+          if (filteredCreatures.isNotEmpty) ...[
+            const _Header('Criaturas & NPCs'),
+            ...filteredCreatures.map(
+              (c) => ListTile(
+                dense: true,
+                leading: Icon(
+                  c.type == CreatureType.npc ? Icons.person : Icons.pets,
+                  size: 16,
+                ),
+                title: Text(c.name),
+                onTap: () => onSelected(c.name, 'Creature', c.id, startIndex),
+              ),
+            ),
+          ],
         ],
       );
     } else if (trigger == '#') {
@@ -314,7 +345,12 @@ class _SuggestionList extends ConsumerWidget {
           .where((l) => l.name.toLowerCase().contains(lowerQuery))
           .toList();
 
-      if (filteredPois.isEmpty && filteredLocations.isEmpty) {
+      final showCreate =
+          query.isNotEmpty &&
+          !locations.any((l) => l.name.toLowerCase() == lowerQuery) &&
+          !pois.any((p) => p.name.toLowerCase() == lowerQuery);
+
+      if (filteredPois.isEmpty && filteredLocations.isEmpty && !showCreate) {
         return _emptyState();
       }
 
@@ -322,6 +358,27 @@ class _SuggestionList extends ConsumerWidget {
         padding: EdgeInsets.zero,
         shrinkWrap: true,
         children: [
+          if (showCreate)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.add_circle, color: AppTheme.primary),
+              title: Text('Criar local: "$query"'),
+              onTap: () async {
+                final db = ref.read(hiveDatabaseProvider);
+                final newLocation = Location.create(
+                  adventureId: adventureId,
+                  name: query,
+                );
+                await db.saveLocation(newLocation);
+                ref.invalidate(locationsProvider(adventureId));
+                onSelected(
+                  newLocation.name,
+                  'Location',
+                  newLocation.id,
+                  startIndex,
+                );
+              },
+            ),
           if (filteredLocations.isNotEmpty) ...[
             const _Header('Zonas / Locais'),
             ...filteredLocations.map(

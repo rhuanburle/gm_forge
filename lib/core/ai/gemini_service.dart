@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'ai_prompts.dart';
 
 class GeminiService {
   final String _apiKey;
   late final GenerativeModel _model;
+  late final GenerativeModel _structuredModel;
+  late final GenerativeModel _longModel;
 
   GeminiService(this._apiKey) {
     _model = GenerativeModel(
@@ -13,6 +16,27 @@ class GeminiService {
       generationConfig: GenerationConfig(
         temperature: 0.8,
         maxOutputTokens: 2048,
+      ),
+    );
+
+    _structuredModel = GenerativeModel(
+      model: 'gemini-2.5-flash',
+      apiKey: _apiKey,
+      systemInstruction: Content.system(AiPrompts.getSystemPrompt()),
+      generationConfig: GenerationConfig(
+        temperature: 0.9,
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json',
+      ),
+    );
+
+    _longModel = GenerativeModel(
+      model: 'gemini-2.5-flash',
+      apiKey: _apiKey,
+      systemInstruction: Content.system(AiPrompts.getSystemPrompt()),
+      generationConfig: GenerationConfig(
+        temperature: 0.9,
+        maxOutputTokens: 4096,
       ),
     );
   }
@@ -52,9 +76,33 @@ class GeminiService {
     return await _generate(prompt);
   }
 
+  /// Generates structured JSON output from a prompt.
+  /// Returns parsed Map from the JSON response.
+  Future<Map<String, dynamic>> generateStructured(String prompt) async {
+    final response = await _structuredModel.generateContent([
+      Content.text(prompt),
+    ]);
+
+    final text = _extractText(response);
+    try {
+      return json.decode(text) as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Failed to parse AI JSON response: $e');
+    }
+  }
+
+  /// Generates longer text content (up to 4096 tokens).
+  Future<String> generateLongText(String prompt) async {
+    final response = await _longModel.generateContent([Content.text(prompt)]);
+    return _extractText(response);
+  }
+
   Future<String> _generate(String prompt) async {
     final response = await _model.generateContent([Content.text(prompt)]);
+    return _extractText(response);
+  }
 
+  String _extractText(GenerateContentResponse response) {
     final candidates = response.candidates;
     if (candidates.isEmpty) {
       throw Exception('No candidates in Gemini API response');
@@ -62,7 +110,6 @@ class GeminiService {
 
     final candidate = candidates.first;
     if (candidate.finishReason == FinishReason.maxTokens) {
-      // Response was truncated due to token limit
       final partial = candidate.text ?? '';
       if (partial.isNotEmpty) {
         return partial.trim();

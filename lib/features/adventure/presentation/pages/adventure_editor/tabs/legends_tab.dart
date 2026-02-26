@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../core/ai/ai_prompts.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../../../core/history/history_service.dart';
 import '../../../../application/adventure_providers.dart';
 import '../../../../domain/domain.dart';
 import '../../../widgets/smart_text_field.dart';
@@ -276,6 +277,8 @@ class LegendsTab extends ConsumerWidget {
               onPressed: () async {
                 if (textController.text.isNotEmpty &&
                     diceController.text.isNotEmpty) {
+                  final db = ref.read(hiveDatabaseProvider);
+
                   if (isEditing) {
                     final updatedLegend = legendToEdit.copyWith(
                       text: textController.text,
@@ -287,9 +290,23 @@ class LegendsTab extends ConsumerWidget {
                       relatedCreatureId: selectedCreatureId,
                       relatedLocationId: selectedLocationId,
                     );
-                    await ref
-                        .read(hiveDatabaseProvider)
-                        .saveLegend(updatedLegend);
+                    await db.saveLegend(updatedLegend);
+
+                    ref
+                        .read(historyProvider.notifier)
+                        .recordAction(
+                          HistoryAction(
+                            description: 'Rumor atualizado',
+                            onUndo: () async {
+                              await db.saveLegend(legendToEdit);
+                              ref.invalidate(legendsProvider(adventureId));
+                            },
+                            onRedo: () async {
+                              await db.saveLegend(updatedLegend);
+                              ref.invalidate(legendsProvider(adventureId));
+                            },
+                          ),
+                        );
                   } else {
                     final legend = Legend.create(
                       adventureId: adventureId,
@@ -302,7 +319,23 @@ class LegendsTab extends ConsumerWidget {
                       relatedCreatureId: selectedCreatureId,
                       relatedLocationId: selectedLocationId,
                     );
-                    await ref.read(hiveDatabaseProvider).saveLegend(legend);
+                    await db.saveLegend(legend);
+
+                    ref
+                        .read(historyProvider.notifier)
+                        .recordAction(
+                          HistoryAction(
+                            description: 'Rumor adicionado',
+                            onUndo: () async {
+                              await db.deleteLegend(legend.id);
+                              ref.invalidate(legendsProvider(adventureId));
+                            },
+                            onRedo: () async {
+                              await db.saveLegend(legend);
+                              ref.invalidate(legendsProvider(adventureId));
+                            },
+                          ),
+                        );
                   }
                   ref.invalidate(legendsProvider(adventureId));
                   ref.read(unsyncedChangesProvider.notifier).state = true;
@@ -388,7 +421,25 @@ class _LegendCard extends ConsumerWidget {
                   ),
                 );
                 if (confirm == true) {
-                  await ref.read(hiveDatabaseProvider).deleteLegend(legend.id);
+                  final db = ref.read(hiveDatabaseProvider);
+                  await db.deleteLegend(legend.id);
+
+                  ref
+                      .read(historyProvider.notifier)
+                      .recordAction(
+                        HistoryAction(
+                          description: 'Rumor removido',
+                          onUndo: () async {
+                            await db.saveLegend(legend);
+                            ref.invalidate(legendsProvider(adventureId));
+                          },
+                          onRedo: () async {
+                            await db.deleteLegend(legend.id);
+                            ref.invalidate(legendsProvider(adventureId));
+                          },
+                        ),
+                      );
+
                   ref.invalidate(legendsProvider(adventureId));
                   ref.read(unsyncedChangesProvider.notifier).state = true;
                 }

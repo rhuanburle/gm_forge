@@ -60,6 +60,14 @@ final factsProvider = Provider.family<List<Fact>, String>((ref, adventureId) {
   return db.getFacts(adventureId);
 });
 
+final sessionEntriesProvider = Provider.family<List<SessionEntry>, String>((
+  ref,
+  adventureId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getSessionEntries(adventureId);
+});
+
 class AdventureListNotifier extends Notifier<List<Adventure>> {
   @override
   List<Adventure> build() {

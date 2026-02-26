@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
 import '../../../../../core/sync/sync_service.dart';
+import '../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../application/adventure_providers.dart';
+import '../../../application/adventure_clone_service.dart';
 import '../../../domain/adventure.dart';
 
 class AdventureCard extends ConsumerWidget {
@@ -148,6 +150,13 @@ class AdventureCard extends ConsumerWidget {
                             ref
                                 .read(syncServiceProvider)
                                 .deleteAdventure(adventure.id);
+                          } else if (value == 'duplicate') {
+                            await ref
+                                .read(adventureCloneServiceProvider)
+                                .cloneAdventure(adventure);
+                            ref.read(adventureListProvider.notifier).refresh();
+                            ref.read(unsyncedChangesProvider.notifier).state =
+                                true;
                           }
                         },
                         itemBuilder: (context) => [
@@ -171,6 +180,16 @@ class AdventureCard extends ConsumerWidget {
                                 Icon(Icons.build, color: AppTheme.primary),
                                 SizedBox(width: 8),
                                 Text('Abrir Editor'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'duplicate',
+                            child: Row(
+                              children: [
+                                Icon(Icons.copy, color: AppTheme.secondary),
+                                SizedBox(width: 8),
+                                Text('Duplicar'),
                               ],
                             ),
                           ),

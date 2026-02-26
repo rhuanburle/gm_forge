@@ -12,6 +12,7 @@ import '../../features/adventure/domain/point_of_interest.dart';
 import '../../features/adventure/domain/random_event.dart';
 import '../../features/adventure/domain/location.dart';
 import '../../features/adventure/domain/fact.dart';
+import '../../features/adventure/domain/session_entry.dart';
 
 class SyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -47,6 +48,7 @@ class SyncService {
     final events = _hiveDb.getRandomEvents(adventureId);
     final locations = _hiveDb.getLocations(adventureId);
     final facts = _hiveDb.getFacts(adventureId);
+    final sessionEntries = _hiveDb.getSessionEntries(adventureId);
 
     final payload = {
       'adventure': adventure.toJson(),
@@ -56,6 +58,7 @@ class SyncService {
       'events': events.map((e) => e.toJson()).toList(),
       'locations': locations.map((l) => l.toJson()).toList(),
       'facts': facts.map((f) => f.toJson()).toList(),
+      'session_entries': sessionEntries.map((se) => se.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
       'version': 1,
     };
@@ -76,6 +79,7 @@ class SyncService {
       final events = _hiveDb.getRandomEvents(adventure.id);
       final locations = _hiveDb.getLocations(adventure.id);
       final facts = _hiveDb.getFacts(adventure.id);
+      final sessionEntries = _hiveDb.getSessionEntries(adventure.id);
 
       allPayloads[adventure.id] = {
         'adventure': adventure.toJson(),
@@ -85,6 +89,7 @@ class SyncService {
         'events': events.map((e) => e.toJson()).toList(),
         'locations': locations.map((l) => l.toJson()).toList(),
         'facts': facts.map((f) => f.toJson()).toList(),
+        'session_entries': sessionEntries.map((se) => se.toJson()).toList(),
         'updatedAt': FieldValue.serverTimestamp(),
         'version': 1,
       };
@@ -189,6 +194,12 @@ class SyncService {
     for (final factJson in factsJson) {
       final fact = Fact.fromJson(factJson as Map<String, dynamic>);
       await _hiveDb.saveFact(fact);
+    }
+
+    final sessionEntriesJson = data['session_entries'] as List<dynamic>? ?? [];
+    for (final seJson in sessionEntriesJson) {
+      final entry = SessionEntry.fromJson(seJson as Map<String, dynamic>);
+      await _hiveDb.saveSessionEntry(entry);
     }
 
     return true;

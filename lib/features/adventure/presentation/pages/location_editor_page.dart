@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/ai/ai_prompts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../core/history/history_service.dart';
 import '../../application/adventure_providers.dart';
+import '../../application/link_service.dart';
 import '../../domain/domain.dart';
 import '../widgets/smart_text_field.dart';
 import 'adventure_editor/widgets/section_header.dart';
@@ -274,7 +276,25 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
       imagePath: _imageController.text,
     );
 
-    await ref.read(hiveDatabaseProvider).saveLocation(updatedLocation);
+    final db = ref.read(hiveDatabaseProvider);
+    await db.saveLocation(updatedLocation);
+
+    ref
+        .read(historyProvider.notifier)
+        .recordAction(
+          HistoryAction(
+            description: 'Local atualizado',
+            onUndo: () async {
+              await db.saveLocation(location);
+              ref.invalidate(locationsProvider(widget.adventureId));
+            },
+            onRedo: () async {
+              await db.saveLocation(updatedLocation);
+              ref.invalidate(locationsProvider(widget.adventureId));
+            },
+          ),
+        );
+
     ref.invalidate(locationsProvider(widget.adventureId));
 
     if (mounted) {
@@ -309,7 +329,25 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
     );
 
     if (confirm == true) {
-      await ref.read(hiveDatabaseProvider).deletePointOfInterest(poi.id);
+      final db = ref.read(hiveDatabaseProvider);
+      await db.deletePointOfInterest(poi.id);
+
+      ref
+          .read(historyProvider.notifier)
+          .recordAction(
+            HistoryAction(
+              description: 'PDI removido',
+              onUndo: () async {
+                await db.savePointOfInterest(poi);
+                ref.invalidate(pointsOfInterestProvider(widget.adventureId));
+              },
+              onRedo: () async {
+                await db.deletePointOfInterest(poi.id);
+                ref.invalidate(pointsOfInterestProvider(widget.adventureId));
+              },
+            ),
+          );
+
       ref.invalidate(pointsOfInterestProvider(widget.adventureId));
       _markUnsynced();
     }
@@ -339,6 +377,10 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
     }
 
     RoomPurpose selectedPurpose = poiToEdit?.purpose ?? RoomPurpose.narrative;
+
+    // Creature multi-select
+    final allCreatures = ref.read(creaturesProvider(widget.adventureId));
+    final selectedCreatureIds = Set<String>.from(poiToEdit?.creatureIds ?? []);
 
     showDialog(
       context: context,
@@ -439,6 +481,57 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                     'poiPurpose': selectedPurpose.displayName,
                   },
                 ),
+                if (allCreatures.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Icon(Icons.pets, size: 16, color: AppTheme.accent),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Criaturas neste POI',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: allCreatures.map((creature) {
+                      final isSelected = selectedCreatureIds.contains(
+                        creature.id,
+                      );
+                      return FilterChip(
+                        avatar: Icon(
+                          creature.type == CreatureType.npc
+                              ? Icons.person
+                              : Icons.pets,
+                          size: 14,
+                        ),
+                        label: Text(
+                          creature.name,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        selected: isSelected,
+                        onSelected: (value) {
+                          setState(() {
+                            if (value) {
+                              selectedCreatureIds.add(creature.id);
+                            } else {
+                              selectedCreatureIds.remove(creature.id);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -451,8 +544,21 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
               onPressed: () async {
                 if (nameCtrl.text.isNotEmpty && numberCtrl.text.isNotEmpty) {
                   final number = int.tryParse(numberCtrl.text) ?? 0;
+                  final db = ref.read(hiveDatabaseProvider);
+                  final linkService = ref.read(linkServiceProvider);
 
                   if (isEditing) {
+                    // Determine added/removed creatures
+                    final oldCreatureIds = Set<String>.from(
+                      poiToEdit.creatureIds,
+                    );
+                    final added = selectedCreatureIds.difference(
+                      oldCreatureIds,
+                    );
+                    final removed = oldCreatureIds.difference(
+                      selectedCreatureIds,
+                    );
+
                     final updatedPoi = poiToEdit.copyWith(
                       number: number,
                       name: nameCtrl.text,
@@ -461,10 +567,45 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       obvious: obviousCtrl.text,
                       detail: detailCtrl.text,
                       treasure: treasureCtrl.text,
+                      creatureIds: selectedCreatureIds.toList(),
                     );
-                    await ref
-                        .read(hiveDatabaseProvider)
-                        .savePointOfInterest(updatedPoi);
+                    await db.savePointOfInterest(updatedPoi);
+
+                    ref
+                        .read(historyProvider.notifier)
+                        .recordAction(
+                          HistoryAction(
+                            description: 'PDI atualizado',
+                            onUndo: () async {
+                              await db.savePointOfInterest(poiToEdit);
+                              ref.invalidate(
+                                pointsOfInterestProvider(widget.adventureId),
+                              );
+                            },
+                            onRedo: () async {
+                              await db.savePointOfInterest(updatedPoi);
+                              ref.invalidate(
+                                pointsOfInterestProvider(widget.adventureId),
+                              );
+                            },
+                          ),
+                        );
+
+                    // Sync bidirectional links
+                    for (final id in added) {
+                      await linkService.linkCreatureToPoi(
+                        id,
+                        updatedPoi.id,
+                        widget.adventureId,
+                      );
+                    }
+                    for (final id in removed) {
+                      await linkService.unlinkCreatureFromPoi(
+                        id,
+                        updatedPoi.id,
+                        widget.adventureId,
+                      );
+                    }
                   } else {
                     final newPoi = PointOfInterest.create(
                       adventureId: widget.adventureId,
@@ -476,13 +617,42 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       obvious: obviousCtrl.text,
                       detail: detailCtrl.text,
                       treasure: treasureCtrl.text,
+                      creatureIds: selectedCreatureIds.toList(),
                     );
-                    await ref
-                        .read(hiveDatabaseProvider)
-                        .savePointOfInterest(newPoi);
+                    await db.savePointOfInterest(newPoi);
+
+                    ref
+                        .read(historyProvider.notifier)
+                        .recordAction(
+                          HistoryAction(
+                            description: 'PDI criado',
+                            onUndo: () async {
+                              await db.deletePointOfInterest(newPoi.id);
+                              ref.invalidate(
+                                pointsOfInterestProvider(widget.adventureId),
+                              );
+                            },
+                            onRedo: () async {
+                              await db.savePointOfInterest(newPoi);
+                              ref.invalidate(
+                                pointsOfInterestProvider(widget.adventureId),
+                              );
+                            },
+                          ),
+                        );
+
+                    // Sync bidirectional links for new POI
+                    for (final id in selectedCreatureIds) {
+                      await linkService.linkCreatureToPoi(
+                        id,
+                        newPoi.id,
+                        widget.adventureId,
+                      );
+                    }
                   }
 
                   ref.invalidate(pointsOfInterestProvider(widget.adventureId));
+                  ref.invalidate(creaturesProvider(widget.adventureId));
                   _markUnsynced();
                   if (context.mounted) Navigator.pop(context);
                 }

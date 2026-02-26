@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../auth/auth_service.dart';
 import '../../features/adventure/presentation/pages/dashboard_page.dart';
 import '../../features/adventure/presentation/pages/adventure_editor_page.dart';
+import '../../features/adventure/presentation/pages/adventure_generator_page.dart';
 import '../../features/adventure/presentation/pages/location_editor_page.dart';
 import '../../features/adventure/presentation/pages/adventure_play_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -41,6 +42,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id'] ?? '';
           final locationId = state.pathParameters['locationId'] ?? '';
           return LocationEditorPage(adventureId: id, locationId: locationId);
+        },
+      ),
+      GoRoute(
+        path: '/adventure/:id/generate',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return AdventureGeneratorPage(adventureId: id);
         },
       ),
       GoRoute(

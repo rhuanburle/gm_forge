@@ -253,4 +253,169 @@ Return ONLY the text content, nothing else. No labels, no explanations.
         return 'Describe a specific treasure found in this room. Give it a name, a brief description, and optionally a minor history or quirk that makes it memorable.';
     }
   }
+
+  // =========================================================================
+  // Holistic Prompts — Full adventure context
+  // =========================================================================
+
+  /// Builds prompt for full adventure generation from concept.
+  /// Returns a prompt that expects JSON response matching the adventure schema.
+  static String buildAdventureGenerationPrompt({
+    required String adventureName,
+    required String conceptWhat,
+    required String conceptConflict,
+  }) {
+    return '''
+You are generating a COMPLETE adventure site for a tabletop RPG using the "Adventure Sites" methodology.
+
+ADVENTURE CONCEPT:
+- Name: $adventureName
+- Setting/What: $conceptWhat
+- Central Conflict: $conceptConflict
+
+Generate a full adventure with the following structure. Respond in Brazilian Portuguese (PT-BR).
+
+RULES:
+1. Create 2-3 Locations (zones/areas)
+2. For each Location, create 3-5 Points of Interest (POIs/rooms) numbered sequentially
+3. Each POI must have a purpose: 0=danger, 1=rest, 2=puzzle, 3=narrative
+4. Create 3-5 Creatures/NPCs (mix of monsters and NPCs). type: 0=monster, 1=npc
+5. Create 4-6 Legends/Rumors (mix of true and false)
+6. Create 4-6 Random Events with types: 0=patrol, 1=environment, 2=sound, 3=calm
+7. Ensure creatures are placed in POIs via creatureNames array
+8. Make everything interconnected — creatures relate to conflicts, legends hint at real dangers
+
+Respond with EXACTLY this JSON structure:
+{
+  "locations": [
+    {
+      "name": "string",
+      "description": "string",
+      "pois": [
+        {
+          "number": 1,
+          "name": "string",
+          "purpose": 0,
+          "firstImpression": "string",
+          "obvious": "string",
+          "detail": "string",
+          "treasure": "string",
+          "creatureNames": ["string"]
+        }
+      ]
+    }
+  ],
+  "creatures": [
+    {
+      "name": "string",
+      "type": 0,
+      "description": "string",
+      "motivation": "string",
+      "losingBehavior": "string",
+      "stats": "string"
+    }
+  ],
+  "legends": [
+    {
+      "text": "string",
+      "isTrue": true,
+      "source": "string",
+      "diceResult": "1-2"
+    }
+  ],
+  "events": [
+    {
+      "diceRange": "1-2",
+      "eventType": 0,
+      "description": "string",
+      "impact": "string"
+    }
+  ]
+}
+''';
+  }
+
+  /// Builds prompt for suggesting narrative complications/twists.
+  static String buildComplicationPrompt({
+    required String adventureName,
+    required String conceptConflict,
+    required List<String> creatureNames,
+    required List<String> locationNames,
+    required List<String> legendTexts,
+  }) {
+    final creatures = creatureNames.isNotEmpty
+        ? creatureNames.join(', ')
+        : 'nenhuma criatura registrada';
+    final locations = locationNames.isNotEmpty
+        ? locationNames.join(', ')
+        : 'nenhum local registrado';
+    final legends = legendTexts.isNotEmpty
+        ? legendTexts.join(' | ')
+        : 'nenhum rumor registrado';
+
+    return '''
+You are an expert Game Master analyzing an existing adventure to suggest dramatic complications and narrative twists.
+
+ADVENTURE: $adventureName
+CENTRAL CONFLICT: $conceptConflict
+CREATURES/NPCs: $creatures
+LOCATIONS: $locations
+EXISTING RUMORS: $legends
+
+Generate exactly 5 narrative complications/twists. Each must:
+1. Build on EXISTING elements (creatures, locations, conflicts) — never invent completely new entities
+2. Create consequences in chain — one event triggers another
+3. Be immediately usable at the table
+4. Include both a dramatic description AND its mechanical/narrative impact
+
+Respond in Brazilian Portuguese. Format each complication as:
+
+## [Título Dramático]
+**O que acontece:** [Descrição em 2-3 frases]
+**Impacto na mesa:** [Consequência mecânica/narrativa em 1-2 frases]
+**Tipo sugerido:** [EVENTO ou RUMOR]
+
+---
+''';
+  }
+
+  /// Builds prompt for generating NPC knowledge (Facts) from adventure lore.
+  static String buildNpcKnowledgePrompt({
+    required String npcName,
+    required String npcDescription,
+    required String npcMotivation,
+    required List<String> legendTexts,
+    required List<String> locationNames,
+    required List<String> creatureNames,
+    required String conceptConflict,
+  }) {
+    return '''
+You are generating what an NPC knows about the adventure based on existing lore.
+
+NPC: $npcName
+NPC Description: $npcDescription
+NPC Motivation: $npcMotivation
+CENTRAL CONFLICT: $conceptConflict
+KNOWN LOCATIONS: ${locationNames.join(', ')}
+KNOWN CREATURES: ${creatureNames.join(', ')}
+EXISTING RUMORS/LEGENDS: ${legendTexts.join(' | ')}
+
+Generate 4-6 pieces of knowledge (Facts) that this specific NPC would know, considering:
+1. Their personality and motivation
+2. Their role in the adventure
+3. Cross-reference with existing legends — they may confirm, deny, or add nuance
+4. Include a mix of: useful tactical info, lore/history, personal opinions, and one potential lie or half-truth
+5. Each fact should be 1-2 sentences written in first person as if the NPC is speaking
+
+Respond in Brazilian Portuguese with EXACTLY this JSON:
+{
+  "facts": [
+    {
+      "content": "string (the fact text, in NPC's voice)",
+      "isReliable": true
+    }
+  ]
+}
+''';
+  }
 }

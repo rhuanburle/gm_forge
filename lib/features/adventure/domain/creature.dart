@@ -1,4 +1,4 @@
-import 'package:uuid/uuid.dart';
+import "package:uuid/uuid.dart";
 
 enum CreatureType { monster, npc }
 
@@ -6,9 +6,9 @@ extension CreatureTypeExtension on CreatureType {
   String get displayName {
     switch (this) {
       case CreatureType.monster:
-        return 'Monstro';
+        return "Monstro";
       case CreatureType.npc:
-        return 'NPC';
+        return "NPC";
     }
   }
 }
@@ -21,9 +21,13 @@ class Creature {
   final String description;
   final String motivation;
   final String losingBehavior;
-  final String? location;
+  final List<String> locationIds;
   final String stats;
   final String? imagePath;
+
+  /// Legacy field — preserved from old data where location was free-text.
+  /// Read-only: NOT written to toJson(). Used during migration only.
+  final String? legacyLocation;
 
   const Creature({
     required this.id,
@@ -33,9 +37,10 @@ class Creature {
     required this.description,
     required this.motivation,
     required this.losingBehavior,
-    this.location,
-    this.stats = '',
+    this.locationIds = const [],
+    this.stats = "",
     this.imagePath,
+    this.legacyLocation,
   });
 
   factory Creature.create({
@@ -45,8 +50,8 @@ class Creature {
     required String description,
     required String motivation,
     required String losingBehavior,
-    String? location,
-    String stats = '',
+    List<String> locationIds = const [],
+    String stats = "",
     String? imagePath,
   }) {
     return Creature(
@@ -57,36 +62,39 @@ class Creature {
       description: description,
       motivation: motivation,
       losingBehavior: losingBehavior,
-      location: location,
+      locationIds: locationIds,
       stats: stats,
       imagePath: imagePath,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'adventureId': adventureId,
-    'name': name,
-    'type': type.index,
-    'description': description,
-    'motivation': motivation,
-    'losingBehavior': losingBehavior,
-    'location': location,
-    'stats': stats,
-    'imagePath': imagePath,
+    "id": id,
+    "adventureId": adventureId,
+    "name": name,
+    "type": type.index,
+    "description": description,
+    "motivation": motivation,
+    "losingBehavior": losingBehavior,
+    "locationIds": locationIds,
+    "stats": stats,
+    "imagePath": imagePath,
   };
 
   factory Creature.fromJson(Map<String, dynamic> json) => Creature(
-    id: json['id'] as String,
-    adventureId: json['adventureId'] as String,
-    name: json['name'] as String,
-    type: CreatureType.values[json['type'] as int? ?? 0],
-    description: json['description'] as String,
-    motivation: json['motivation'] as String,
-    losingBehavior: json['losingBehavior'] as String,
-    location: json['location'] as String?,
-    stats: json['stats'] as String? ?? '',
-    imagePath: json['imagePath'] as String?,
+    id: json["id"] as String,
+    adventureId: json["adventureId"] as String,
+    name: json["name"] as String,
+    type: CreatureType.values[json["type"] as int? ?? 0],
+    description: json["description"] as String,
+    motivation: json["motivation"] as String,
+    losingBehavior: json["losingBehavior"] as String,
+    locationIds:
+        (json["locationIds"] as List<dynamic>?)?.cast<String>() ?? const [],
+    stats: json["stats"] as String? ?? "",
+    imagePath: json["imagePath"] as String?,
+    // Preserve the old free-text "location" field for migration purposes
+    legacyLocation: json["location"] as String?,
   );
 
   Creature copyWith({
@@ -95,7 +103,7 @@ class Creature {
     String? description,
     String? motivation,
     String? losingBehavior,
-    String? location,
+    List<String>? locationIds,
     String? stats,
     String? imagePath,
   }) {
@@ -107,7 +115,7 @@ class Creature {
       description: description ?? this.description,
       motivation: motivation ?? this.motivation,
       losingBehavior: losingBehavior ?? this.losingBehavior,
-      location: location ?? this.location,
+      locationIds: locationIds ?? this.locationIds,
       stats: stats ?? this.stats,
       imagePath: imagePath ?? this.imagePath,
     );

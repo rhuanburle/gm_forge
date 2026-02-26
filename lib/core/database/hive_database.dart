@@ -11,6 +11,7 @@ class HiveDatabase {
   static const String _campaignsBox = 'campaigns';
   static const String _locationsBox = 'locations';
   static const String _factsBox = 'facts';
+  static const String _sessionEntriesBox = 'session_entries';
   static const String _settingsBox = 'settings';
 
   static HiveDatabase? _instance;
@@ -36,6 +37,7 @@ class HiveDatabase {
     await Hive.openBox<Map>(_campaignsBox);
     await Hive.openBox<Map>(_locationsBox);
     await Hive.openBox<Map>(_factsBox);
+    await Hive.openBox<Map>(_sessionEntriesBox);
 
     try {
       final packageInfo = await PackageInfo.fromPlatform();
@@ -53,6 +55,7 @@ class HiveDatabase {
         await Hive.box<Map>(_campaignsBox).clear();
         await Hive.box<Map>(_locationsBox).clear();
         await Hive.box<Map>(_factsBox).clear();
+        await Hive.box<Map>(_sessionEntriesBox).clear();
       }
 
       await settingsBox.put('appVersion', currentVersion);
@@ -61,10 +64,104 @@ class HiveDatabase {
     }
 
     _instance = HiveDatabase._();
+    await _instance!._runMigrations();
     return _instance!;
   }
 
   HiveDatabase._();
+
+  Future<void> _runMigrations() async {
+    final migrationDone =
+        _settings.get('migration_v2_bidirectional_links') as bool? ?? false;
+    if (migrationDone) return;
+
+    try {
+      // Step 1: Re-save all creatures to convert old format to new format.
+      // Old creatures have "location" (String?) field — fromJson preserves it
+      // as legacyLocation. The new toJson writes "locationIds" instead.
+      // This step ensures the stored JSON is in the new format.
+      final creaturesBox = Hive.box<Map>(_creaturesBox);
+      for (final key in creaturesBox.keys.toList()) {
+        final raw = creaturesBox.get(key);
+        if (raw == null) continue;
+        final data = Map<String, dynamic>.from(raw);
+
+        // Only migrate entries that still have old "location" field
+        if (data.containsKey('location') && !data.containsKey('locationIds')) {
+          data['locationIds'] = <String>[];
+          data.remove('location');
+          await creaturesBox.put(key, data);
+        }
+      }
+
+      // Step 2: Rebuild Location.creatureIds from existing POI→creature links.
+      // POIs already have creatureIds — we mirror those onto the parent Location.
+      final locationsBox = Hive.box<Map>(_locationsBox);
+      final poisBox = Hive.box<Map>(_poisBox);
+
+      for (final locKey in locationsBox.keys.toList()) {
+        final locRaw = locationsBox.get(locKey);
+        if (locRaw == null) continue;
+        final locData = Map<String, dynamic>.from(locRaw);
+        final locId = locData['id'] as String?;
+        if (locId == null) continue;
+
+        // Find all POIs belonging to this location
+        final linkedCreatureIds = <String>{};
+        for (final poiRaw in poisBox.values) {
+          final poiData = Map<String, dynamic>.from(poiRaw);
+          if (poiData['locationId'] == locId) {
+            final poiCreatureIds =
+                (poiData['creatureIds'] as List<dynamic>?)?.cast<String>() ??
+                [];
+            linkedCreatureIds.addAll(poiCreatureIds);
+          }
+        }
+
+        // Also preserve any existing creatureIds already on the location
+        final existingCreatureIds =
+            (locData['creatureIds'] as List<dynamic>?)?.cast<String>() ?? [];
+        linkedCreatureIds.addAll(existingCreatureIds);
+
+        locData['creatureIds'] = linkedCreatureIds.toList();
+        await locationsBox.put(locKey, locData);
+      }
+
+      // Step 3: Rebuild Creature.locationIds from POI.creatureIds backlinks.
+      for (final creatureKey in creaturesBox.keys.toList()) {
+        final creatureRaw = creaturesBox.get(creatureKey);
+        if (creatureRaw == null) continue;
+        final creatureData = Map<String, dynamic>.from(creatureRaw);
+        final creatureId = creatureData['id'] as String?;
+        if (creatureId == null) continue;
+
+        final appearsIn = <String>{};
+        // Existing locationIds
+        final existing =
+            (creatureData['locationIds'] as List<dynamic>?)?.cast<String>() ??
+            [];
+        appearsIn.addAll(existing);
+
+        // Find POIs that reference this creature
+        for (final poiRaw in poisBox.values) {
+          final poiData = Map<String, dynamic>.from(poiRaw);
+          final poiCreatureIds =
+              (poiData['creatureIds'] as List<dynamic>?)?.cast<String>() ?? [];
+          if (poiCreatureIds.contains(creatureId)) {
+            final poiId = poiData['id'] as String?;
+            if (poiId != null) appearsIn.add(poiId);
+          }
+        }
+
+        creatureData['locationIds'] = appearsIn.toList();
+        await creaturesBox.put(creatureKey, creatureData);
+      }
+
+      await _settings.put('migration_v2_bidirectional_links', true);
+    } catch (_) {
+      // Migration is best-effort; never block app startup
+    }
+  }
 
   Box<dynamic> get _settings => Hive.box<dynamic>(_settingsBox);
 
@@ -183,6 +280,7 @@ class HiveDatabase {
     await _deleteByAdventureId(_creatures, id);
     await _deleteByAdventureId(_locations, id);
     await _deleteByAdventureId(_facts, id);
+    await _deleteByAdventureId(_sessionEntries, id);
   }
 
   Box<Map> get _locations => Hive.box<Map>(_locationsBox);
@@ -205,6 +303,48 @@ class HiveDatabase {
   }
 
   Future<void> deleteLocation(String id) async {
+    final location = _locations.get(id);
+    if (location != null) {
+      final data = Map<String, dynamic>.from(location);
+      final adventureId = data['adventureId'] as String?;
+      if (adventureId != null) {
+        // Remove this locationId from all creature.locationIds
+        final creatures = getCreatures(adventureId);
+        for (final creature in creatures) {
+          if (creature.locationIds.contains(id)) {
+            await saveCreature(
+              creature.copyWith(
+                locationIds: creature.locationIds
+                    .where((lid) => lid != id)
+                    .toList(),
+              ),
+            );
+          }
+        }
+        // Remove associated POIs that reference this location
+        final pois = getPointsOfInterest(adventureId);
+        for (final poi in pois) {
+          if (poi.locationId == id) {
+            // Cleanup POI's creature backlinks before deleting
+            for (final creatureId in poi.creatureIds) {
+              final creature = getCreatures(
+                adventureId,
+              ).where((c) => c.id == creatureId).firstOrNull;
+              if (creature != null && creature.locationIds.contains(poi.id)) {
+                await saveCreature(
+                  creature.copyWith(
+                    locationIds: creature.locationIds
+                        .where((lid) => lid != poi.id)
+                        .toList(),
+                  ),
+                );
+              }
+            }
+            await _pois.delete(poi.id);
+          }
+        }
+      }
+    }
     await _locations.delete(id);
   }
 
@@ -250,6 +390,31 @@ class HiveDatabase {
   }
 
   Future<void> deletePointOfInterest(String id) async {
+    final poiData = _pois.get(id);
+    if (poiData != null) {
+      final data = Map<String, dynamic>.from(poiData);
+      final adventureId = data['adventureId'] as String?;
+      final creatureIds =
+          (data['creatureIds'] as List<dynamic>?)?.cast<String>() ?? [];
+      if (adventureId != null) {
+        // Remove this POI's id from all creature.locationIds
+        for (final creatureId in creatureIds) {
+          final creatures = getCreatures(adventureId);
+          final creature = creatures
+              .where((c) => c.id == creatureId)
+              .firstOrNull;
+          if (creature != null && creature.locationIds.contains(id)) {
+            await saveCreature(
+              creature.copyWith(
+                locationIds: creature.locationIds
+                    .where((lid) => lid != id)
+                    .toList(),
+              ),
+            );
+          }
+        }
+      }
+    }
     await _pois.delete(id);
   }
 
@@ -294,6 +459,37 @@ class HiveDatabase {
   }
 
   Future<void> deleteCreature(String id) async {
+    final creatureData = _creatures.get(id);
+    if (creatureData != null) {
+      final data = Map<String, dynamic>.from(creatureData);
+      final adventureId = data['adventureId'] as String?;
+      if (adventureId != null) {
+        // Remove this creature's id from all POI.creatureIds
+        final pois = getPointsOfInterest(adventureId);
+        for (final poi in pois) {
+          if (poi.creatureIds.contains(id)) {
+            await savePointOfInterest(
+              poi.copyWith(
+                creatureIds: poi.creatureIds.where((cid) => cid != id).toList(),
+              ),
+            );
+          }
+        }
+        // Remove this creature's id from all Location.creatureIds
+        final locations = getLocations(adventureId);
+        for (final location in locations) {
+          if (location.creatureIds.contains(id)) {
+            await saveLocation(
+              location.copyWith(
+                creatureIds: location.creatureIds
+                    .where((cid) => cid != id)
+                    .toList(),
+              ),
+            );
+          }
+        }
+      }
+    }
     await _creatures.delete(id);
   }
 
@@ -318,6 +514,30 @@ class HiveDatabase {
 
   Future<void> deleteFact(String id) async {
     await _facts.delete(id);
+  }
+
+  Box<Map> get _sessionEntries => Hive.box<Map>(_sessionEntriesBox);
+
+  List<SessionEntry> getSessionEntries(String adventureId) {
+    final entries = <SessionEntry>[];
+    for (final entry in _sessionEntries.toMap().entries) {
+      final map = Map<String, dynamic>.from(entry.value);
+      if (map['adventureId'] == adventureId) {
+        entries.add(SessionEntry.fromJson(map));
+      }
+    }
+    entries.sort(
+      (a, b) => b.timestamp.compareTo(a.timestamp),
+    ); // Descending by default
+    return entries;
+  }
+
+  Future<void> saveSessionEntry(SessionEntry entry) async {
+    await _sessionEntries.put(entry.id, entry.toJson());
+  }
+
+  Future<void> deleteSessionEntry(String id) async {
+    await _sessionEntries.delete(id);
   }
 
   Future<void> _deleteByAdventureId(Box<Map> box, String adventureId) async {

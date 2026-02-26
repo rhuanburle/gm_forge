@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../../../core/ai/ai_providers.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../application/adventure_providers.dart';
+import '../../../widgets/complications_dialog.dart';
 import '../../../widgets/smart_text_renderer.dart';
 import '../widgets/section_header.dart';
 
@@ -69,7 +72,34 @@ class SummaryTab extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          if (ref.watch(hasAiConfiguredProvider)) ...[
+            _AiActionCard(
+              icon: Icons.auto_awesome,
+              title: "🪄 Gerar Aventura com IA",
+              subtitle: adventure.conceptWhat.isNotEmpty
+                  ? "Cria locais, criaturas, rumores e eventos automaticamente"
+                  : "Preencha o Conceito primeiro",
+              enabled:
+                  adventure.conceptWhat.isNotEmpty &&
+                  adventure.conceptConflict.isNotEmpty,
+              onTap: () => context.push('/adventure/$adventureId/generate'),
+            ),
+            const SizedBox(height: 8),
+            _AiActionCard(
+              icon: Icons.bolt,
+              title: "⚡ Sugerir Complicações",
+              subtitle: (creatures.isNotEmpty || locations.isNotEmpty)
+                  ? "Twists narrativos baseados na aventura atual"
+                  : "Adicione criaturas ou locais primeiro",
+              enabled: creatures.isNotEmpty || locations.isNotEmpty,
+              onTap: () => showDialog(
+                context: context,
+                builder: (_) => ComplicationsDialog(adventureId: adventureId),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           const SectionHeader(
             icon: Icons.dashboard,
             title: 'Visão Geral',
@@ -178,6 +208,72 @@ class _MetricCard extends StatelessWidget {
                   fontSize: 12,
                   color: AppTheme.textSecondary,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AiActionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _AiActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: enabled ? AppTheme.primary.withValues(alpha: 0.04) : null,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: enabled ? AppTheme.primary : Colors.grey,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: enabled ? null : Colors.grey,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: enabled ? AppTheme.textSecondary : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: enabled ? AppTheme.primary : Colors.grey,
               ),
             ],
           ),

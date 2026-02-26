@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/app_theme.dart';
-import '../../../../../core/utils/debouncer.dart';
-import '../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../application/active_adventure_state.dart';
+import 'session_log_panel.dart';
 
 class DMToolsSidebar extends ConsumerStatefulWidget {
   final String adventureId;
@@ -18,34 +17,12 @@ class DMToolsSidebar extends ConsumerStatefulWidget {
 }
 
 class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
-  late TextEditingController _notesController;
-  final _debouncer = Debouncer(milliseconds: 1000);
-  bool _initialized = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _notesController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _notesController.dispose();
-    _debouncer.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final adventure = ref.watch(adventureProvider(widget.adventureId));
     final activeState = ref.watch(activeAdventureProvider);
 
     if (adventure == null) return const SizedBox.shrink();
-
-    if (!_initialized) {
-      _notesController.text = adventure.sessionNotes ?? '';
-      _initialized = true;
-    }
 
     return Container(
       width: 250,
@@ -214,51 +191,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
             ),
           ),
           const SizedBox(height: 8),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: TextField(
-                controller: _notesController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: InputDecoration(
-                  hintText: 'Anotações da sessão (HP, iniciativa, ideias)...',
-                  hintStyle: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.withValues(alpha: 0.6),
-                  ),
-                  filled: true,
-                  fillColor: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.black.withValues(alpha: 0.05),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.all(12),
-                ),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontSize: 13, height: 1.4),
-                onChanged: (text) {
-                  _debouncer.run(() {
-                    if (!mounted) return;
-                    // Always read the latest adventure from the provider to avoid stale reference
-                    final latestAdventure = ref.read(
-                      adventureProvider(widget.adventureId),
-                    );
-                    if (latestAdventure == null) return;
-
-                    ref
-                        .read(adventureListProvider.notifier)
-                        .update(latestAdventure.copyWith(sessionNotes: text));
-                    ref.read(unsyncedChangesProvider.notifier).state = true;
-                  });
-                },
-              ),
-            ),
-          ),
+          Expanded(child: SessionLogPanel(adventureId: widget.adventureId)),
         ],
       ),
     );

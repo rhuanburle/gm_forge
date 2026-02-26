@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/sync_button.dart';
+import '../../../../core/history/history_service.dart';
 import '../../application/adventure_providers.dart';
 import 'adventure_editor/tabs/concept_tab.dart';
 import 'adventure_editor/tabs/creatures_tab.dart';
@@ -40,6 +41,7 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
   @override
   Widget build(BuildContext context) {
     final adventure = ref.watch(adventureProvider(widget.adventureId));
+    final history = ref.watch(historyProvider);
 
     if (adventure == null) {
       return Scaffold(
@@ -87,6 +89,18 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
           ],
         ),
         actions: [
+          if (history.canUndo)
+            IconButton(
+              icon: const Icon(Icons.undo),
+              tooltip: 'Desfazer',
+              onPressed: () => ref.read(historyProvider.notifier).undo(),
+            ),
+          if (history.canRedo)
+            IconButton(
+              icon: const Icon(Icons.redo),
+              tooltip: 'Refazer',
+              onPressed: () => ref.read(historyProvider.notifier).redo(),
+            ),
           CloudSyncButton(),
           IconButton(
             icon: Icon(

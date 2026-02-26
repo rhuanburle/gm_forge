@@ -192,6 +192,17 @@ class SmartTextRenderer extends ConsumerWidget {
         (c) => id != null ? c.id == id : c.name == nameSearch,
       );
 
+      final pois = ref.read(pointsOfInterestProvider(adventureId));
+      final locations = ref.read(locationsProvider(adventureId));
+
+      // Reverse-reference: find all POIs/Locations that contain this creature
+      final appearsInPois = pois
+          .where((p) => p.creatureIds.contains(creature.id))
+          .toList();
+      final appearsInLocations = locations
+          .where((l) => l.creatureIds.contains(creature.id))
+          .toList();
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -239,6 +250,55 @@ class SmartTextRenderer extends ConsumerWidget {
                     ),
                   ),
                 ],
+                if (appearsInPois.isNotEmpty ||
+                    appearsInLocations.isNotEmpty) ...[
+                  const Divider(),
+                  Row(
+                    children: [
+                      Icon(Icons.place, size: 14, color: AppTheme.primary),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Aparece em:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      ...appearsInPois.map(
+                        (p) => Chip(
+                          avatar: const Icon(Icons.place, size: 12),
+                          label: Text(
+                            '#${p.number} ${p.name}',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                      ...appearsInLocations.map(
+                        (l) => Chip(
+                          avatar: const Icon(Icons.map, size: 12),
+                          label: Text(
+                            l.name,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -272,11 +332,11 @@ class SmartTextRenderer extends ConsumerWidget {
       if (id != null) {
         try {
           final poi = pois.firstWhere((p) => p.id == id);
-          _displayPoi(context, poi);
+          _displayPoi(context, ref, poi);
           return;
         } catch (_) {
           final loc = locations.firstWhere((l) => l.id == id);
-          _displayLocation(context, loc);
+          _displayLocation(context, ref, loc);
           return;
         }
       }
@@ -287,19 +347,19 @@ class SmartTextRenderer extends ConsumerWidget {
           final num = int.tryParse(numPart);
           if (num != null) {
             final poi = pois.firstWhere((p) => p.number == num);
-            _displayPoi(context, poi);
+            _displayPoi(context, ref, poi);
             return;
           }
         }
 
         try {
           final poi = pois.firstWhere((p) => p.name == nameSearch);
-          _displayPoi(context, poi);
+          _displayPoi(context, ref, poi);
           return;
         } catch (_) {}
 
         final loc = locations.firstWhere((l) => l.name == nameSearch);
-        _displayLocation(context, loc);
+        _displayLocation(context, ref, loc);
         return;
       }
     } catch (_) {}
@@ -347,7 +407,7 @@ class SmartTextRenderer extends ConsumerWidget {
     }
   }
 
-  void _displayPoi(BuildContext context, PointOfInterest poi) {
+  void _displayPoi(BuildContext context, WidgetRef ref, PointOfInterest poi) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -397,7 +457,26 @@ class SmartTextRenderer extends ConsumerWidget {
     );
   }
 
-  void _displayLocation(BuildContext context, Location loc) {
+  void _displayLocation(BuildContext context, WidgetRef ref, Location loc) {
+    final pois = ref.read(pointsOfInterestProvider(adventureId));
+    final creatures = ref.read(creaturesProvider(adventureId));
+
+    // Reverse-reference: get creatures from Location.creatureIds + any POI in this location
+    final directCreatures = creatures
+        .where((c) => loc.creatureIds.contains(c.id))
+        .toList();
+    final poiCreatureIds = pois
+        .where((p) => p.locationId == loc.id)
+        .expand((p) => p.creatureIds)
+        .toSet();
+    final indirectCreatures = creatures
+        .where(
+          (c) =>
+              poiCreatureIds.contains(c.id) && !loc.creatureIds.contains(c.id),
+        )
+        .toList();
+    final allLinkedCreatures = [...directCreatures, ...indirectCreatures];
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -408,7 +487,57 @@ class SmartTextRenderer extends ConsumerWidget {
             Text(loc.name),
           ],
         ),
-        content: Text(loc.description),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loc.description.isNotEmpty) Text(loc.description),
+              if (allLinkedCreatures.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                Row(
+                  children: [
+                    Icon(Icons.pets, size: 14, color: AppTheme.accent),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'Habitantes:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppTheme.accent,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: allLinkedCreatures
+                      .map(
+                        (c) => Chip(
+                          avatar: Icon(
+                            c.type == CreatureType.npc
+                                ? Icons.person
+                                : Icons.pets,
+                            size: 12,
+                          ),
+                          label: Text(
+                            c.name,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

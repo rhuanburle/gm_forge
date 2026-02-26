@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../../../core/history/history_service.dart';
 import '../../../../application/adventure_providers.dart';
 import '../../../../domain/domain.dart';
 import '../widgets/section_header.dart';
@@ -107,9 +108,29 @@ class LocationsTab extends ConsumerWidget {
                               );
 
                               if (confirm == true) {
-                                await ref
-                                    .read(hiveDatabaseProvider)
-                                    .deleteLocation(location.id);
+                                final db = ref.read(hiveDatabaseProvider);
+                                await db.deleteLocation(location.id);
+
+                                ref
+                                    .read(historyProvider.notifier)
+                                    .recordAction(
+                                      HistoryAction(
+                                        description: 'Local removido',
+                                        onUndo: () async {
+                                          await db.saveLocation(location);
+                                          ref.invalidate(
+                                            locationsProvider(adventureId),
+                                          );
+                                        },
+                                        onRedo: () async {
+                                          await db.deleteLocation(location.id);
+                                          ref.invalidate(
+                                            locationsProvider(adventureId),
+                                          );
+                                        },
+                                      ),
+                                    );
+
                                 ref.invalidate(locationsProvider(adventureId));
                                 ref
                                         .read(unsyncedChangesProvider.notifier)
@@ -132,7 +153,26 @@ class LocationsTab extends ConsumerWidget {
                   name: 'Novo Local',
                   description: '',
                 );
-                await ref.read(hiveDatabaseProvider).saveLocation(newLocation);
+
+                final db = ref.read(hiveDatabaseProvider);
+                await db.saveLocation(newLocation);
+
+                ref
+                    .read(historyProvider.notifier)
+                    .recordAction(
+                      HistoryAction(
+                        description: 'Local criado',
+                        onUndo: () async {
+                          await db.deleteLocation(newLocation.id);
+                          ref.invalidate(locationsProvider(adventureId));
+                        },
+                        onRedo: () async {
+                          await db.saveLocation(newLocation);
+                          ref.invalidate(locationsProvider(adventureId));
+                        },
+                      ),
+                    );
+
                 ref.invalidate(locationsProvider(adventureId));
                 ref.read(unsyncedChangesProvider.notifier).state = true;
                 if (context.mounted) {

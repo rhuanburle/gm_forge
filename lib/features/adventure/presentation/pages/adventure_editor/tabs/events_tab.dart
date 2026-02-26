@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../core/ai/ai_prompts.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../../../core/history/history_service.dart';
 import '../../../../application/adventure_providers.dart';
 import '../../../../domain/domain.dart';
 import '../../../widgets/smart_text_field.dart';
@@ -185,9 +186,35 @@ class EventsTab extends ConsumerWidget {
                                   );
 
                                   if (confirm == true) {
-                                    await ref
-                                        .read(hiveDatabaseProvider)
-                                        .deleteRandomEvent(event.id);
+                                    final db = ref.read(hiveDatabaseProvider);
+                                    await db.deleteRandomEvent(event.id);
+
+                                    ref
+                                        .read(historyProvider.notifier)
+                                        .recordAction(
+                                          HistoryAction(
+                                            description: 'Evento removido',
+                                            onUndo: () async {
+                                              await db.saveRandomEvent(event);
+                                              ref.invalidate(
+                                                randomEventsProvider(
+                                                  adventureId,
+                                                ),
+                                              );
+                                            },
+                                            onRedo: () async {
+                                              await db.deleteRandomEvent(
+                                                event.id,
+                                              );
+                                              ref.invalidate(
+                                                randomEventsProvider(
+                                                  adventureId,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        );
+
                                     ref.invalidate(
                                       randomEventsProvider(adventureId),
                                     );
@@ -282,15 +309,31 @@ class EventsTab extends ConsumerWidget {
             onPressed: () async {
               if (descController.text.isNotEmpty &&
                   diceController.text.isNotEmpty) {
+                final db = ref.read(hiveDatabaseProvider);
+
                 if (isEditing) {
                   final updatedEvent = eventToEdit.copyWith(
                     description: descController.text,
                     diceRange: diceController.text,
                     impact: impactController.text,
                   );
-                  await ref
-                      .read(hiveDatabaseProvider)
-                      .saveRandomEvent(updatedEvent);
+                  await db.saveRandomEvent(updatedEvent);
+
+                  ref
+                      .read(historyProvider.notifier)
+                      .recordAction(
+                        HistoryAction(
+                          description: 'Evento atualizado',
+                          onUndo: () async {
+                            await db.saveRandomEvent(eventToEdit);
+                            ref.invalidate(randomEventsProvider(adventureId));
+                          },
+                          onRedo: () async {
+                            await db.saveRandomEvent(updatedEvent);
+                            ref.invalidate(randomEventsProvider(adventureId));
+                          },
+                        ),
+                      );
                 } else {
                   final event = RandomEvent.create(
                     adventureId: adventureId,
@@ -298,7 +341,23 @@ class EventsTab extends ConsumerWidget {
                     diceRange: diceController.text,
                     impact: impactController.text,
                   );
-                  await ref.read(hiveDatabaseProvider).saveRandomEvent(event);
+                  await db.saveRandomEvent(event);
+
+                  ref
+                      .read(historyProvider.notifier)
+                      .recordAction(
+                        HistoryAction(
+                          description: 'Evento adicionado',
+                          onUndo: () async {
+                            await db.deleteRandomEvent(event.id);
+                            ref.invalidate(randomEventsProvider(adventureId));
+                          },
+                          onRedo: () async {
+                            await db.saveRandomEvent(event);
+                            ref.invalidate(randomEventsProvider(adventureId));
+                          },
+                        ),
+                      );
                 }
                 ref.invalidate(randomEventsProvider(adventureId));
                 ref.read(unsyncedChangesProvider.notifier).state = true;
