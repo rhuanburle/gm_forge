@@ -11,6 +11,9 @@ import 'adventure_editor/tabs/events_tab.dart';
 import 'adventure_editor/tabs/legends_tab.dart';
 import 'adventure_editor/tabs/locations_tab.dart';
 import 'adventure_editor/tabs/summary_tab.dart';
+import 'adventure_editor/tabs/factions_tab.dart';
+import 'adventure_editor/tabs/items_tab.dart';
+import 'adventure_editor/tabs/quests_tab.dart';
 
 class AdventureEditorPage extends ConsumerStatefulWidget {
   final String adventureId;
@@ -29,7 +32,7 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
   }
 
   @override
@@ -136,6 +139,9 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
             Tab(icon: Icon(Icons.map), text: 'Locais'),
             Tab(icon: Icon(Icons.casino), text: 'Eventos'),
             Tab(icon: Icon(Icons.pets), text: 'Criaturas'),
+            Tab(icon: Icon(Icons.groups), text: 'Facções'),
+            Tab(icon: Icon(Icons.inventory_2), text: 'Itens'),
+            Tab(icon: Icon(Icons.flag), text: 'Missões'),
           ],
         ),
       ),
@@ -151,6 +157,9 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
           LocationsTab(adventureId: widget.adventureId),
           EventsTab(adventureId: widget.adventureId),
           CreaturesTab(adventureId: widget.adventureId),
+          FactionsTab(adventureId: widget.adventureId),
+          ItemsTab(adventureId: widget.adventureId),
+          QuestsTab(adventureId: widget.adventureId),
         ],
       ),
     );

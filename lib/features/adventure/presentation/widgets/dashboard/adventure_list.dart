@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/sync/sync_service.dart';
+import '../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../domain/adventure.dart';
 import '../../controllers/dashboard_controller.dart';
+import '../../../../../core/widgets/animated_list_item.dart';
 import 'adventure_card.dart';
 
 class AdventureList extends ConsumerWidget {
@@ -41,21 +44,35 @@ class AdventureList extends ConsumerWidget {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 400,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 1.3,
-      ),
-      itemCount: sortedAdventures.length,
-      itemBuilder: (context, index) => AdventureCard(
-        adventure: sortedAdventures[index],
-        onEdit: () => DashboardController.showAdventureDialog(
-          context,
-          ref,
-          adventureToEdit: sortedAdventures[index],
+    return RefreshIndicator(
+      color: AppTheme.secondary,
+      onRefresh: () async {
+        try {
+          await ref.read(syncServiceProvider).fullSync();
+          ref.read(unsyncedChangesProvider.notifier).state = false;
+          ref.read(adventureListProvider.notifier).refresh();
+          ref.read(campaignListProvider.notifier).refresh();
+        } catch (_) {}
+      },
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 400,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 1.3,
+        ),
+        itemCount: sortedAdventures.length,
+        itemBuilder: (context, index) => AnimatedListItem(
+          index: index,
+          child: AdventureCard(
+            adventure: sortedAdventures[index],
+            onEdit: () => DashboardController.showAdventureDialog(
+              context,
+              ref,
+              adventureToEdit: sortedAdventures[index],
+            ),
+          ),
         ),
       ),
     );

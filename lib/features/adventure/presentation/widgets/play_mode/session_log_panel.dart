@@ -85,13 +85,7 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
     await exportService.copySessionLogToClipboard(widget.adventureId);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Log da sessão copiado para área de transferência!'),
-        backgroundColor: AppTheme.success,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    AppSnackBar.success(context, 'Log da sessão copiado para área de transferência!');
   }
 
   @override
@@ -113,7 +107,7 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
                 '📜 Log da Sessão',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: AppTheme.textMuted,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -135,9 +129,7 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.black.withValues(alpha: 0.05),
+              color: AppTheme.overlay(context),
               borderRadius: BorderRadius.circular(8),
             ),
             padding: const EdgeInsets.all(8),
@@ -176,7 +168,7 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
                           hintText: 'Turno/Tempo',
                           hintStyle: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.withValues(alpha: 0.8),
+                            color: AppTheme.textMuted,
                           ),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
@@ -188,7 +180,7 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Colors.black.withValues(alpha: 0.05),
+                          fillColor: AppTheme.overlay(context),
                         ),
                       ),
                     ),
@@ -227,7 +219,7 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
                   child: Text(
                     'Nenhum acontecimento registrado.',
                     style: TextStyle(
-                      color: Colors.grey.withValues(alpha: 0.7),
+                      color: AppTheme.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -266,12 +258,12 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
           'Notas Antigas',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey,
+            color: AppTheme.textMuted,
             fontWeight: FontWeight.bold,
           ),
         ),
-        collapsedBackgroundColor: Colors.grey.withValues(alpha: 0.05),
-        backgroundColor: Colors.grey.withValues(alpha: 0.05),
+        collapsedBackgroundColor: AppTheme.surfaceLight.withValues(alpha: 0.15),
+        backgroundColor: AppTheme.surfaceLight.withValues(alpha: 0.15),
         childrenPadding: const EdgeInsets.all(12),
         children: [
           Align(
@@ -335,7 +327,7 @@ class _SessionEntryCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: AppTheme.overlay(context, alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -390,15 +382,13 @@ class _SessionEntryCard extends StatelessWidget {
 
     switch (type) {
       case SessionEntryType.combat:
-        return Colors.red.withValues(alpha: alpha);
+        return AppTheme.combat.withValues(alpha: alpha);
       case SessionEntryType.discovery:
-        return Colors.amber.withValues(alpha: alpha);
+        return AppTheme.discovery.withValues(alpha: alpha);
       case SessionEntryType.narrative:
-        return Colors.blue.withValues(alpha: alpha);
+        return AppTheme.narrative.withValues(alpha: alpha);
       case SessionEntryType.note:
-        return isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.05);
+        return AppTheme.overlay(context);
     }
   }
 
@@ -408,13 +398,13 @@ class _SessionEntryCard extends StatelessWidget {
 
     switch (type) {
       case SessionEntryType.combat:
-        return Colors.red.withValues(alpha: alpha);
+        return AppTheme.combat.withValues(alpha: alpha);
       case SessionEntryType.discovery:
-        return Colors.amber.withValues(alpha: alpha);
+        return AppTheme.discovery.withValues(alpha: alpha);
       case SessionEntryType.narrative:
-        return Colors.blue.withValues(alpha: alpha);
+        return AppTheme.narrative.withValues(alpha: alpha);
       case SessionEntryType.note:
-        return Colors.grey.withValues(alpha: alpha);
+        return AppTheme.textMuted.withValues(alpha: alpha);
     }
   }
 }

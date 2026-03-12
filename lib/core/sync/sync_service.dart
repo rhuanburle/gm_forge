@@ -4,15 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/auth_service.dart';
 import '../database/hive_database.dart';
 import '../../features/adventure/application/adventure_providers.dart';
-import '../../features/adventure/domain/adventure.dart';
-import '../../features/adventure/domain/campaign.dart';
-import '../../features/adventure/domain/creature.dart';
-import '../../features/adventure/domain/legend.dart';
-import '../../features/adventure/domain/point_of_interest.dart';
-import '../../features/adventure/domain/random_event.dart';
-import '../../features/adventure/domain/location.dart';
-import '../../features/adventure/domain/fact.dart';
-import '../../features/adventure/domain/session_entry.dart';
+import '../../features/adventure/domain/domain.dart';
 
 class SyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -49,6 +41,10 @@ class SyncService {
     final locations = _hiveDb.getLocations(adventureId);
     final facts = _hiveDb.getFacts(adventureId);
     final sessionEntries = _hiveDb.getSessionEntries(adventureId);
+    final items = _hiveDb.getItems(adventureId);
+    final quests = _hiveDb.getQuests(adventureId);
+    final sessions = _hiveDb.getSessions(adventureId);
+    final factions = _hiveDb.getFactionsByAdventure(adventureId);
 
     final payload = {
       'adventure': adventure.toJson(),
@@ -59,8 +55,12 @@ class SyncService {
       'locations': locations.map((l) => l.toJson()).toList(),
       'facts': facts.map((f) => f.toJson()).toList(),
       'session_entries': sessionEntries.map((se) => se.toJson()).toList(),
+      'items': items.map((i) => i.toJson()).toList(),
+      'quests': quests.map((q) => q.toJson()).toList(),
+      'sessions': sessions.map((s) => s.toJson()).toList(),
+      'factions': factions.map((f) => f.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
-      'version': 1,
+      'version': 2,
     };
 
     await _adventuresRef.doc(adventureId).set(payload);
@@ -80,6 +80,10 @@ class SyncService {
       final locations = _hiveDb.getLocations(adventure.id);
       final facts = _hiveDb.getFacts(adventure.id);
       final sessionEntries = _hiveDb.getSessionEntries(adventure.id);
+      final items = _hiveDb.getItems(adventure.id);
+      final quests = _hiveDb.getQuests(adventure.id);
+      final sessions = _hiveDb.getSessions(adventure.id);
+      final factions = _hiveDb.getFactionsByAdventure(adventure.id);
 
       allPayloads[adventure.id] = {
         'adventure': adventure.toJson(),
@@ -90,8 +94,12 @@ class SyncService {
         'locations': locations.map((l) => l.toJson()).toList(),
         'facts': facts.map((f) => f.toJson()).toList(),
         'session_entries': sessionEntries.map((se) => se.toJson()).toList(),
+        'items': items.map((i) => i.toJson()).toList(),
+        'quests': quests.map((q) => q.toJson()).toList(),
+        'sessions': sessions.map((s) => s.toJson()).toList(),
+        'factions': factions.map((f) => f.toJson()).toList(),
         'updatedAt': FieldValue.serverTimestamp(),
-        'version': 1,
+        'version': 2,
       };
     }
 
@@ -114,8 +122,20 @@ class SyncService {
     final campaign = _hiveDb.getCampaign(campaignId);
     if (campaign == null) return;
 
+    final playerCharacters = _hiveDb.getPlayerCharacters(campaignId);
+    final loreEntries = _hiveDb.getLoreEntries(campaignId);
+    final notes = _hiveDb.getNotes(campaignId);
+    final regions = _hiveDb.getRegions(campaignId);
+    final campaignFactions = _hiveDb.getFactions(campaignId);
+
     await _campaignsRef.doc(campaignId).set({
       'campaign': campaign.toJson(),
+      'playerCharacters':
+          playerCharacters.map((pc) => pc.toJson()).toList(),
+      'loreEntries': loreEntries.map((l) => l.toJson()).toList(),
+      'notes': notes.map((n) => n.toJson()).toList(),
+      'regions': regions.map((r) => r.toJson()).toList(),
+      'factions': campaignFactions.map((f) => f.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -202,6 +222,30 @@ class SyncService {
       await _hiveDb.saveSessionEntry(entry);
     }
 
+    final itemsJson = data['items'] as List<dynamic>? ?? [];
+    for (final itemJson in itemsJson) {
+      final item = Item.fromJson(itemJson as Map<String, dynamic>);
+      await _hiveDb.saveItem(item);
+    }
+
+    final questsJson = data['quests'] as List<dynamic>? ?? [];
+    for (final questJson in questsJson) {
+      final quest = Quest.fromJson(questJson as Map<String, dynamic>);
+      await _hiveDb.saveQuest(quest);
+    }
+
+    final sessionsJson = data['sessions'] as List<dynamic>? ?? [];
+    for (final sessionJson in sessionsJson) {
+      final session = Session.fromJson(sessionJson as Map<String, dynamic>);
+      await _hiveDb.saveSession(session);
+    }
+
+    final factionsJson = data['factions'] as List<dynamic>? ?? [];
+    for (final factionJson in factionsJson) {
+      final faction = Faction.fromJson(factionJson as Map<String, dynamic>);
+      await _hiveDb.saveFaction(faction);
+    }
+
     return true;
   }
 
@@ -211,9 +255,40 @@ class SyncService {
     final snapshot = await _campaignsRef.get();
 
     for (final doc in snapshot.docs) {
-      final campaignJson = doc.data()['campaign'] as Map<String, dynamic>;
+      final data = doc.data();
+      final campaignJson = data['campaign'] as Map<String, dynamic>;
       final campaign = Campaign.fromJson(campaignJson);
       await _hiveDb.saveCampaign(campaign);
+
+      final pcsJson = data['playerCharacters'] as List<dynamic>? ?? [];
+      for (final pcJson in pcsJson) {
+        final pc = PlayerCharacter.fromJson(pcJson as Map<String, dynamic>);
+        await _hiveDb.savePlayerCharacter(pc);
+      }
+
+      final loreJson = data['loreEntries'] as List<dynamic>? ?? [];
+      for (final lJson in loreJson) {
+        final lore = LoreEntry.fromJson(lJson as Map<String, dynamic>);
+        await _hiveDb.saveLoreEntry(lore);
+      }
+
+      final notesJson = data['notes'] as List<dynamic>? ?? [];
+      for (final nJson in notesJson) {
+        final note = Note.fromJson(nJson as Map<String, dynamic>);
+        await _hiveDb.saveNote(note);
+      }
+
+      final regionsJson = data['regions'] as List<dynamic>? ?? [];
+      for (final rJson in regionsJson) {
+        final region = Region.fromJson(rJson as Map<String, dynamic>);
+        await _hiveDb.saveRegion(region);
+      }
+
+      final factionsJson = data['factions'] as List<dynamic>? ?? [];
+      for (final fJson in factionsJson) {
+        final faction = Faction.fromJson(fJson as Map<String, dynamic>);
+        await _hiveDb.saveFaction(faction);
+      }
     }
   }
 

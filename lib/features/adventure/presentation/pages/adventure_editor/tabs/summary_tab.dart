@@ -46,7 +46,7 @@ class SummaryTab extends ConsumerWidget {
                   icon: Icons.map,
                   label: 'Locais',
                   value: '$totalLocations',
-                  color: Colors.blue,
+                  color: AppTheme.narrative,
                   onTap: () => onTabChange(3),
                 ),
               ),
@@ -56,7 +56,7 @@ class SummaryTab extends ConsumerWidget {
                   icon: Icons.campaign,
                   label: 'Rumores',
                   value: '$totalLegends',
-                  color: Colors.amber,
+                  color: AppTheme.discovery,
                   onTap: () => onTabChange(2),
                 ),
               ),
@@ -66,7 +66,7 @@ class SummaryTab extends ConsumerWidget {
                   icon: Icons.pets,
                   label: 'Criaturas',
                   value: '$totalCreatures',
-                  color: Colors.red,
+                  color: AppTheme.combat,
                   onTap: () => onTabChange(5),
                 ),
               ),
@@ -245,7 +245,7 @@ class _AiActionCard extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: enabled ? AppTheme.primary : Colors.grey,
+                color: enabled ? AppTheme.primary : AppTheme.textMuted,
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -258,14 +258,14 @@ class _AiActionCard extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: enabled ? null : Colors.grey,
+                        color: enabled ? null : AppTheme.textMuted,
                       ),
                     ),
                     Text(
                       subtitle,
                       style: TextStyle(
                         fontSize: 12,
-                        color: enabled ? AppTheme.textSecondary : Colors.grey,
+                        color: enabled ? AppTheme.textSecondary : AppTheme.textMuted,
                       ),
                     ),
                   ],
@@ -273,7 +273,7 @@ class _AiActionCard extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: enabled ? AppTheme.primary : Colors.grey,
+                color: enabled ? AppTheme.primary : AppTheme.textMuted,
               ),
             ],
           ),

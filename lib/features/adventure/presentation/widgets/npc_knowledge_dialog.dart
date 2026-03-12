@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../../core/ai/ai_prompts.dart";
 import "../../../../core/ai/ai_providers.dart";
 import "../../../../core/theme/app_theme.dart";
+import "../../../../core/widgets/shimmer_loading.dart";
 import "../../../../core/sync/unsynced_changes_provider.dart";
 import "../../application/adventure_providers.dart";
 import "../../domain/domain.dart";
@@ -99,14 +100,14 @@ class _NpcKnowledgeDialogState extends ConsumerState<NpcKnowledgeDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.purple.withValues(alpha: 0.05),
+                color: AppTheme.npc.withValues(alpha: 0.05),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(12),
                 ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.psychology, color: Colors.purple),
+                  const Icon(Icons.psychology, color: AppTheme.npc),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
@@ -117,7 +118,7 @@ class _NpcKnowledgeDialogState extends ConsumerState<NpcKnowledgeDialog> {
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.purple,
+                                color: AppTheme.npc,
                               ),
                         ),
                         Text(
@@ -143,15 +144,15 @@ class _NpcKnowledgeDialogState extends ConsumerState<NpcKnowledgeDialog> {
             ),
             Expanded(
               child: _loading
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text("Interrogando o NPC... 🧠"),
-                        ],
-                      ),
+                  ? Column(
+                      children: [
+                        const Expanded(
+                          child: SkeletonList(itemCount: 5, itemHeight: 72),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("Interrogando o NPC... 🧠"),
+                        const SizedBox(height: 16),
+                      ],
                     )
                   : _errorMessage != null
                   ? Center(
@@ -184,7 +185,7 @@ class _NpcKnowledgeDialogState extends ConsumerState<NpcKnowledgeDialog> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border(
-                    top: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                    top: BorderSide(color: AppTheme.textMuted.withValues(alpha: 0.2)),
                   ),
                 ),
                 child: Row(
@@ -224,7 +225,7 @@ class _NpcKnowledgeDialogState extends ConsumerState<NpcKnowledgeDialog> {
         final fact = _facts[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
-          color: fact.selected ? null : Colors.grey.withValues(alpha: 0.05),
+          color: fact.selected ? null : AppTheme.surfaceLight.withValues(alpha: 0.15),
           child: CheckboxListTile(
             value: fact.selected,
             onChanged: (v) {
@@ -237,7 +238,7 @@ class _NpcKnowledgeDialogState extends ConsumerState<NpcKnowledgeDialog> {
               style: TextStyle(
                 fontSize: 13,
                 height: 1.5,
-                color: fact.selected ? null : Colors.grey,
+                color: fact.selected ? null : AppTheme.textMuted,
               ),
             ),
             subtitle: Padding(
@@ -247,14 +248,14 @@ class _NpcKnowledgeDialogState extends ConsumerState<NpcKnowledgeDialog> {
                   Icon(
                     fact.isReliable ? Icons.verified : Icons.warning_amber,
                     size: 14,
-                    color: fact.isReliable ? AppTheme.success : Colors.orange,
+                    color: fact.isReliable ? AppTheme.success : AppTheme.dubious,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     fact.isReliable ? "Confiável" : "Duvidoso",
                     style: TextStyle(
                       fontSize: 11,
-                      color: fact.isReliable ? AppTheme.success : Colors.orange,
+                      color: fact.isReliable ? AppTheme.success : AppTheme.dubious,
                     ),
                   ),
                 ],

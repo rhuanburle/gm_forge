@@ -27,6 +27,7 @@ class SessionEntry {
   final DateTime timestamp;
   final String? turnLabel;
   final DateTime createdAt;
+  final String? sessionId;
 
   const SessionEntry({
     required this.id,
@@ -36,6 +37,7 @@ class SessionEntry {
     required this.timestamp,
     this.turnLabel,
     required this.createdAt,
+    this.sessionId,
   });
 
   factory SessionEntry.create({
@@ -43,6 +45,7 @@ class SessionEntry {
     required String text,
     required SessionEntryType entryType,
     String? turnLabel,
+    String? sessionId,
   }) {
     final now = DateTime.now();
     return SessionEntry(
@@ -53,6 +56,7 @@ class SessionEntry {
       timestamp: now,
       turnLabel: turnLabel,
       createdAt: now,
+      sessionId: sessionId,
     );
   }
 
@@ -64,6 +68,7 @@ class SessionEntry {
     DateTime? timestamp,
     String? turnLabel,
     DateTime? createdAt,
+    String? sessionId,
   }) {
     return SessionEntry(
       id: id ?? this.id,
@@ -73,6 +78,7 @@ class SessionEntry {
       timestamp: timestamp ?? this.timestamp,
       turnLabel: turnLabel ?? this.turnLabel,
       createdAt: createdAt ?? this.createdAt,
+      sessionId: sessionId ?? this.sessionId,
     );
   }
 
@@ -85,6 +91,7 @@ class SessionEntry {
       'timestamp': timestamp.toIso8601String(),
       'turnLabel': turnLabel,
       'createdAt': createdAt.toIso8601String(),
+      'sessionId': sessionId,
     };
   }
 
@@ -103,6 +110,7 @@ class SessionEntry {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
+      sessionId: json['sessionId'] as String?,
     );
   }
 }

@@ -145,9 +145,7 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
     }
 
     if (mounted && !silent) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Salvo!')));
+      AppSnackBar.success(context, 'Salvo!');
     }
   }
 
@@ -307,7 +305,7 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                   Text(
                     'Conflitos Secundários',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Colors.grey[700],
+                      color: AppTheme.textMuted,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

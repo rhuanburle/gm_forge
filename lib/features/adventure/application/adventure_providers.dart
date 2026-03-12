@@ -68,6 +68,80 @@ final sessionEntriesProvider = Provider.family<List<SessionEntry>, String>((
   return db.getSessionEntries(adventureId);
 });
 
+// Adventure-level providers
+final itemsProvider = Provider.family<List<Item>, String>((
+  ref,
+  adventureId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getItems(adventureId);
+});
+
+final questsProvider = Provider.family<List<Quest>, String>((
+  ref,
+  adventureId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getQuests(adventureId);
+});
+
+final sessionsProvider = Provider.family<List<Session>, String>((
+  ref,
+  adventureId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getSessions(adventureId);
+});
+
+final factionsProvider = Provider.family<List<Faction>, String>((
+  ref,
+  adventureId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getFactionsByAdventure(adventureId);
+});
+
+// Campaign-level providers
+final campaignFactionsProvider = Provider.family<List<Faction>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getFactions(campaignId);
+});
+
+final playerCharactersProvider = Provider.family<List<PlayerCharacter>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getPlayerCharacters(campaignId);
+});
+
+final loreEntriesProvider = Provider.family<List<LoreEntry>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getLoreEntries(campaignId);
+});
+
+final notesProvider = Provider.family<List<Note>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getNotes(campaignId);
+});
+
+final regionsProvider = Provider.family<List<Region>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getRegions(campaignId);
+});
+
 class AdventureListNotifier extends Notifier<List<Adventure>> {
   @override
   List<Adventure> build() {

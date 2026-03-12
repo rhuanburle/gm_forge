@@ -108,7 +108,7 @@ class _EditableSmartTextState extends ConsumerState<EditableSmartText> {
                 icon: const Icon(Icons.close, size: 16),
                 label: const Text('Cancelar'),
                 onPressed: _cancel,
-                style: TextButton.styleFrom(foregroundColor: Colors.grey),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.textMuted),
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
@@ -143,7 +143,7 @@ class _EditableSmartTextState extends ConsumerState<EditableSmartText> {
               Text(
                 'Clique para editar...',
                 style: (widget.style ?? const TextStyle()).copyWith(
-                  color: Colors.grey.withValues(alpha: 0.5),
+                  color: AppTheme.textMuted.withValues(alpha: 0.5),
                   fontStyle: FontStyle.italic,
                   fontSize: 12,
                 ),

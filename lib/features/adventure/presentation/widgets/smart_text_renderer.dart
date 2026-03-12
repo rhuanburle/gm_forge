@@ -37,7 +37,7 @@ class SmartTextRenderer extends ConsumerWidget {
     final List<InlineSpan> spans = [];
     // Matches [Label](Type:ID) OR [@Name], [#Name], [!Name]
     final RegExp exp = RegExp(
-      r'\[([^\]]+)\]\(([^:]+):([^)]+)\)|\[([@#!])([^\]]+)\]',
+      r'\[([^\]]+)\]\(([^:]+):([^)]+)\)|\[([@#!$?])([^\]]+)\]',
     );
 
     int start = 0;
@@ -69,6 +69,12 @@ class SmartTextRenderer extends ConsumerWidget {
             break;
           case '!':
             type = 'fact';
+            break;
+          case '\$':
+            type = 'item';
+            break;
+          case '?':
+            type = 'quest';
             break;
           default:
             type = 'unknown';
@@ -114,6 +120,14 @@ class SmartTextRenderer extends ConsumerWidget {
       case 'fact':
         linkColor = AppTheme.secondary;
         icon = Icons.lightbulb;
+        break;
+      case 'item':
+        linkColor = AppTheme.item;
+        icon = Icons.inventory_2;
+        break;
+      case 'quest':
+        linkColor = AppTheme.quest;
+        icon = Icons.flag;
         break;
       default:
         linkColor = AppTheme.secondary;
@@ -173,6 +187,12 @@ class SmartTextRenderer extends ConsumerWidget {
       case 'fact':
         _showFactDetails(context, ref, id, nameSearch);
         break;
+      case 'item':
+        _showItemDetails(context, ref, id, nameSearch);
+        break;
+      case 'quest':
+        _showQuestDetails(context, ref, id, nameSearch);
+        break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Tipo de link desconhecido: $type')),
@@ -211,7 +231,7 @@ class SmartTextRenderer extends ConsumerWidget {
               Icon(
                 creature.type == CreatureType.npc ? Icons.person : Icons.pets,
                 color: creature.type == CreatureType.npc
-                    ? Colors.purple
+                    ? AppTheme.npc
                     : AppTheme.accent,
               ),
               const SizedBox(width: 8),
@@ -243,7 +263,7 @@ class SmartTextRenderer extends ConsumerWidget {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(8),
-                    color: Colors.black12,
+                    color: AppTheme.surfaceLight,
                     child: Text(
                       creature.stats,
                       style: const TextStyle(fontFamily: 'monospace'),
@@ -404,6 +424,103 @@ class SmartTextRenderer extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Fato não encontrado')));
+    }
+  }
+
+  void _showItemDetails(BuildContext context, WidgetRef ref, String? id, String? nameSearch) {
+    final items = ref.read(itemsProvider(adventureId));
+    try {
+      final item = items.firstWhere(
+        (i) => id != null ? i.id == id : i.name == nameSearch,
+      );
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(children: [
+            const Icon(Icons.inventory_2, color: AppTheme.item),
+            const SizedBox(width: 8),
+            Text(item.name),
+          ]),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Wrap(spacing: 8, children: [
+                  Chip(label: Text(item.type.displayName)),
+                  Chip(label: Text(item.rarity.displayName)),
+                ]),
+                if (item.description.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(item.description),
+                ],
+                if (item.mechanics.isNotEmpty) ...[
+                  const Divider(),
+                  const Text('Mecânicas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Text(item.mechanics),
+                ],
+              ],
+            ),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fechar'))],
+        ),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Item não encontrado')),
+      );
+    }
+  }
+
+  void _showQuestDetails(BuildContext context, WidgetRef ref, String? id, String? nameSearch) {
+    final quests = ref.read(questsProvider(adventureId));
+    try {
+      final quest = quests.firstWhere(
+        (q) => id != null ? q.id == id : q.name == nameSearch,
+      );
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(children: [
+            const Icon(Icons.flag, color: AppTheme.quest),
+            const SizedBox(width: 8),
+            Text(quest.name),
+          ]),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Chip(label: Text(quest.status.displayName)),
+                if (quest.description.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(quest.description),
+                ],
+                if (quest.objectives.isNotEmpty) ...[
+                  const Divider(),
+                  const Text('Objetivos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ...quest.objectives.map((o) => Row(children: [
+                    Icon(o.isComplete ? Icons.check_box : Icons.check_box_outline_blank, size: 16),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text(o.text)),
+                  ])),
+                ],
+                if (quest.rewardDescription.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const Text('Recompensa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  Text(quest.rewardDescription),
+                ],
+              ],
+            ),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fechar'))],
+        ),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missão não encontrada')),
+      );
     }
   }
 

@@ -95,8 +95,30 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
           e.impact.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
+    final factions = ref.watch(factionsProvider(widget.adventureId));
+    final items = ref.watch(itemsProvider(widget.adventureId));
+    final quests = ref.watch(questsProvider(widget.adventureId));
+
+    final filteredFactions = factions.where((f) {
+      if (_searchQuery.isEmpty) return true;
+      return f.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          f.description.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    final filteredItems = items.where((i) {
+      if (_searchQuery.isEmpty) return true;
+      return i.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          i.description.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    final filteredQuests = quests.where((q) {
+      if (_searchQuery.isEmpty) return true;
+      return q.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          q.description.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
     return DefaultTabController(
-      length: 5,
+      length: 8,
       child: Column(
         children: [
           Padding(
@@ -132,9 +154,13 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
               Tab(text: 'Criaturas'),
               Tab(text: 'Rumores'),
               Tab(text: 'Eventos'),
+              Tab(text: 'Facções'),
+              Tab(text: 'Itens'),
+              Tab(text: 'Missões'),
             ],
             labelColor: AppTheme.primary,
-            unselectedLabelColor: Colors.grey,
+            unselectedLabelColor: AppTheme.textMuted,
+            isScrollable: true,
             indicatorSize: TabBarIndicatorSize.label,
           ),
           Expanded(
@@ -187,7 +213,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                             'Outros Locais',
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
-                                  color: Colors.grey,
+                                  color: AppTheme.textMuted,
                                   fontStyle: FontStyle.italic,
                                 ),
                           ),
@@ -207,7 +233,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                   itemBuilder: (context, index) {
                     final creature = filteredCreatures[index];
                     return ListTile(
-                      leading: const Icon(Icons.person, color: Colors.purple),
+                      leading: const Icon(Icons.person, color: AppTheme.npc),
                       title: Text(creature.name),
                       subtitle: Text(
                         creature.description,
@@ -259,7 +285,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                         item['source']!,
                         style: const TextStyle(
                           fontSize: 10,
-                          color: Colors.grey,
+                          color: AppTheme.textMuted,
                         ),
                       ),
                     );
@@ -326,6 +352,159 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                     ),
                   ],
                 ),
+
+                // FACTIONS TAB
+                ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: filteredFactions.length,
+                  itemBuilder: (context, index) {
+                    final faction = filteredFactions[index];
+                    return ListTile(
+                      leading: Icon(
+                        faction.type == FactionType.front
+                            ? Icons.warning
+                            : Icons.groups,
+                        color: faction.type == FactionType.front
+                            ? AppTheme.warning
+                            : AppTheme.primary,
+                      ),
+                      title: Text(faction.name),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${faction.type.displayName} \u2022 ${faction.powerLevel.displayName}',
+                          ),
+                          if (faction.objectives.isNotEmpty)
+                            ...faction.objectives.map(
+                              (o) => Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: LinearProgressIndicator(
+                                  value: o.maxProgress > 0
+                                      ? o.currentProgress / o.maxProgress
+                                      : 0,
+                                  backgroundColor: AppTheme.textMuted
+                                      .withValues(alpha: 0.2),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      isThreeLine: true,
+                      onTap: () => _showFactionDetails(context, faction),
+                    );
+                  },
+                ),
+
+                // ITEMS TAB
+                ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: filteredItems.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredItems[index];
+                    return ListTile(
+                      leading: Icon(
+                        _itemTypeIcon(item.type),
+                        color: _itemRarityColor(item.rarity),
+                      ),
+                      title: Text(item.name),
+                      subtitle: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _itemRarityColor(
+                                item.rarity,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: _itemRarityColor(
+                                  item.rarity,
+                                ).withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Text(
+                              item.rarity.displayName,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _itemRarityColor(item.rarity),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            item.type.displayName,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      onTap: () => _showItemDetails(context, item),
+                    );
+                  },
+                ),
+
+                // QUESTS TAB
+                ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: filteredQuests.length,
+                  itemBuilder: (context, index) {
+                    final quest = filteredQuests[index];
+                    return ListTile(
+                      leading: Icon(
+                        _questStatusIcon(quest.status),
+                        color: _questStatusColor(quest.status),
+                      ),
+                      title: Text(quest.name),
+                      subtitle: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _questStatusColor(
+                                quest.status,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: _questStatusColor(
+                                  quest.status,
+                                ).withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Text(
+                              quest.status.displayName,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _questStatusColor(quest.status),
+                              ),
+                            ),
+                          ),
+                          if (quest.objectives.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              '${quest.objectives.where((o) => o.isComplete).length}/${quest.objectives.length}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      onTap: () => _showQuestDetails(context, quest),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -347,7 +526,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
             Icon(
               creature.type == CreatureType.npc ? Icons.person : Icons.pets,
               color: creature.type == CreatureType.npc
-                  ? Colors.purple
+                  ? AppTheme.npc
                   : AppTheme.accent,
             ),
             const SizedBox(width: 8),
@@ -381,7 +560,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(8),
-                  color: Colors.black12,
+                  color: AppTheme.overlay(context),
                   child: Text(
                     creature.stats,
                     style: Theme.of(
@@ -500,6 +679,386 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
     );
   }
 
+  // --- Faction detail dialog ---
+  void _showFactionDetails(BuildContext context, Faction faction) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              faction.type == FactionType.front ? Icons.warning : Icons.groups,
+              color: faction.type == FactionType.front
+                  ? AppTheme.warning
+                  : AppTheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(faction.name)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (faction.description.isNotEmpty) ...[
+                Text(
+                  faction.description,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(height: 16),
+              ],
+              DetailRow('Tipo', faction.type.displayName),
+              const SizedBox(height: 8),
+              DetailRow('Poder', faction.powerLevel.displayName),
+              if (faction.stakes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                DetailRow('Apostas', faction.stakes),
+              ],
+              if (faction.objectives.isNotEmpty) ...[
+                const Divider(),
+                const Text(
+                  'Objetivos',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                ...faction.objectives.map(
+                  (o) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(o.text),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: o.maxProgress > 0
+                              ? o.currentProgress / o.maxProgress
+                              : 0,
+                          backgroundColor: AppTheme.textMuted.withValues(
+                            alpha: 0.2,
+                          ),
+                        ),
+                        Text(
+                          '${o.currentProgress}/${o.maxProgress}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (faction.dangers.isNotEmpty) ...[
+                const Divider(),
+                const Text(
+                  'Perigos',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                ...faction.dangers.map(
+                  (d) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d.name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        if (d.drive.isNotEmpty) Text('Impulso: ${d.drive}'),
+                        if (d.imminentDisaster.isNotEmpty)
+                          Text('Desastre Iminente: ${d.imminentDisaster}'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (faction.allies.isNotEmpty) ...[
+                const Divider(),
+                DetailRow('Aliados', faction.allies.join(', ')),
+              ],
+              if (faction.enemies.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                DetailRow('Inimigos', faction.enemies.join(', ')),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Item helpers ---
+  IconData _itemTypeIcon(ItemType type) {
+    switch (type) {
+      case ItemType.weapon:
+        return Icons.gavel;
+      case ItemType.armor:
+        return Icons.shield;
+      case ItemType.potion:
+        return Icons.science;
+      case ItemType.scroll:
+        return Icons.description;
+      case ItemType.artifact:
+        return Icons.auto_awesome;
+      case ItemType.misc:
+        return Icons.inventory_2;
+    }
+  }
+
+  Color _itemRarityColor(ItemRarity rarity) {
+    switch (rarity) {
+      case ItemRarity.common:
+        return AppTheme.textMuted;
+      case ItemRarity.uncommon:
+        return AppTheme.success;
+      case ItemRarity.rare:
+        return AppTheme.info;
+      case ItemRarity.veryRare:
+        return AppTheme.npc;
+      case ItemRarity.legendary:
+        return AppTheme.secondary;
+    }
+  }
+
+  void _showItemDetails(BuildContext context, Item item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              _itemTypeIcon(item.type),
+              color: _itemRarityColor(item.rarity),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(item.name)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _itemRarityColor(
+                        item.rarity,
+                      ).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: _itemRarityColor(
+                          item.rarity,
+                        ).withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Text(
+                      item.rarity.displayName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _itemRarityColor(item.rarity),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    item.type.displayName,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+              if (item.description.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  item.description,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+                ),
+              ],
+              if (item.mechanics.isNotEmpty) ...[
+                const Divider(),
+                const Text(
+                  'Mecânicas',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  color: AppTheme.overlay(context),
+                  child: Text(
+                    item.mechanics,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Quest helpers ---
+  IconData _questStatusIcon(QuestStatus status) {
+    switch (status) {
+      case QuestStatus.notStarted:
+        return Icons.circle_outlined;
+      case QuestStatus.inProgress:
+        return Icons.play_circle_outline;
+      case QuestStatus.completed:
+        return Icons.check_circle;
+      case QuestStatus.failed:
+        return Icons.cancel;
+    }
+  }
+
+  Color _questStatusColor(QuestStatus status) {
+    switch (status) {
+      case QuestStatus.notStarted:
+        return AppTheme.textMuted;
+      case QuestStatus.inProgress:
+        return AppTheme.info;
+      case QuestStatus.completed:
+        return AppTheme.success;
+      case QuestStatus.failed:
+        return AppTheme.error;
+    }
+  }
+
+  void _showQuestDetails(BuildContext context, Quest quest) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              _questStatusIcon(quest.status),
+              color: _questStatusColor(quest.status),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(quest.name)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _questStatusColor(
+                    quest.status,
+                  ).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: _questStatusColor(
+                      quest.status,
+                    ).withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  quest.status.displayName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _questStatusColor(quest.status),
+                  ),
+                ),
+              ),
+              if (quest.description.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  quest.description,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+                ),
+              ],
+              if (quest.objectives.isNotEmpty) ...[
+                const Divider(),
+                const Text(
+                  'Objetivos',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                ...quest.objectives.map(
+                  (o) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          o.isComplete
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank,
+                          size: 18,
+                          color: o.isComplete
+                              ? AppTheme.success
+                              : AppTheme.textMuted,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            o.text,
+                            style: TextStyle(
+                              decoration: o.isComplete
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (quest.rewardDescription.isNotEmpty) ...[
+                const Divider(),
+                DetailRow('Recompensa', quest.rewardDescription),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPoiTile(PointOfInterest poi, ActiveAdventureState activeState) {
     final isSelected = activeState.currentLocationId == poi.id;
     return ListTile(
@@ -516,7 +1075,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
           border: Border.all(
             color: isSelected
                 ? AppTheme.primary
-                : Colors.grey.withValues(alpha: 0.3),
+                : AppTheme.textMuted.withValues(alpha: 0.3),
           ),
         ),
         alignment: Alignment.center,
@@ -525,7 +1084,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : Colors.grey,
+            color: isSelected ? AppTheme.textPrimary : AppTheme.textMuted,
           ),
         ),
       ),

@@ -26,6 +26,9 @@ class AdventureCloneService {
     final legends = _db.getLegends(adventure.id);
     final events = _db.getRandomEvents(adventure.id);
     final facts = _db.getFacts(adventure.id);
+    final items = _db.getItems(adventure.id);
+    final quests = _db.getQuests(adventure.id);
+    final sessions = _db.getSessions(adventure.id);
 
     // 2. Generate new IDs map to map SmartText references later
     for (final loc in locations) {
@@ -45,6 +48,15 @@ class AdventureCloneService {
     }
     for (final fact in facts) {
       idMap[fact.id] = _uuid.v4();
+    }
+    for (final item in items) {
+      idMap[item.id] = _uuid.v4();
+    }
+    for (final quest in quests) {
+      idMap[quest.id] = _uuid.v4();
+    }
+    for (final session in sessions) {
+      idMap[session.id] = _uuid.v4();
     }
 
     // Helper to replace text references
@@ -179,6 +191,73 @@ class AdventureCloneService {
           eventType: evt.eventType,
           description: replaceSmartText(evt.description),
           impact: replaceSmartText(evt.impact),
+        ),
+      );
+    }
+
+    // Clone items
+    for (final item in items) {
+      final newId = idMap[item.id]!;
+      await _db.saveItem(
+        Item(
+          id: newId,
+          adventureId: newAdventureId,
+          name: replaceSmartText(item.name),
+          description: replaceSmartText(item.description),
+          type: item.type,
+          mechanics: replaceSmartText(item.mechanics),
+          ownerCreatureId: item.ownerCreatureId != null
+              ? (idMap[item.ownerCreatureId] ?? item.ownerCreatureId)
+              : null,
+          locationId: item.locationId != null
+              ? (idMap[item.locationId] ?? item.locationId)
+              : null,
+          rarity: item.rarity,
+        ),
+      );
+    }
+
+    // Clone quests
+    for (final quest in quests) {
+      final newId = idMap[quest.id]!;
+      await _db.saveQuest(
+        Quest(
+          id: newId,
+          adventureId: newAdventureId,
+          name: replaceSmartText(quest.name),
+          description: replaceSmartText(quest.description),
+          status: quest.status,
+          giverCreatureId: quest.giverCreatureId != null
+              ? (idMap[quest.giverCreatureId] ?? quest.giverCreatureId)
+              : null,
+          objectives: List.from(quest.objectives),
+          rewardDescription: replaceSmartText(quest.rewardDescription),
+          relatedLocationIds: quest.relatedLocationIds
+              .map((id) => idMap[id] ?? id)
+              .toList(),
+        ),
+      );
+    }
+
+    // Clone sessions
+    for (final session in sessions) {
+      final newId = idMap[session.id]!;
+      await _db.saveSession(
+        Session(
+          id: newId,
+          adventureId: newAdventureId,
+          name: session.name,
+          date: session.date,
+          status: session.status,
+          number: session.number,
+          strongStart: replaceSmartText(session.strongStart),
+          scenes: session.scenes.map(replaceSmartText).toList(),
+          secrets: session.secrets.map(replaceSmartText).toList(),
+          fantasticLocations: session.fantasticLocations.map(replaceSmartText).toList(),
+          npcs: session.npcs.map(replaceSmartText).toList(),
+          monsters: session.monsters.map(replaceSmartText).toList(),
+          treasures: session.treasures.map(replaceSmartText).toList(),
+          recap: replaceSmartText(session.recap),
         ),
       );
     }

@@ -6,6 +6,7 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../application/active_adventure_state.dart';
 import 'session_log_panel.dart';
+import 'name_generator_dialog.dart';
 
 class DMToolsSidebar extends ConsumerStatefulWidget {
   final String adventureId;
@@ -29,7 +30,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(
-          left: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+          left: BorderSide(color: AppTheme.textMuted.withValues(alpha: 0.2)),
         ),
       ),
       child: Column(
@@ -56,7 +57,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                 'Ações Rápidas',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: AppTheme.textMuted,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -99,6 +100,37 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                 ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    context.push('/adventure/${widget.adventureId}/session/new');
+                  },
+                  icon: const Icon(Icons.note_alt, size: 16),
+                  label: const Text(
+                    'Prep de Sessão',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const NameGeneratorDialog(),
+                    );
+                  },
+                  icon: const Icon(Icons.person_add, size: 16),
+                  label: const Text(
+                    'Gerador de Nomes',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
               ],
             ),
           ),
@@ -115,7 +147,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                   'Conceito da Aventura',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: AppTheme.textMuted,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -184,7 +216,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                 'Bloco de Notas da Partida',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: AppTheme.textMuted,
                   fontWeight: FontWeight.bold,
                 ),
               ),

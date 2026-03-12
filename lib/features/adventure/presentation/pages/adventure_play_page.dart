@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/responsive_layout.dart';
 import '../../application/adventure_providers.dart';
 import '../widgets/play_mode/location_navigator.dart';
 import '../../application/active_adventure_state.dart';
@@ -19,6 +21,9 @@ class AdventurePlayPage extends ConsumerStatefulWidget {
 }
 
 class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  int _compactTabIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -59,9 +64,10 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
     // Watch to ensure we have data, but selection logic is one-off in initState/callback
     final adventure = ref.watch(adventureProvider(widget.adventureId));
 
-    // ... rest of build
+    final size = screenSizeOf(context);
 
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Hero(
           tag: 'adventure_title_${widget.adventureId}',
@@ -74,6 +80,12 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
           ),
         ),
         actions: [
+          if (size == ScreenSize.medium)
+            IconButton(
+              icon: const Icon(Icons.menu_open),
+              tooltip: 'Abrir Escudo',
+              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+            ),
           IconButton(
             icon: const Icon(Icons.edit),
             tooltip: 'Voltar para Editor',
@@ -83,27 +95,78 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
           ),
         ],
       ),
-
-      body: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  right: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
-                ),
+      endDrawer: size == ScreenSize.medium
+          ? Drawer(
+              width: 320,
+              child: SafeArea(
+                child: DMToolsSidebar(adventureId: widget.adventureId),
               ),
-              child: LocationNavigator(adventureId: widget.adventureId),
+            )
+          : null,
+      bottomNavigationBar: size == ScreenSize.compact
+          ? BottomNavigationBar(
+              currentIndex: _compactTabIndex,
+              onTap: (i) => setState(() => _compactTabIndex = i),
+              selectedItemColor: AppTheme.secondary,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'),
+                BottomNavigationBarItem(icon: Icon(Icons.visibility), label: 'Cena'),
+                BottomNavigationBarItem(icon: Icon(Icons.shield), label: 'Escudo'),
+              ],
+            )
+          : null,
+      body: ResponsiveLayout(
+        expanded: (context) => Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(color: AppTheme.textMuted.withValues(alpha: 0.2)),
+                  ),
+                ),
+                child: LocationNavigator(adventureId: widget.adventureId),
+              ),
             ),
-          ),
-
-          Expanded(
-            flex: 7,
-            child: SceneViewer(adventureId: widget.adventureId),
-          ),
-          DMToolsSidebar(adventureId: widget.adventureId),
-        ],
+            Expanded(
+              flex: 7,
+              child: SceneViewer(adventureId: widget.adventureId),
+            ),
+            DMToolsSidebar(adventureId: widget.adventureId),
+          ],
+        ),
+        medium: (context) => Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(color: AppTheme.textMuted.withValues(alpha: 0.2)),
+                  ),
+                ),
+                child: LocationNavigator(adventureId: widget.adventureId),
+              ),
+            ),
+            Expanded(
+              flex: 7,
+              child: SceneViewer(adventureId: widget.adventureId),
+            ),
+          ],
+        ),
+        compact: (context) {
+          switch (_compactTabIndex) {
+            case 0:
+              return LocationNavigator(adventureId: widget.adventureId);
+            case 1:
+              return SceneViewer(adventureId: widget.adventureId);
+            case 2:
+              return DMToolsSidebar(adventureId: widget.adventureId);
+            default:
+              return SceneViewer(adventureId: widget.adventureId);
+          }
+        },
       ),
     );
   }

@@ -12,6 +12,14 @@ class HiveDatabase {
   static const String _locationsBox = 'locations';
   static const String _factsBox = 'facts';
   static const String _sessionEntriesBox = 'session_entries';
+  static const String _factionsBox = 'factions';
+  static const String _playerCharactersBox = 'player_characters';
+  static const String _itemsBox = 'items';
+  static const String _loreEntriesBox = 'lore_entries';
+  static const String _questsBox = 'quests';
+  static const String _sessionsBox = 'sessions';
+  static const String _notesBox = 'notes';
+  static const String _regionsBox = 'regions';
   static const String _settingsBox = 'settings';
 
   static HiveDatabase? _instance;
@@ -38,6 +46,14 @@ class HiveDatabase {
     await Hive.openBox<Map>(_locationsBox);
     await Hive.openBox<Map>(_factsBox);
     await Hive.openBox<Map>(_sessionEntriesBox);
+    await Hive.openBox<Map>(_factionsBox);
+    await Hive.openBox<Map>(_playerCharactersBox);
+    await Hive.openBox<Map>(_itemsBox);
+    await Hive.openBox<Map>(_loreEntriesBox);
+    await Hive.openBox<Map>(_questsBox);
+    await Hive.openBox<Map>(_sessionsBox);
+    await Hive.openBox<Map>(_notesBox);
+    await Hive.openBox<Map>(_regionsBox);
 
     try {
       final packageInfo = await PackageInfo.fromPlatform();
@@ -56,6 +72,14 @@ class HiveDatabase {
         await Hive.box<Map>(_locationsBox).clear();
         await Hive.box<Map>(_factsBox).clear();
         await Hive.box<Map>(_sessionEntriesBox).clear();
+        await Hive.box<Map>(_factionsBox).clear();
+        await Hive.box<Map>(_playerCharactersBox).clear();
+        await Hive.box<Map>(_itemsBox).clear();
+        await Hive.box<Map>(_loreEntriesBox).clear();
+        await Hive.box<Map>(_questsBox).clear();
+        await Hive.box<Map>(_sessionsBox).clear();
+        await Hive.box<Map>(_notesBox).clear();
+        await Hive.box<Map>(_regionsBox).clear();
       }
 
       await settingsBox.put('appVersion', currentVersion);
@@ -208,6 +232,11 @@ class HiveDatabase {
       }
     }
     await _campaigns.delete(id);
+    await _deleteByCampaignId(_playerCharacters, id);
+    await _deleteByCampaignId(_loreEntries, id);
+    await _deleteByCampaignId(_notes, id);
+    await _deleteByCampaignId(_regions, id);
+    await _deleteByCampaignId(_factions, id);
   }
 
   Box<Map> get _adventures => Hive.box<Map>(_adventuresBox);
@@ -281,6 +310,10 @@ class HiveDatabase {
     await _deleteByAdventureId(_locations, id);
     await _deleteByAdventureId(_facts, id);
     await _deleteByAdventureId(_sessionEntries, id);
+    await _deleteByAdventureId(_items, id);
+    await _deleteByAdventureId(_quests, id);
+    await _deleteByAdventureId(_sessions, id);
+    await _deleteByAdventureId(_factions, id);
   }
 
   Box<Map> get _locations => Hive.box<Map>(_locationsBox);
@@ -538,6 +571,225 @@ class HiveDatabase {
 
   Future<void> deleteSessionEntry(String id) async {
     await _sessionEntries.delete(id);
+  }
+
+  // ── Factions ──
+
+  Box<Map> get _factions => Hive.box<Map>(_factionsBox);
+
+  List<Faction> getFactions(String campaignId) {
+    final items = <Faction>[];
+    for (final entry in _factions.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final faction = Faction.fromJson(data);
+      if (faction.campaignId == campaignId) {
+        items.add(faction);
+      }
+    }
+    return items;
+  }
+
+  List<Faction> getFactionsByAdventure(String adventureId) {
+    final items = <Faction>[];
+    for (final entry in _factions.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final faction = Faction.fromJson(data);
+      if (faction.adventureId == adventureId) {
+        items.add(faction);
+      }
+    }
+    return items;
+  }
+
+  Future<void> saveFaction(Faction faction) async {
+    await _factions.put(faction.id, faction.toJson());
+  }
+
+  Future<void> deleteFaction(String id) async {
+    await _factions.delete(id);
+  }
+
+  // ── Player Characters ──
+
+  Box<Map> get _playerCharacters => Hive.box<Map>(_playerCharactersBox);
+
+  List<PlayerCharacter> getPlayerCharacters(String campaignId) {
+    final items = <PlayerCharacter>[];
+    for (final entry in _playerCharacters.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final pc = PlayerCharacter.fromJson(data);
+      if (pc.campaignId == campaignId) {
+        items.add(pc);
+      }
+    }
+    return items;
+  }
+
+  Future<void> savePlayerCharacter(PlayerCharacter pc) async {
+    await _playerCharacters.put(pc.id, pc.toJson());
+  }
+
+  Future<void> deletePlayerCharacter(String id) async {
+    await _playerCharacters.delete(id);
+  }
+
+  // ── Items ──
+
+  Box<Map> get _items => Hive.box<Map>(_itemsBox);
+
+  List<Item> getItems(String adventureId) {
+    final items = <Item>[];
+    for (final entry in _items.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final item = Item.fromJson(data);
+      if (item.adventureId == adventureId) {
+        items.add(item);
+      }
+    }
+    return items;
+  }
+
+  Future<void> saveItem(Item item) async {
+    await _items.put(item.id, item.toJson());
+  }
+
+  Future<void> deleteItem(String id) async {
+    await _items.delete(id);
+  }
+
+  // ── Lore Entries ──
+
+  Box<Map> get _loreEntries => Hive.box<Map>(_loreEntriesBox);
+
+  List<LoreEntry> getLoreEntries(String campaignId) {
+    final items = <LoreEntry>[];
+    for (final entry in _loreEntries.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final lore = LoreEntry.fromJson(data);
+      if (lore.campaignId == campaignId) {
+        items.add(lore);
+      }
+    }
+    return items;
+  }
+
+  Future<void> saveLoreEntry(LoreEntry lore) async {
+    await _loreEntries.put(lore.id, lore.toJson());
+  }
+
+  Future<void> deleteLoreEntry(String id) async {
+    await _loreEntries.delete(id);
+  }
+
+  // ── Quests ──
+
+  Box<Map> get _quests => Hive.box<Map>(_questsBox);
+
+  List<Quest> getQuests(String adventureId) {
+    final items = <Quest>[];
+    for (final entry in _quests.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final quest = Quest.fromJson(data);
+      if (quest.adventureId == adventureId) {
+        items.add(quest);
+      }
+    }
+    return items;
+  }
+
+  Future<void> saveQuest(Quest quest) async {
+    await _quests.put(quest.id, quest.toJson());
+  }
+
+  Future<void> deleteQuest(String id) async {
+    await _quests.delete(id);
+  }
+
+  // ── Sessions ──
+
+  Box<Map> get _sessions => Hive.box<Map>(_sessionsBox);
+
+  List<Session> getSessions(String adventureId) {
+    final items = <Session>[];
+    for (final entry in _sessions.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final session = Session.fromJson(data);
+      if (session.adventureId == adventureId) {
+        items.add(session);
+      }
+    }
+    items.sort((a, b) => a.number.compareTo(b.number));
+    return items;
+  }
+
+  Future<void> saveSession(Session session) async {
+    await _sessions.put(session.id, session.toJson());
+  }
+
+  Future<void> deleteSession(String id) async {
+    await _sessions.delete(id);
+  }
+
+  // ── Notes ──
+
+  Box<Map> get _notes => Hive.box<Map>(_notesBox);
+
+  List<Note> getNotes(String campaignId) {
+    final items = <Note>[];
+    for (final entry in _notes.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final note = Note.fromJson(data);
+      if (note.campaignId == campaignId) {
+        items.add(note);
+      }
+    }
+    items.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return items;
+  }
+
+  Future<void> saveNote(Note note) async {
+    await _notes.put(note.id, note.toJson());
+  }
+
+  Future<void> deleteNote(String id) async {
+    await _notes.delete(id);
+  }
+
+  // ── Regions ──
+
+  Box<Map> get _regions => Hive.box<Map>(_regionsBox);
+
+  List<Region> getRegions(String campaignId) {
+    final items = <Region>[];
+    for (final entry in _regions.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final region = Region.fromJson(data);
+      if (region.campaignId == campaignId) {
+        items.add(region);
+      }
+    }
+    return items;
+  }
+
+  Future<void> saveRegion(Region region) async {
+    await _regions.put(region.id, region.toJson());
+  }
+
+  Future<void> deleteRegion(String id) async {
+    await _regions.delete(id);
+  }
+
+  Future<void> _deleteByCampaignId(Box<Map> box, String campaignId) async {
+    final keysToDelete = <dynamic>[];
+    for (final entry in box.toMap().entries) {
+      final map = Map<String, dynamic>.from(entry.value);
+      if (map['campaignId'] == campaignId) {
+        keysToDelete.add(entry.key);
+      }
+    }
+    for (final key in keysToDelete) {
+      await box.delete(key);
+    }
   }
 
   Future<void> _deleteByAdventureId(Box<Map> box, String adventureId) async {

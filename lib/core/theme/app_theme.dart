@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._();
 
+  // ---------------------------------------------------------------------------
+  // Core palette
+  // ---------------------------------------------------------------------------
   static const Color primary = Color(0xFF8B4513);
   static const Color primaryDark = Color(0xFF5D2E0C);
   static const Color secondary = Color(0xFFDAA520);
@@ -21,6 +24,58 @@ class AppTheme {
   static const Color warning = Color(0xFFDAA520);
   static const Color error = Color(0xFF9B2335);
   static const Color info = Color(0xFF4169E1);
+
+  // ---------------------------------------------------------------------------
+  // Entity / semantic colors
+  // ---------------------------------------------------------------------------
+  static const Color npc = Color(0xFF9C27B0);
+  static const Color creature = accent;
+  static const Color location = primary;
+  static const Color item = Color(0xFFDAA520); // gold / same as secondary
+  static const Color quest = Color(0xFF228B22); // same as success
+  static const Color faction = Color(0xFF4169E1); // same as info
+  static const Color combat = Color(0xFFD32F2F);
+  static const Color discovery = Color(0xFFFFB300);
+  static const Color narrative = Color(0xFF1E88E5);
+  static const Color dubious = Color(0xFFFF9800);
+
+  // ---------------------------------------------------------------------------
+  // Spacing scale (8-point grid)
+  // ---------------------------------------------------------------------------
+  static const double s2 = 2;
+  static const double s4 = 4;
+  static const double s6 = 6;
+  static const double s8 = 8;
+  static const double s12 = 12;
+  static const double s16 = 16;
+  static const double s24 = 24;
+  static const double s32 = 32;
+  static const double s48 = 48;
+
+  // ---------------------------------------------------------------------------
+  // Border radius scale
+  // ---------------------------------------------------------------------------
+  static const double r4 = 4;
+  static const double r8 = 8;
+  static const double r12 = 12;
+  static const double r16 = 16;
+
+  // ---------------------------------------------------------------------------
+  // Adaptive overlay helpers (avoid manual brightness checks)
+  // ---------------------------------------------------------------------------
+  /// Subtle overlay for containers — respects brightness automatically.
+  static Color overlay(BuildContext context, {double alpha = 0.05}) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: alpha)
+        : Colors.black.withValues(alpha: alpha);
+  }
+
+  /// Muted foreground (icons / secondary text) that adapts to brightness.
+  static Color mutedForeground(BuildContext context, {double alpha = 0.5}) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: alpha)
+        : Colors.black.withValues(alpha: alpha);
+  }
 
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primary, primaryDark],
@@ -261,4 +316,61 @@ class AppTheme {
     borderRadius: BorderRadius.circular(8),
     border: Border.all(color: secondary.withValues(alpha: 0.3)),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Standardised SnackBar helper
+// ---------------------------------------------------------------------------
+class AppSnackBar {
+  AppSnackBar._();
+
+  static void success(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: AppTheme.textPrimary, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppTheme.success,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  static void error(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppTheme.textPrimary, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppTheme.error,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  static void info(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline, color: AppTheme.textPrimary, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 }

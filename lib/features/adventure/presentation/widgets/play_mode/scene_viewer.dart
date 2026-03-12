@@ -31,17 +31,13 @@ class SceneViewer extends ConsumerWidget {
             Icon(
               Icons.map,
               size: 64,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white24
-                  : Colors.black12,
+              color: AppTheme.mutedForeground(context, alpha: 0.24),
             ),
             const SizedBox(height: 16),
             Text(
               'Selecione um local para iniciar',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white54
-                    : Colors.black45,
+                color: AppTheme.mutedForeground(context, alpha: 0.5),
               ),
             ),
           ],
@@ -115,9 +111,7 @@ class SceneViewer extends ConsumerWidget {
                     Text(
                       parentLocation.description,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white70
-                            : Colors.black87,
+                        color: AppTheme.mutedForeground(context, alpha: 0.7),
                       ),
                     ),
                   ],
@@ -201,9 +195,7 @@ class SceneViewer extends ConsumerWidget {
             title: const Text('Detalhes & Segredos'),
             leading: const Icon(Icons.search),
             childrenPadding: const EdgeInsets.all(16),
-            backgroundColor: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.02),
+            backgroundColor: AppTheme.overlay(context),
             children: [
               Align(
                 alignment: Alignment.topLeft,
@@ -380,7 +372,7 @@ class _CreatureList extends ConsumerWidget {
                                 ? 'Monstro'
                                 : 'NPC',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: AppTheme.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -392,7 +384,7 @@ class _CreatureList extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(
                             Icons.remove_circle_outline,
-                            color: Colors.red,
+                            color: AppTheme.combat,
                           ),
                           onPressed: () {
                             ref
@@ -417,7 +409,7 @@ class _CreatureList extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(
                             Icons.add_circle_outline,
-                            color: Colors.green,
+                            color: AppTheme.success,
                           ),
                           onPressed: () {
                             ref

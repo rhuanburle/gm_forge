@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../../core/ai/ai_prompts.dart";
 import "../../../../core/ai/ai_providers.dart";
 import "../../../../core/theme/app_theme.dart";
+import "../../../../core/widgets/shimmer_loading.dart";
 import "../../../../core/sync/unsynced_changes_provider.dart";
 import "../../application/adventure_providers.dart";
 import "../../domain/domain.dart";
@@ -111,15 +112,15 @@ class _ComplicationsDialogState extends ConsumerState<ComplicationsDialog> {
             ),
             Expanded(
               child: _loading
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text("Analisando a aventura..."),
-                        ],
-                      ),
+                  ? Column(
+                      children: [
+                        const Expanded(
+                          child: SkeletonList(itemCount: 5, itemHeight: 72),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("Analisando a aventura..."),
+                        const SizedBox(height: 16),
+                      ],
                     )
                   : _errorMessage != null
                   ? Center(
@@ -236,12 +237,7 @@ class _ComplicationsDialogState extends ConsumerState<ComplicationsDialog> {
     ref.read(unsyncedChangesProvider.notifier).state = true;
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Salvo como Evento!"),
-        backgroundColor: AppTheme.success,
-      ),
-    );
+    AppSnackBar.success(context, "Salvo como Evento!");
   }
 
   Future<void> _saveAsLegend(_ComplicationSection section) async {
@@ -257,12 +253,7 @@ class _ComplicationsDialogState extends ConsumerState<ComplicationsDialog> {
     ref.read(unsyncedChangesProvider.notifier).state = true;
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Salvo como Rumor!"),
-        backgroundColor: AppTheme.success,
-      ),
-    );
+    AppSnackBar.success(context, "Salvo como Rumor!");
   }
 
   List<_ComplicationSection> _parseComplications(String text) {

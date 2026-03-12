@@ -35,7 +35,7 @@ class CloudSyncButton extends ConsumerWidget {
                   : Icons.cloud_upload,
               color: syncStatus == SyncStatus.error
                   ? AppTheme.error
-                  : (hasUnsyncedChanges ? Colors.orange : AppTheme.secondary),
+                  : (hasUnsyncedChanges ? AppTheme.dubious : AppTheme.secondary),
             ),
       tooltip: syncStatus == SyncStatus.syncing
           ? 'Sincronizando...'

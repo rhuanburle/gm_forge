@@ -73,7 +73,7 @@ class LensSelector extends StatelessWidget {
                     Icon(
                       lens.icon,
                       size: 20,
-                      color: isSelected ? AppTheme.primary : Colors.grey,
+                      color: isSelected ? AppTheme.primary : AppTheme.textMuted,
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -83,7 +83,7 @@ class LensSelector extends StatelessWidget {
                         fontWeight: isSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
-                        color: isSelected ? AppTheme.primary : Colors.grey,
+                        color: isSelected ? AppTheme.primary : AppTheme.textMuted,
                       ),
                     ),
                   ],

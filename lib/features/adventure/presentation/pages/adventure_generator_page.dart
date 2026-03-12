@@ -480,12 +480,7 @@ class _AdventureGeneratorPageState
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("${filtered.totalItems} itens salvos com sucesso!"),
-        backgroundColor: AppTheme.success,
-      ),
-    );
+    AppSnackBar.success(context, "${filtered.totalItems} itens salvos com sucesso!");
 
     context.pop();
   }
@@ -568,19 +563,19 @@ class _PreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isSelected ? null : Colors.grey.withValues(alpha: 0.1),
+      color: isSelected ? null : AppTheme.textMuted.withValues(alpha: 0.1),
       child: Column(
         children: [
           ListTile(
             leading: Icon(
               icon,
-              color: isSelected ? AppTheme.primary : Colors.grey,
+              color: isSelected ? AppTheme.primary : AppTheme.textMuted,
             ),
             title: Text(
               title,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: isSelected ? null : Colors.grey,
+                color: isSelected ? null : AppTheme.textMuted,
                 decoration: isSelected ? null : TextDecoration.lineThrough,
               ),
             ),
@@ -590,7 +585,7 @@ class _PreviewCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
-                color: isSelected ? null : Colors.grey,
+                color: isSelected ? null : AppTheme.textMuted,
               ),
             ),
             trailing: Switch(

@@ -1,9 +1,17 @@
 export 'adventure.dart';
 export 'campaign.dart';
 export 'creature.dart';
+export 'faction.dart';
+export 'item.dart';
 export 'legend.dart';
+export 'lore_entry.dart';
+export 'note.dart';
+export 'player_character.dart';
 export 'point_of_interest.dart';
+export 'quest.dart';
 export 'random_event.dart';
+export 'region.dart';
 export 'location.dart';
 export 'fact.dart';
+export 'session.dart';
 export 'session_entry.dart';

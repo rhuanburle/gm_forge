@@ -29,6 +29,7 @@ class DashboardController {
     // Campaign handling
     final campaigns = ref.read(campaignListProvider);
     String? selectedCampaignId = adventureToEdit?.campaignId;
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
@@ -36,22 +37,25 @@ class DashboardController {
         builder: (context, setState) {
           return AlertDialog(
             title: Text(isEditing ? 'Editar Aventura' : 'Criar Nova Aventura'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Nome da Aventura',
-                      hintText: 'ex: O Templo Submerso',
-                      suffixIcon: AiAssistButton(
-                        controller: nameController,
-                        fieldType: AiFieldType.adventureName,
-                        adventureContext: const {},
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Nome da Aventura',
+                        hintText: 'ex: O Templo Submerso',
+                        suffixIcon: AiAssistButton(
+                          controller: nameController,
+                          fieldType: AiFieldType.adventureName,
+                          adventureContext: const {},
+                        ),
                       ),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Nome obrigatório' : null,
                     ),
-                  ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: descController,
@@ -122,7 +126,8 @@ class DashboardController {
                     ),
                     maxLines: 2,
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -132,7 +137,7 @@ class DashboardController {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  if (nameController.text.isNotEmpty) {
+                  if (formKey.currentState!.validate()) {
                     if (isEditing) {
                       final updatedAdventure = adventureToEdit.copyWith(
                         name: nameController.text,
@@ -188,27 +193,31 @@ class DashboardController {
     final descController = TextEditingController(
       text: campaignToEdit?.description,
     );
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(isEditing ? 'Editar Campanha' : 'Criar Nova Campanha'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Nome da Campanha',
-                  hintText: 'ex: Guerra do Anel',
-                  suffixIcon: AiAssistButton(
-                    controller: nameController,
-                    fieldType: AiFieldType.campaignName,
-                    adventureContext: const {},
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Nome da Campanha',
+                    hintText: 'ex: Guerra do Anel',
+                    suffixIcon: AiAssistButton(
+                      controller: nameController,
+                      fieldType: AiFieldType.campaignName,
+                      adventureContext: const {},
+                    ),
                   ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Nome obrigatório' : null,
                 ),
-              ),
               const SizedBox(height: 16),
               TextField(
                 controller: descController,
@@ -223,7 +232,8 @@ class DashboardController {
                 ),
                 maxLines: 2,
               ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -233,7 +243,7 @@ class DashboardController {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.isNotEmpty) {
+              if (formKey.currentState!.validate()) {
                 if (isEditing) {
                   final updatedCampaign = campaignToEdit.copyWith(
                     name: nameController.text,

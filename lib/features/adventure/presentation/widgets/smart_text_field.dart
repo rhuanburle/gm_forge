@@ -83,7 +83,7 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
     String trigger = '';
 
     for (int i = cursor - 1; i >= 0; i--) {
-      if (text[i] == '@' || text[i] == '#' || text[i] == '!') {
+      if (text[i] == '@' || text[i] == '#' || text[i] == '!' || text[i] == '\$' || text[i] == '?') {
         if (i == 0 ||
             text[i - 1] == ' ' ||
             text[i - 1] == '\n' ||
@@ -180,6 +180,10 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
       replacement = '[#$name] ';
     } else if (type == 'Fact') {
       replacement = '[!$name] ';
+    } else if (type == 'Item') {
+      replacement = '[\$$name] ';
+    } else if (type == 'Quest') {
+      replacement = '[?$name] ';
     } else {
       replacement = '[$name] ';
     }
@@ -231,6 +235,16 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
                 icon: const Icon(Icons.lightbulb, size: 20),
                 onPressed: () => _insertTrigger('!'),
                 tooltip: 'Vincular/Criar Fato (!)',
+              ),
+              IconButton(
+                icon: const Icon(Icons.inventory_2, size: 20),
+                onPressed: () => _insertTrigger('\$'),
+                tooltip: 'Vincular Item (\$)',
+              ),
+              IconButton(
+                icon: const Icon(Icons.flag, size: 20),
+                onPressed: () => _insertTrigger('?'),
+                tooltip: 'Vincular Missão (?)',
               ),
             ],
           ),
@@ -450,6 +464,50 @@ class _SuggestionList extends ConsumerWidget {
               ),
             ),
           ],
+        ],
+      );
+    } else if (trigger == '\$') {
+      final items = ref.watch(itemsProvider(adventureId));
+      final filteredItems = items
+          .where((i) => i.name.toLowerCase().contains(lowerQuery))
+          .toList();
+      if (filteredItems.isEmpty) return _emptyState();
+      return ListView(
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        children: [
+          const _Header('Itens'),
+          ...filteredItems.map(
+            (i) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.inventory_2, size: 16),
+              title: Text(i.name),
+              subtitle: Text(i.rarity.displayName, style: const TextStyle(fontSize: 10)),
+              onTap: () => onSelected(i.name, 'Item', i.id, startIndex),
+            ),
+          ),
+        ],
+      );
+    } else if (trigger == '?') {
+      final quests = ref.watch(questsProvider(adventureId));
+      final filteredQuests = quests
+          .where((q) => q.name.toLowerCase().contains(lowerQuery))
+          .toList();
+      if (filteredQuests.isEmpty) return _emptyState();
+      return ListView(
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        children: [
+          const _Header('Missões'),
+          ...filteredQuests.map(
+            (q) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.flag, size: 16),
+              title: Text(q.name),
+              subtitle: Text(q.status.displayName, style: const TextStyle(fontSize: 10)),
+              onTap: () => onSelected(q.name, 'Quest', q.id, startIndex),
+            ),
+          ),
         ],
       );
     }

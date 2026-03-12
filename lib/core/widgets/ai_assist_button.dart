@@ -168,25 +168,7 @@ class _AiAssistButtonState extends ConsumerState<AiAssistButton> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Erro na IA: $message',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: AppTheme.error,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppSnackBar.error(context, 'Erro na IA: $message');
   }
 }
 
@@ -283,18 +265,18 @@ class _ActionTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           color: enabled
               ? AppTheme.primary.withValues(alpha: 0.06)
-              : Colors.grey.withValues(alpha: 0.05),
+              : AppTheme.textMuted.withValues(alpha: 0.05),
           border: Border.all(
             color: enabled
                 ? AppTheme.primary.withValues(alpha: 0.2)
-                : Colors.grey.withValues(alpha: 0.1),
+                : AppTheme.textMuted.withValues(alpha: 0.1),
           ),
         ),
         child: Row(
           children: [
             Icon(
               icon,
-              color: enabled ? AppTheme.primary : Colors.grey,
+              color: enabled ? AppTheme.primary : AppTheme.textMuted,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -306,14 +288,14 @@ class _ActionTile extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: enabled ? null : Colors.grey,
+                      color: enabled ? null : AppTheme.textMuted,
                       fontSize: 14,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: enabled ? null : Colors.grey,
+                      color: enabled ? null : AppTheme.textMuted,
                     ),
                   ),
                 ],
@@ -321,7 +303,7 @@ class _ActionTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right,
-              color: enabled ? AppTheme.primary : Colors.grey,
+              color: enabled ? AppTheme.primary : AppTheme.textMuted,
               size: 18,
             ),
           ],

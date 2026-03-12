@@ -151,7 +151,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                 padding: const EdgeInsets.all(32),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                  border: Border.all(color: AppTheme.textMuted.withValues(alpha: 0.3)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -159,14 +159,14 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                     const Icon(
                       Icons.map_outlined,
                       size: 48,
-                      color: Colors.grey,
+                      color: AppTheme.textMuted,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'Nenhum ponto de interesse neste local.',
                       style: Theme.of(
                         context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                      ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
                     ),
                     TextButton(
                       onPressed: () => _showPoiDialog(context, null),
@@ -298,9 +298,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
     ref.invalidate(locationsProvider(widget.adventureId));
 
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Local salvo com sucesso!')));
+      AppSnackBar.success(context, 'Local salvo com sucesso!');
     }
   }
 
@@ -683,7 +681,7 @@ class _InfoRow extends StatelessWidget {
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 12,
-            color: Colors.grey,
+            color: AppTheme.textMuted,
           ),
         ),
         Text(value, style: const TextStyle(fontSize: 14)),

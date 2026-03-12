@@ -9,6 +9,7 @@ import '../../../../application/adventure_providers.dart';
 import "../../../../domain/domain.dart";
 import "../../../widgets/npc_knowledge_dialog.dart";
 import "../../../widgets/smart_text_field.dart";
+import '../../../../../../core/widgets/animated_list_item.dart';
 import "../widgets/section_header.dart";
 
 class CreaturesTab extends ConsumerWidget {
@@ -53,15 +54,82 @@ class CreaturesTab extends ConsumerWidget {
                     itemCount: creatures.length,
                     itemBuilder: (context, index) {
                       final creature = creatures[index];
-                      return _CreatureListItem(
-                        creature: creature,
-                        adventureId: adventureId,
-                        onEdit: () => _showCreatureDialog(
-                          context,
-                          ref,
-                          creatureToEdit: creature,
+                      return AnimatedListItem(
+                        index: index,
+                        child: Dismissible(
+                          key: Key(creature.id),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 24),
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.error.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(AppTheme.r12),
+                            ),
+                            child: const Icon(Icons.delete_outline, color: AppTheme.error),
+                          ),
+                          confirmDismiss: (direction) async {
+                            return true;
+                          },
+                          onDismissed: (direction) async {
+                            final db = ref.read(hiveDatabaseProvider);
+                            await db.deleteCreature(creature.id);
+
+                            ref
+                                .read(historyProvider.notifier)
+                                .recordAction(
+                                  HistoryAction(
+                                    description: 'Criatura removida',
+                                    onUndo: () async {
+                                      await db.saveCreature(creature);
+                                      ref.invalidate(creaturesProvider(adventureId));
+                                      ref.invalidate(locationsProvider(adventureId));
+                                      ref.invalidate(pointsOfInterestProvider(adventureId));
+                                    },
+                                    onRedo: () async {
+                                      await db.deleteCreature(creature.id);
+                                      ref.invalidate(creaturesProvider(adventureId));
+                                      ref.invalidate(locationsProvider(adventureId));
+                                      ref.invalidate(pointsOfInterestProvider(adventureId));
+                                    },
+                                  ),
+                                );
+
+                            ref.invalidate(creaturesProvider(adventureId));
+                            ref.invalidate(locationsProvider(adventureId));
+                            ref.invalidate(pointsOfInterestProvider(adventureId));
+                            ref.read(unsyncedChangesProvider.notifier).state = true;
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('"${creature.name}" removido'),
+                                  action: SnackBarAction(
+                                    label: 'Desfazer',
+                                    onPressed: () async {
+                                      await db.saveCreature(creature);
+                                      ref.invalidate(creaturesProvider(adventureId));
+                                      ref.invalidate(locationsProvider(adventureId));
+                                      ref.invalidate(pointsOfInterestProvider(adventureId));
+                                      ref.read(unsyncedChangesProvider.notifier).state = true;
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: _CreatureListItem(
+                            creature: creature,
+                            adventureId: adventureId,
+                            onEdit: () => _showCreatureDialog(
+                              context,
+                              ref,
+                              creatureToEdit: creature,
+                            ),
+                            onDelete: () => _deleteCreature(context, ref, creature),
+                          ),
                         ),
-                        onDelete: () => _deleteCreature(context, ref, creature),
                       );
                     },
                   ),
@@ -84,55 +152,50 @@ class CreaturesTab extends ConsumerWidget {
     WidgetRef ref,
     Creature creature,
   ) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Remover Criatura?"),
-        content: const Text("Essa ação não pode ser desfeita."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancelar"),
+    final db = ref.read(hiveDatabaseProvider);
+    await db.deleteCreature(creature.id);
+
+    ref
+        .read(historyProvider.notifier)
+        .recordAction(
+          HistoryAction(
+            description: 'Criatura removida',
+            onUndo: () async {
+              await db.saveCreature(creature);
+              ref.invalidate(creaturesProvider(adventureId));
+              ref.invalidate(locationsProvider(adventureId));
+              ref.invalidate(pointsOfInterestProvider(adventureId));
+            },
+            onRedo: () async {
+              await db.deleteCreature(creature.id);
+              ref.invalidate(creaturesProvider(adventureId));
+              ref.invalidate(locationsProvider(adventureId));
+              ref.invalidate(pointsOfInterestProvider(adventureId));
+            },
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              "Remover",
-              style: TextStyle(color: AppTheme.error),
-            ),
+        );
+
+    ref.invalidate(creaturesProvider(adventureId));
+    ref.invalidate(locationsProvider(adventureId));
+    ref.invalidate(pointsOfInterestProvider(adventureId));
+    ref.read(unsyncedChangesProvider.notifier).state = true;
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('"${creature.name}" removido'),
+          action: SnackBarAction(
+            label: 'Desfazer',
+            onPressed: () async {
+              await db.saveCreature(creature);
+              ref.invalidate(creaturesProvider(adventureId));
+              ref.invalidate(locationsProvider(adventureId));
+              ref.invalidate(pointsOfInterestProvider(adventureId));
+              ref.read(unsyncedChangesProvider.notifier).state = true;
+            },
           ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      final db = ref.read(hiveDatabaseProvider);
-      await db.deleteCreature(creature.id);
-
-      ref
-          .read(historyProvider.notifier)
-          .recordAction(
-            HistoryAction(
-              description: 'Criatura removida',
-              onUndo: () async {
-                await db.saveCreature(creature);
-                ref.invalidate(creaturesProvider(adventureId));
-                ref.invalidate(locationsProvider(adventureId));
-                ref.invalidate(pointsOfInterestProvider(adventureId));
-              },
-              onRedo: () async {
-                await db.deleteCreature(creature.id);
-                ref.invalidate(creaturesProvider(adventureId));
-                ref.invalidate(locationsProvider(adventureId));
-                ref.invalidate(pointsOfInterestProvider(adventureId));
-              },
-            ),
-          );
-
-      ref.invalidate(creaturesProvider(adventureId));
-      ref.invalidate(locationsProvider(adventureId));
-      ref.invalidate(pointsOfInterestProvider(adventureId));
-      ref.read(unsyncedChangesProvider.notifier).state = true;
+        ),
+      );
     }
   }
 
@@ -155,17 +218,20 @@ class CreaturesTab extends ConsumerWidget {
     );
 
     CreatureType selectedType = creatureToEdit?.type ?? CreatureType.monster;
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: Text(isEditing ? "Editar Criatura" : "Adicionar Criatura"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<CreatureType>(
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SegmentedButton<CreatureType>(
                   segments: const [
                     ButtonSegment(
                       value: CreatureType.monster,
@@ -186,12 +252,13 @@ class CreaturesTab extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                TextFormField(
                   controller: nameController,
                   decoration: const InputDecoration(
                     labelText: "Nome",
                     hintText: "ex: Goblin, Guarda Real",
                   ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Nome obrigatório' : null,
                 ),
                 const SizedBox(height: 16),
                 SmartTextField(
@@ -249,6 +316,7 @@ class CreaturesTab extends ConsumerWidget {
               ],
             ),
           ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -256,7 +324,7 @@ class CreaturesTab extends ConsumerWidget {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (nameController.text.isNotEmpty) {
+                if (formKey.currentState!.validate()) {
                   final db = ref.read(hiveDatabaseProvider);
 
                   if (isEditing) {
@@ -363,14 +431,14 @@ class _CreatureListItem extends ConsumerWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: creature.type == CreatureType.npc
-                      ? Colors.purple.withValues(alpha: 0.2)
+                      ? AppTheme.npc.withValues(alpha: 0.2)
                       : AppTheme.accent.withValues(alpha: 0.2),
                   child: Icon(
                     creature.type == CreatureType.npc
                         ? Icons.person
                         : Icons.pets,
                     color: creature.type == CreatureType.npc
-                        ? Colors.purple
+                        ? AppTheme.npc
                         : AppTheme.accent,
                   ),
                 ),
@@ -391,9 +459,9 @@ class _CreatureListItem extends ConsumerWidget {
                           creature.description,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[600],
+                            color: AppTheme.textMuted,
                           ),
                         ),
                     ],
@@ -403,7 +471,7 @@ class _CreatureListItem extends ConsumerWidget {
                 if (creature.type == CreatureType.npc &&
                     ref.watch(hasAiConfiguredProvider))
                   IconButton(
-                    icon: const Icon(Icons.psychology, color: Colors.purple),
+                    icon: const Icon(Icons.psychology, color: AppTheme.npc),
                     tooltip: "O que esse NPC sabe?",
                     onPressed: () => showDialog(
                       context: context,
