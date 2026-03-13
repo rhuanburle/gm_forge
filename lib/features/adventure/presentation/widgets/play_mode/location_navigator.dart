@@ -962,6 +962,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
         onPressed: () async {
           final updatedPoi = poi.copyWith(isVisited: !poi.isVisited);
           await ref.read(hiveDatabaseProvider).savePointOfInterest(updatedPoi);
+          ref.invalidate(pointsOfInterestProvider(widget.adventureId));
           ref.read(unsyncedChangesProvider.notifier).state = true;
         },
       ),

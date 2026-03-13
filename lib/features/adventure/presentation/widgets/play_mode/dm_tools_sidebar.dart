@@ -11,9 +11,8 @@ import 'session_log_panel.dart';
 import 'name_generator_dialog.dart';
 import 'quick_reference_panel.dart';
 import 'campaign_summary_panel.dart';
-import 'combat_tracker_panel.dart';
 import 'dice_roller_panel.dart';
-import 'session_timer_panel.dart';
+import 'combat_tracker_panel.dart';
 
 class DMToolsSidebar extends ConsumerStatefulWidget {
   final String adventureId;
@@ -26,6 +25,7 @@ class DMToolsSidebar extends ConsumerStatefulWidget {
 
 class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
   final ScrollController _scrollController = ScrollController();
+  int _currentPanel = 0; // 0=tools, 1=combat, 2=log
 
   @override
   void dispose() {
@@ -130,265 +130,235 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
       ),
       child: Column(
         children: [
+          // Panel selector tabs
           Container(
-            padding: const EdgeInsets.all(12),
             color: AppTheme.secondary.withValues(alpha: 0.1),
-            width: double.infinity,
-            child: const Text(
-              'Escudo do Mestre',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.secondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Ações Rápidas',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textMuted,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Row(
               children: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    context.push('/adventure/${widget.adventureId}');
-                  },
-                  icon: const Icon(Icons.edit, size: 16),
-                  label: const Text(
-                    'Editar Aventura',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: activeState.currentLocationId == null
-                      ? null
-                      : () {
-                          context.push(
-                            '/adventure/${widget.adventureId}/location/${activeState.currentLocationId}',
-                          );
-                        },
-                  icon: const Icon(Icons.map, size: 16),
-                  label: const Text(
-                    'Editar Local Atual',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    context.push('/adventure/${widget.adventureId}/session/new');
-                  },
-                  icon: const Icon(Icons.note_alt, size: 16),
-                  label: const Text(
-                    'Prep de Sessão',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                ),
-                if (adventure.campaignId != null) ...[
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      context.push('/campaign/${adventure.campaignId}');
-                    },
-                    icon: const Icon(Icons.auto_awesome_motion, size: 16),
-                    label: const Text(
-                      'Hub da Campanha',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => const NameGeneratorDialog(),
-                          );
-                        },
-                        icon: const Icon(Icons.person_add, size: 16),
-                        label: const Text(
-                          'Nomes',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _rollRandomEvent(context, ref),
-                        icon: const Icon(Icons.casino, size: 16),
-                        label: const Text(
-                          'Evento',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          foregroundColor: AppTheme.warning,
-                          side: const BorderSide(color: AppTheme.warning),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                _tabButton(0, Icons.shield, 'Escudo'),
+                _tabButton(1, Icons.flash_on, 'Combate'),
+                _tabButton(2, Icons.menu_book, 'Log'),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          Expanded(
-            child: Scrollbar(
-              controller: _scrollController,
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                child: Column(
-                  children: [
-                    // Session timer
-                    const SessionTimerPanel(),
-
-                    // Combat tracker (always visible)
-                    CombatTrackerPanel(adventureId: widget.adventureId),
-
-                    // Dice roller
-                    const DiceRollerPanel(),
-
-                    if (adventure.conceptWhat.isNotEmpty ||
-                        adventure.conceptConflict.isNotEmpty) ...[
-                      Theme(
-                        data: Theme.of(
-                          context,
-                        ).copyWith(dividerColor: Colors.transparent),
-                        child: ExpansionTile(
-                          title: const Text(
-                            'Conceito da Aventura',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textMuted,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          childrenPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 0,
-                          ),
-                          children: [
-                            if (adventure.conceptWhat.isNotEmpty) ...[
-                              const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'O que está acontecendo?',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  adventure.conceptWhat,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.copyWith(fontSize: 12),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                            if (adventure.conceptConflict.isNotEmpty) ...[
-                              const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Qual é o conflito?',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  adventure.conceptConflict,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.copyWith(fontSize: 12),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1),
-                    ],
-                    if (adventure.campaignId != null) ...[
-                      CampaignSummaryPanel(campaignId: adventure.campaignId!),
-                      const Divider(height: 1),
-                    ],
-                    QuickReferencePanel(campaignId: adventure.campaignId),
-                    const Divider(height: 1),
-                    const SizedBox(height: 16),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Bloco de Notas da Partida',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textMuted,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 400, // Fixed height for log inside scrollview
-                      child: SessionLogPanel(adventureId: widget.adventureId),
-                    ),
-                  ],
+          // Quick Actions (always visible)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: Row(
+              children: [
+                _quickActionButton(
+                  icon: Icons.person_add,
+                  label: 'Nomes',
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const NameGeneratorDialog(),
+                    );
+                  },
                 ),
-              ),
+                const SizedBox(width: 6),
+                _quickActionButton(
+                  icon: Icons.casino,
+                  label: 'Evento',
+                  color: AppTheme.warning,
+                  onPressed: () => _rollRandomEvent(context, ref),
+                ),
+                const SizedBox(width: 6),
+                _quickActionButton(
+                  icon: Icons.edit,
+                  label: 'Editar',
+                  onPressed: () {
+                    context.push('/adventure/${widget.adventureId}');
+                  },
+                ),
+                if (adventure.campaignId != null) ...[
+                  const SizedBox(width: 6),
+                  _quickActionButton(
+                    icon: Icons.auto_awesome_motion,
+                    label: 'Camp.',
+                    onPressed: () {
+                      context.push('/campaign/${adventure.campaignId}');
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          // Panel content
+          Expanded(
+            child: IndexedStack(
+              index: _currentPanel,
+              children: [
+                // Panel 0: Escudo (Tools)
+                _buildToolsPanel(context, adventure, activeState),
+                // Panel 1: Combate
+                CombatTrackerPanel(adventureId: widget.adventureId),
+                // Panel 2: Session Log
+                SessionLogPanel(adventureId: widget.adventureId),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _tabButton(int index, IconData icon, String label) {
+    final isSelected = _currentPanel == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _currentPanel = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? AppTheme.secondary : Colors.transparent,
+                width: 2,
+              ),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected ? AppTheme.secondary : AppTheme.textMuted,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? AppTheme.secondary : AppTheme.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _quickActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    Color? color,
+  }) {
+    return Expanded(
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          foregroundColor: color,
+          side: color != null ? BorderSide(color: color) : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14),
+            Text(label, style: const TextStyle(fontSize: 9)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolsPanel(
+    BuildContext context,
+    Adventure adventure,
+    ActiveAdventureState activeState,
+  ) {
+    return Scrollbar(
+      controller: _scrollController,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(
+          children: [
+            // Dice roller
+            const DiceRollerPanel(),
+
+            // Adventure concept (always expanded for quick reference)
+            if (adventure.conceptWhat.isNotEmpty ||
+                adventure.conceptConflict.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.lightbulb, size: 14, color: AppTheme.primary),
+                        SizedBox(width: 6),
+                        Text(
+                          'Conceito da Aventura',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (adventure.conceptWhat.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        adventure.conceptWhat,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(fontSize: 11),
+                      ),
+                    ],
+                    if (adventure.conceptConflict.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.warning_amber, size: 12, color: AppTheme.warning),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              adventure.conceptConflict,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+            ],
+            if (adventure.campaignId != null) ...[
+              CampaignSummaryPanel(campaignId: adventure.campaignId!),
+              const Divider(height: 1),
+            ],
+            QuickReferencePanel(campaignId: adventure.campaignId),
+          ],
+        ),
       ),
     );
   }

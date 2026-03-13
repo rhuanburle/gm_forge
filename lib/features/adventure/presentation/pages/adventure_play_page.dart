@@ -28,13 +28,13 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initSelection();
+      _loadAndInit();
     });
   }
 
   @override
   void dispose() {
-    // Clear state when leaving the screen
+    // Persist state before leaving (don't clear — preserve for next session)
     try {
       ref.read(activeAdventureProvider.notifier).clear();
     } catch (_) {
@@ -43,7 +43,11 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
     super.dispose();
   }
 
-  void _initSelection() {
+  void _loadAndInit() {
+    // Load persisted state for this adventure
+    final notifier = ref.read(activeAdventureProvider.notifier);
+    notifier.loadForAdventure(widget.adventureId);
+
     final activeState = ref.read(activeAdventureProvider);
     if (activeState.currentLocationId != null) return;
 
@@ -53,9 +57,7 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
       final sortedPois = List<PointOfInterest>.from(pois)
         ..sort((a, b) => a.number.compareTo(b.number));
 
-      ref
-          .read(activeAdventureProvider.notifier)
-          .setLocation(sortedPois.first.id);
+      notifier.setLocation(sortedPois.first.id);
     }
   }
 

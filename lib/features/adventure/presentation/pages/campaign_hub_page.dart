@@ -22,8 +22,22 @@ class CampaignHubPage extends ConsumerStatefulWidget {
   ConsumerState<CampaignHubPage> createState() => _CampaignHubPageState();
 }
 
-class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
+class _CampaignHubPageState extends ConsumerState<CampaignHubPage>
+    with SingleTickerProviderStateMixin {
   String get campaignId => widget.campaignId;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   // ---------------------------------------------------------------------------
   // CRUD helpers
@@ -72,148 +86,178 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
         ),
         title: Text(campaign.name),
         actions: const [CloudSyncButton()],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Quick Stats
-            _buildQuickStats(
-              context,
-              adventureCount: adventures.length,
-              pcCount: pcs.length,
-              factionCount: factions.length,
-              loreCount: loreEntries.length,
-              quickRuleCount: quickRules.length,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: AppTheme.secondary,
+          unselectedLabelColor: AppTheme.textMuted,
+          indicatorColor: AppTheme.secondary,
+          isScrollable: true,
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.dashboard, size: 18),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Geral'),
+                  const SizedBox(width: 4),
+                  _badge(adventures.length),
+                ],
+              ),
             ),
-            const SizedBox(height: 24),
-
-            // Aventuras
-            _buildAdventuresSection(context, adventures),
-            const SizedBox(height: 24),
-
-            // Timeline de Sessões
-            _buildSessionTimelineSection(context),
-            const SizedBox(height: 24),
-
-            // Personagens (PCs)
-            _buildPcsSection(context, pcs),
-            const SizedBox(height: 24),
-
-            // Faccoes
-            _buildFactionsSection(context, factions),
-            const SizedBox(height: 24),
-
-            // Lore
-            _buildLoreSection(context, loreEntries),
-            const SizedBox(height: 24),
-
-            // Regioes
-            _buildRegionsSection(context, regions),
-            const SizedBox(height: 24),
-
-            // Notas
-            _buildNotesSection(context, notes),
-            const SizedBox(height: 24),
-
-            // Regras Rapidas
-            _buildQuickRulesSection(context, quickRules),
-            const SizedBox(height: 32),
+            Tab(
+              icon: const Icon(Icons.people, size: 18),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Personagens'),
+                  const SizedBox(width: 4),
+                  _badge(pcs.length + factions.length),
+                ],
+              ),
+            ),
+            Tab(
+              icon: const Icon(Icons.public, size: 18),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Mundo'),
+                  const SizedBox(width: 4),
+                  _badge(loreEntries.length + regions.length),
+                ],
+              ),
+            ),
+            Tab(
+              icon: const Icon(Icons.note_alt, size: 18),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Notas'),
+                  const SizedBox(width: 4),
+                  _badge(notes.length + quickRules.length),
+                ],
+              ),
+            ),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Tab 1: Visão Geral
+          _buildOverviewTab(context, campaign, adventures),
+          // Tab 2: Personagens & Facções
+          _buildCharactersTab(context, pcs, factions),
+          // Tab 3: Mundo (Lore + Regiões)
+          _buildWorldTab(context, loreEntries, regions),
+          // Tab 4: Notas & Regras
+          _buildNotesTab(context, notes, quickRules),
+        ],
+      ),
+    );
+  }
+
+  Widget _badge(int count) {
+    if (count == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: AppTheme.secondary.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
   }
 
   // ---------------------------------------------------------------------------
-  // Quick Stats Row
+  // Tab 1: Visão Geral
   // ---------------------------------------------------------------------------
 
-  Widget _buildQuickStats(
-    BuildContext context, {
-    required int adventureCount,
-    required int pcCount,
-    required int factionCount,
-    required int loreCount,
-    required int quickRuleCount,
-  }) {
-    final isCompact = screenSizeOf(context) == ScreenSize.compact;
-    final cards = [
-      _statCard(context, Icons.map, 'Aventuras', adventureCount,
-          AppTheme.primary),
-      _statCard(context, Icons.person, 'PCs', pcCount,
-          AppTheme.secondary),
-      _statCard(context, Icons.groups, 'Faccoes', factionCount,
-          AppTheme.accent),
-      _statCard(context, Icons.auto_stories, 'Lore', loreCount,
-          AppTheme.info),
-      _statCard(context, Icons.gavel, 'Regras', quickRuleCount,
-          AppTheme.warning),
-    ];
-
-    if (isCompact) {
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: cards,
-      );
-    }
-
-    return Row(
+  Widget _buildOverviewTab(
+    BuildContext context,
+    Campaign campaign,
+    List<Adventure> adventures,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
-        for (int i = 0; i < cards.length; i++) ...[
-          Expanded(child: cards[i]),
-          if (i < cards.length - 1) const SizedBox(width: 8),
+        if (campaign.description.isNotEmpty) ...[
+          Text(
+            campaign.description,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: AppTheme.textMuted,
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
+        _buildAdventuresSection(context, adventures),
+        const SizedBox(height: 24),
+        _buildSessionTimelineSection(context),
       ],
     );
   }
 
-  Widget _statCard(
-    BuildContext context,
-    IconData icon,
-    String label,
-    int count,
-    Color color,
-  ) {
-    final isCompact = screenSizeOf(context) == ScreenSize.compact;
-    final width = isCompact
-        ? (MediaQuery.sizeOf(context).width - 48) / 2
-        : null;
+  // ---------------------------------------------------------------------------
+  // Tab 2: Personagens & Facções
+  // ---------------------------------------------------------------------------
 
-    return SizedBox(
-      width: isCompact ? width : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 4),
-            Text(
-              count.toString(),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: color,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+  Widget _buildCharactersTab(
+    BuildContext context,
+    List<PlayerCharacter> pcs,
+    List<Faction> factions,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      children: [
+        _buildPcsSection(context, pcs),
+        const SizedBox(height: 24),
+        _buildFactionsSection(context, factions),
+      ],
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Tab 3: Mundo
+  // ---------------------------------------------------------------------------
+
+  Widget _buildWorldTab(
+    BuildContext context,
+    List<LoreEntry> loreEntries,
+    List<Region> regions,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      children: [
+        _buildLoreSection(context, loreEntries),
+        const SizedBox(height: 24),
+        _buildRegionsSection(context, regions),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tab 4: Notas & Regras
+  // ---------------------------------------------------------------------------
+
+  Widget _buildNotesTab(
+    BuildContext context,
+    List<Note> notes,
+    List<QuickRule> quickRules,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      children: [
+        _buildNotesSection(context, notes),
+        const SizedBox(height: 24),
+        _buildQuickRulesSection(context, quickRules),
+      ],
+    );
+  }
+
+  // Quick Stats row removed — counts now shown as badges in tab headers
 
   // ---------------------------------------------------------------------------
   // Section header
@@ -293,23 +337,20 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
           context,
           icon: Icons.map,
           title: 'Aventuras',
-          onAdd: () {
-            // Navigate to adventure creation – for now just push to root
-            context.push('/');
-          },
+          onAdd: () => _showAddAdventureDialog(context),
         ),
         if (adventures.isEmpty)
           _emptyState(context, 'Nenhuma aventura vinculada a esta campanha.')
         else
           SizedBox(
-            height: 180, // Increased slightly to accommodate scrollbar
+            height: 180,
             child: Scrollbar(
               controller: scrollController,
               thumbVisibility: true,
               child: ListView.separated(
                 controller: scrollController,
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(bottom: 16), // space for scrollbar
+                padding: const EdgeInsets.only(bottom: 16),
                 itemCount: adventures.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) {
@@ -323,6 +364,129 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
             ),
           ),
       ],
+    );
+  }
+
+  void _showAddAdventureDialog(BuildContext context) {
+    final allAdventures = ref.read(adventuresProvider);
+    final campaign = ref.read(campaignProvider(campaignId));
+    if (campaign == null) return;
+
+    // Filter adventures not yet linked to this campaign
+    final unlinked = allAdventures
+        .where((a) => a.campaignId == null || a.campaignId != campaignId)
+        .toList();
+
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Adicionar Aventura'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Option 1: Link existing
+              if (unlinked.isNotEmpty) ...[
+                const Text(
+                  'Vincular aventura existente:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...unlinked.take(5).map((adventure) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.map, size: 18),
+                  title: Text(adventure.name, style: const TextStyle(fontSize: 13)),
+                  subtitle: adventure.description.isNotEmpty
+                      ? Text(
+                          adventure.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11),
+                        )
+                      : null,
+                  onTap: () async {
+                    final db = ref.read(hiveDatabaseProvider);
+                    final updated = adventure.copyWith(campaignId: campaignId);
+                    await db.saveAdventure(updated);
+                    ref.invalidate(campaignListProvider);
+                    ref.invalidate(adventureListProvider);
+                    _markUnsynced();
+                    if (ctx.mounted) Navigator.of(ctx).pop();
+                  },
+                )),
+                if (unlinked.length > 5)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '+${unlinked.length - 5} mais...',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                    ),
+                  ),
+                const Divider(height: 24),
+              ],
+              // Option 2: Create new
+              const Text(
+                'Ou criar nova aventura:',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Nome da Aventura *'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(labelText: 'Descrição'),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+
+              final adventure = await ref
+                  .read(adventureListProvider.notifier)
+                  .create(
+                    name: name,
+                    description: descCtrl.text.trim(),
+                    conceptWhat: '',
+                    conceptConflict: '',
+                    campaignId: campaignId,
+                  );
+
+              ref.invalidate(campaignListProvider);
+              _markUnsynced();
+              if (ctx.mounted) {
+                Navigator.of(ctx).pop();
+                context.push('/adventure/${adventure.id}');
+              }
+            },
+            child: const Text('Criar Aventura'),
+          ),
+        ],
+      ),
     );
   }
 

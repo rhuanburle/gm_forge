@@ -19,6 +19,7 @@ class Adventure {
   final String? nextAdventureHint;
   final String? dungeonMapPath;
   final String? sessionNotes;
+  final Map<String, String> locationNotes;
 
   const Adventure({
     required this.id,
@@ -35,6 +36,7 @@ class Adventure {
     this.nextAdventureHint,
     this.dungeonMapPath,
     this.sessionNotes,
+    this.locationNotes = const {},
   });
 
   factory Adventure.create({
@@ -47,6 +49,7 @@ class Adventure {
     String? nextAdventureHint,
     String? dungeonMapPath,
     String? sessionNotes,
+    Map<String, String> locationNotes = const {},
   }) {
     return Adventure(
       id: const Uuid().v4(),
@@ -61,6 +64,7 @@ class Adventure {
       nextAdventureHint: nextAdventureHint,
       dungeonMapPath: dungeonMapPath,
       sessionNotes: sessionNotes,
+      locationNotes: locationNotes,
     );
   }
 
@@ -79,6 +83,7 @@ class Adventure {
     'nextAdventureHint': nextAdventureHint,
     'dungeonMapPath': dungeonMapPath,
     'sessionNotes': sessionNotes,
+    'locationNotes': locationNotes,
   };
 
   factory Adventure.fromJson(Map<String, dynamic> json) => Adventure(
@@ -98,6 +103,7 @@ class Adventure {
     nextAdventureHint: json['nextAdventureHint'] as String?,
     dungeonMapPath: json['dungeonMapPath'] as String?,
     sessionNotes: json['sessionNotes'] as String?,
+    locationNotes: (json['locationNotes'] as Map<dynamic, dynamic>?)?.cast<String, String>() ?? const {},
   );
 
   Adventure copyWith({
@@ -113,6 +119,7 @@ class Adventure {
     String? nextAdventureHint,
     String? dungeonMapPath,
     String? sessionNotes,
+    Map<String, String>? locationNotes,
     DateTime? updatedAt,
   }) => Adventure(
     id: id,
@@ -130,5 +137,6 @@ class Adventure {
     nextAdventureHint: nextAdventureHint ?? this.nextAdventureHint,
     dungeonMapPath: dungeonMapPath ?? this.dungeonMapPath,
     sessionNotes: sessionNotes ?? this.sessionNotes,
+    locationNotes: locationNotes ?? this.locationNotes,
   );
 }

@@ -62,29 +62,8 @@ class HiveDatabase {
       final currentVersion =
           '${packageInfo.version}+${packageInfo.buildNumber}';
       final settingsBox = Hive.box<dynamic>(_settingsBox);
-      final storedVersion = settingsBox.get('appVersion') as String?;
 
-      if (storedVersion != null && storedVersion != currentVersion) {
-        await Hive.box<Map>(_adventuresBox).clear();
-        await Hive.box<Map>(_legendsBox).clear();
-        await Hive.box<Map>(_poisBox).clear();
-        await Hive.box<Map>(_eventsBox).clear();
-        await Hive.box<Map>(_creaturesBox).clear();
-        await Hive.box<Map>(_campaignsBox).clear();
-        await Hive.box<Map>(_locationsBox).clear();
-        await Hive.box<Map>(_factsBox).clear();
-        await Hive.box<Map>(_sessionEntriesBox).clear();
-        await Hive.box<Map>(_factionsBox).clear();
-        await Hive.box<Map>(_playerCharactersBox).clear();
-        await Hive.box<Map>(_itemsBox).clear();
-        await Hive.box<Map>(_loreEntriesBox).clear();
-        await Hive.box<Map>(_questsBox).clear();
-        await Hive.box<Map>(_sessionsBox).clear();
-        await Hive.box<Map>(_notesBox).clear();
-        await Hive.box<Map>(_regionsBox).clear();
-        await Hive.box<Map>(_quickRulesBox).clear();
-      }
-
+      // Track version without destroying data — migrations handle schema changes
       await settingsBox.put('appVersion', currentVersion);
     } catch (_) {
       // Version check is best-effort; never block app startup

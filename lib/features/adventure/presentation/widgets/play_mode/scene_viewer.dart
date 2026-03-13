@@ -6,7 +6,9 @@ import '../../../application/active_adventure_state.dart';
 import '../../../domain/domain.dart';
 import 'editable_smart_text.dart';
 import 'creature_detail_dialog.dart';
+import 'scene_lenses.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
+import '../../../../../../core/sync/unsynced_changes_provider.dart';
 
 class SceneViewer extends ConsumerWidget {
   final String adventureId;
@@ -82,6 +84,13 @@ class SceneViewer extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Scene Lens Selector
+          LensSelector(
+            currentLens: activeState.currentLens,
+            onLensChanged: (lens) {
+              ref.read(activeAdventureProvider.notifier).setLens(lens);
+            },
+          ),
           if (parentLocation != null) ...[
             Container(
               width: double.infinity,
@@ -268,7 +277,10 @@ class SceneViewer extends ConsumerWidget {
 
           // GM Notes (session-scoped)
           const SizedBox(height: 24),
-          _LocationNotesSection(locationId: location.id),
+          _LocationNotesSection(
+            locationId: location.id,
+            adventureId: adventureId,
+          ),
 
           if (location.connections.isNotEmpty) ...[
             const SizedBox(height: 32),
@@ -628,7 +640,11 @@ class _FactList extends ConsumerWidget {
 
 class _LocationNotesSection extends ConsumerStatefulWidget {
   final String locationId;
-  const _LocationNotesSection({required this.locationId});
+  final String adventureId;
+  const _LocationNotesSection({
+    required this.locationId,
+    required this.adventureId,
+  });
 
   @override
   ConsumerState<_LocationNotesSection> createState() => _LocationNotesSectionState();
@@ -641,7 +657,8 @@ class _LocationNotesSectionState extends ConsumerState<_LocationNotesSection> {
   @override
   void initState() {
     super.initState();
-    final notes = ref.read(activeAdventureProvider).locationNotes[widget.locationId] ?? '';
+    final adventure = ref.read(adventureProvider(widget.adventureId));
+    final notes = adventure?.locationNotes[widget.locationId] ?? '';
     _controller = TextEditingController(text: notes);
     _isExpanded = notes.isNotEmpty;
   }
@@ -650,10 +667,28 @@ class _LocationNotesSectionState extends ConsumerState<_LocationNotesSection> {
   void didUpdateWidget(_LocationNotesSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.locationId != widget.locationId) {
-      final notes = ref.read(activeAdventureProvider).locationNotes[widget.locationId] ?? '';
+      final adventure = ref.read(adventureProvider(widget.adventureId));
+      final notes = adventure?.locationNotes[widget.locationId] ?? '';
       _controller.text = notes;
       _isExpanded = notes.isNotEmpty;
     }
+  }
+
+  Future<void> _saveNote(String value) async {
+    final adventure = ref.read(adventureProvider(widget.adventureId));
+    if (adventure == null) return;
+
+    final newNotes = Map<String, String>.from(adventure.locationNotes);
+    if (value.trim().isEmpty) {
+      newNotes.remove(widget.locationId);
+    } else {
+      newNotes[widget.locationId] = value;
+    }
+
+    final updated = adventure.copyWith(locationNotes: newNotes);
+    await ref.read(hiveDatabaseProvider).saveAdventure(updated);
+    ref.invalidate(adventureProvider(widget.adventureId));
+    ref.read(unsyncedChangesProvider.notifier).state = true;
   }
 
   @override
@@ -715,9 +750,7 @@ class _LocationNotesSectionState extends ConsumerState<_LocationNotesSection> {
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(12),
               ),
-              onChanged: (val) {
-                ref.read(activeAdventureProvider.notifier).updateLocationNote(widget.locationId, val);
-              },
+              onChanged: _saveNote,
             ),
           ),
         ],
