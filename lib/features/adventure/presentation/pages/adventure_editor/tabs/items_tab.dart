@@ -141,6 +141,8 @@ class ItemsTab extends ConsumerWidget {
                           },
                           child: _ItemListItem(
                             item: item,
+                            ref: ref,
+                            adventureId: adventureId,
                             rarityColor: _rarityColor(item.rarity),
                             typeIcon: _typeIcon(item.type),
                             onEdit: () => _showItemDialog(
@@ -228,6 +230,7 @@ class ItemsTab extends ConsumerWidget {
 
     ItemType selectedType = itemToEdit?.type ?? ItemType.misc;
     ItemRarity selectedRarity = itemToEdit?.rarity ?? ItemRarity.common;
+    String? adventureIdForCreation = itemToEdit?.adventureId ?? adventureId;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -326,6 +329,22 @@ class ItemsTab extends ConsumerWidget {
                     ),
                     maxLines: 3,
                   ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  SwitchListTile(
+                    title: const Text("Disponível em toda a Campanha?"),
+                    subtitle: const Text("Itens globais aparecem em todas as aventuras."),
+                    value: adventureIdForCreation == null,
+                    onChanged: (bool value) {
+                      setState(() {
+                        adventureIdForCreation = value ? null : adventureId;
+                      });
+                    },
+                    secondary: Icon(
+                      adventureIdForCreation == null ? Icons.public : Icons.push_pin,
+                      color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                    ),
+                  ),
                   ],
                 ),
               ),
@@ -348,6 +367,8 @@ class ItemsTab extends ConsumerWidget {
                       type: selectedType,
                       rarity: selectedRarity,
                       mechanics: mechanicsController.text,
+                      adventureId: adventureIdForCreation,
+                      clearAdventureId: adventureIdForCreation == null,
                     );
                     await db.saveItem(updatedItem);
 
@@ -369,8 +390,12 @@ class ItemsTab extends ConsumerWidget {
                           ),
                         );
                   } else {
+                    final adv = db.getAdventure(adventureId);
+                    final campaignId = adv?.campaignId ?? adventureId;
+
                     final item = Item.create(
-                      adventureId: adventureId,
+                      campaignId: campaignId,
+                      adventureId: adventureIdForCreation,
                       name: nameController.text,
                       description: descController.text,
                       type: selectedType,
@@ -413,6 +438,8 @@ class ItemsTab extends ConsumerWidget {
 
 class _ItemListItem extends StatelessWidget {
   final Item item;
+  final WidgetRef ref;
+  final String adventureId;
   final Color rarityColor;
   final IconData typeIcon;
   final VoidCallback onEdit;
@@ -420,6 +447,8 @@ class _ItemListItem extends StatelessWidget {
 
   const _ItemListItem({
     required this.item,
+    required this.ref,
+    required this.adventureId,
     required this.rarityColor,
     required this.typeIcon,
     required this.onEdit,
@@ -447,12 +476,58 @@ class _ItemListItem extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        item.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (item.adventureId == null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppTheme.primary.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: const Text(
+                                "CAMPANHA",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.textMuted.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                "LOCAL",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       if (item.description.isNotEmpty)
                         Text(
@@ -467,6 +542,32 @@ class _ItemListItem extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (item.adventureId != null)
+                  IconButton(
+                    icon: const Icon(Icons.drive_file_move_outlined),
+                    tooltip: "Promover para Campanha",
+                    onPressed: () async {
+                      final db = ref.read(hiveDatabaseProvider);
+                      final promoted = item.copyWith(clearAdventureId: true);
+                      await db.saveItem(promoted);
+
+                      ref.read(historyProvider.notifier).recordAction(
+                        HistoryAction(
+                          description: "Item promovido para Campanha",
+                          onUndo: () async {
+                            await db.saveItem(item);
+                            ref.invalidate(itemsProvider(adventureId));
+                          },
+                          onRedo: () async {
+                            await db.saveItem(promoted);
+                            ref.invalidate(itemsProvider(adventureId));
+                          },
+                        ),
+                      );
+
+                      ref.invalidate(itemsProvider(adventureId));
+                    },
+                  ),
                 IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: onEdit,

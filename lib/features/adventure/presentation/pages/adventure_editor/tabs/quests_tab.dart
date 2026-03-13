@@ -136,6 +136,7 @@ class QuestsTab extends ConsumerWidget {
                           child: _QuestListItem(
                             quest: quest,
                             adventureId: adventureId,
+                            ref: ref,
                             statusColor: _statusColor(quest.status),
                             statusIcon: _statusIcon(quest.status),
                             onEdit: () => _showQuestDialog(
@@ -254,6 +255,7 @@ class QuestsTab extends ConsumerWidget {
 
     QuestStatus selectedStatus =
         questToEdit?.status ?? QuestStatus.notStarted;
+    String? adventureIdForCreation = questToEdit?.adventureId ?? adventureId;
     List<QuestObjective> objectives =
         List.from(questToEdit?.objectives ?? []);
     final formKey = GlobalKey<FormState>();
@@ -408,6 +410,22 @@ class QuestsTab extends ConsumerWidget {
                       ),
                     );
                   }),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  SwitchListTile(
+                    title: const Text("Disponível em toda a Campanha?"),
+                    subtitle: const Text("Missões globais aparecem em todas as aventuras."),
+                    value: adventureIdForCreation == null,
+                    onChanged: (bool value) {
+                      setState(() {
+                        adventureIdForCreation = value ? null : adventureId;
+                      });
+                    },
+                    secondary: Icon(
+                      adventureIdForCreation == null ? Icons.public : Icons.push_pin,
+                      color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                    ),
+                  ),
                   ],
                 ),
               ),
@@ -430,6 +448,8 @@ class QuestsTab extends ConsumerWidget {
                       status: selectedStatus,
                       rewardDescription: rewardController.text,
                       objectives: objectives,
+                      adventureId: adventureIdForCreation,
+                      clearAdventureId: adventureIdForCreation == null,
                     );
                     await db.saveQuest(updatedQuest);
 
@@ -451,8 +471,12 @@ class QuestsTab extends ConsumerWidget {
                           ),
                         );
                   } else {
+                    final adv = db.getAdventure(adventureId);
+                    final campaignId = adv?.campaignId ?? adventureId;
+
                     final quest = Quest.create(
-                      adventureId: adventureId,
+                      campaignId: campaignId,
+                      adventureId: adventureIdForCreation,
                       name: nameController.text,
                       description: descController.text,
                       status: selectedStatus,
@@ -496,6 +520,7 @@ class QuestsTab extends ConsumerWidget {
 class _QuestListItem extends StatelessWidget {
   final Quest quest;
   final String adventureId;
+  final WidgetRef ref;
   final Color statusColor;
   final IconData statusIcon;
   final VoidCallback onEdit;
@@ -505,6 +530,7 @@ class _QuestListItem extends StatelessWidget {
   const _QuestListItem({
     required this.quest,
     required this.adventureId,
+    required this.ref,
     required this.statusColor,
     required this.statusIcon,
     required this.onEdit,
@@ -550,12 +576,58 @@ class _QuestListItem extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        quest.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            quest.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (quest.adventureId == null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppTheme.primary.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: const Text(
+                                "CAMPANHA",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.textMuted.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                "LOCAL",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       if (quest.description.isNotEmpty)
                         Text(
@@ -570,6 +642,32 @@ class _QuestListItem extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (quest.adventureId != null)
+                  IconButton(
+                    icon: const Icon(Icons.drive_file_move_outlined),
+                    tooltip: "Promover para Campanha",
+                    onPressed: () async {
+                      final db = ref.read(hiveDatabaseProvider);
+                      final promoted = quest.copyWith(clearAdventureId: true);
+                      await db.saveQuest(promoted);
+
+                      ref.read(historyProvider.notifier).recordAction(
+                        HistoryAction(
+                          description: "Missão promovida para Campanha",
+                          onUndo: () async {
+                            await db.saveQuest(quest);
+                            ref.invalidate(questsProvider(adventureId));
+                          },
+                          onRedo: () async {
+                            await db.saveQuest(promoted);
+                            ref.invalidate(questsProvider(adventureId));
+                          },
+                        ),
+                      );
+
+                      ref.invalidate(questsProvider(adventureId));
+                    },
+                  ),
                 IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: onEdit,

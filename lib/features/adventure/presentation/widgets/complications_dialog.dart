@@ -225,7 +225,11 @@ class _ComplicationsDialogState extends ConsumerState<ComplicationsDialog> {
 
   Future<void> _saveAsEvent(_ComplicationSection section) async {
     final db = ref.read(hiveDatabaseProvider);
+    final adv = db.getAdventure(widget.adventureId);
+    final campaignId = adv?.campaignId ?? widget.adventureId;
+
     final event = RandomEvent.create(
+      campaignId: campaignId,
       adventureId: widget.adventureId,
       diceRange: "—",
       eventType: EventType.environment,
@@ -242,7 +246,11 @@ class _ComplicationsDialogState extends ConsumerState<ComplicationsDialog> {
 
   Future<void> _saveAsLegend(_ComplicationSection section) async {
     final db = ref.read(hiveDatabaseProvider);
+    final adv = db.getAdventure(widget.adventureId);
+    final campaignId = adv?.campaignId ?? widget.adventureId;
+
     final legend = Legend.create(
+      campaignId: campaignId,
       adventureId: widget.adventureId,
       text: "${section.title}\n${section.body}",
       isTrue: true,

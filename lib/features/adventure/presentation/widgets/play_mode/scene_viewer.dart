@@ -5,6 +5,7 @@ import '../../../application/adventure_providers.dart';
 import '../../../application/active_adventure_state.dart';
 import '../../../domain/domain.dart';
 import 'editable_smart_text.dart';
+import 'creature_detail_dialog.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
 
 class SceneViewer extends ConsumerWidget {
@@ -47,14 +48,20 @@ class SceneViewer extends ConsumerWidget {
 
     final location = pois.firstWhere(
       (p) => p.id == activeState.currentLocationId,
-      orElse: () => PointOfInterest.create(
-        adventureId: adventureId,
-        number: 0,
-        name: 'Local Desconhecido',
-        firstImpression: '',
-        obvious: '',
-        detail: '',
-      ),
+      orElse: () {
+        final db = ref.read(hiveDatabaseProvider);
+        final adv = db.getAdventure(adventureId);
+        final campaignId = adv?.campaignId ?? adventureId;
+        return PointOfInterest.create(
+          campaignId: campaignId,
+          adventureId: adventureId,
+          number: 0,
+          name: 'Local Desconhecido',
+          firstImpression: '',
+          obvious: '',
+          detail: '',
+        );
+      },
     );
 
     if (location.number == 0) {
@@ -259,6 +266,10 @@ class SceneViewer extends ConsumerWidget {
             ),
           ],
 
+          // GM Notes (session-scoped)
+          const SizedBox(height: 24),
+          _LocationNotesSection(locationId: location.id),
+
           if (location.connections.isNotEmpty) ...[
             const SizedBox(height: 32),
             const Divider(),
@@ -270,14 +281,20 @@ class SceneViewer extends ConsumerWidget {
               children: location.connections.map((connNumber) {
                 final target = pois.firstWhere(
                   (p) => p.number == connNumber,
-                  orElse: () => PointOfInterest.create(
-                    adventureId: adventureId,
-                    number: connNumber,
-                    name: 'Desconhecido',
-                    firstImpression: '',
-                    obvious: '',
-                    detail: '',
-                  ),
+                  orElse: () {
+                    final db = ref.read(hiveDatabaseProvider);
+                    final adv = db.getAdventure(adventureId);
+                    final campaignId = adv?.campaignId ?? adventureId;
+                    return PointOfInterest.create(
+                      campaignId: campaignId,
+                      adventureId: adventureId,
+                      number: connNumber,
+                      name: 'Desconhecido',
+                      firstImpression: '',
+                      obvious: '',
+                      detail: '',
+                    );
+                  },
                 );
                 return ActionChip(
                   avatar: CircleAvatar(
@@ -357,7 +374,13 @@ class _CreatureList extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Column(
+                      child: GestureDetector(
+                        onTap: () => CreatureDetailDialog.show(
+                          context,
+                          creature: creature,
+                          adventureId: adventureId,
+                        ),
+                        child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -365,6 +388,8 @@ class _CreatureList extends ConsumerWidget {
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
+                              decoration: TextDecoration.underline,
+                              decorationStyle: TextDecorationStyle.dotted,
                             ),
                           ),
                           Text(
@@ -377,6 +402,7 @@ class _CreatureList extends ConsumerWidget {
                             ),
                           ),
                         ],
+                      ),
                       ),
                     ),
                     Row(
@@ -496,6 +522,7 @@ class _FactList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final allFacts = ref.watch(factsProvider(adventureId));
+    final activeState = ref.watch(activeAdventureProvider);
     final relatedFacts = allFacts.where((f) => f.sourceId == sourceId).toList();
 
     if (relatedFacts.isEmpty) return const SizedBox.shrink();
@@ -524,25 +551,177 @@ class _FactList extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: relatedFacts.map((fact) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.3),
+          ...relatedFacts.map((fact) {
+            final isRevealed = activeState.revealedFacts.contains(fact.id);
+            final isSecret = fact.isSecret;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: InkWell(
+                onTap: () {
+                  ref.read(activeAdventureProvider.notifier).toggleFactRevealed(fact.id);
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isRevealed
+                        ? AppTheme.success.withValues(alpha: 0.1)
+                        : isSecret
+                            ? AppTheme.combat.withValues(alpha: 0.1)
+                            : AppTheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: isRevealed
+                          ? AppTheme.success.withValues(alpha: 0.4)
+                          : isSecret
+                              ? AppTheme.combat.withValues(alpha: 0.3)
+                              : AppTheme.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        isRevealed
+                            ? Icons.visibility
+                            : isSecret
+                                ? Icons.lock
+                                : Icons.lightbulb_outline,
+                        size: 14,
+                        color: isRevealed
+                            ? AppTheme.success
+                            : isSecret
+                                ? AppTheme.combat
+                                : AppTheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          fact.content,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      Tooltip(
+                        message: isRevealed ? 'Revelado aos jogadores' : 'Clique para marcar como revelado',
+                        child: Icon(
+                          isRevealed ? Icons.check_circle : Icons.circle_outlined,
+                          size: 14,
+                          color: isRevealed ? AppTheme.success : AppTheme.textMuted.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Text(fact.content, style: const TextStyle(fontSize: 12)),
-              );
-            }).toList(),
-          ),
+              ),
+            );
+          }),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Location notes (session-scoped sticky notes for GM)
+// ---------------------------------------------------------------------------
+
+class _LocationNotesSection extends ConsumerStatefulWidget {
+  final String locationId;
+  const _LocationNotesSection({required this.locationId});
+
+  @override
+  ConsumerState<_LocationNotesSection> createState() => _LocationNotesSectionState();
+}
+
+class _LocationNotesSectionState extends ConsumerState<_LocationNotesSection> {
+  late TextEditingController _controller;
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final notes = ref.read(activeAdventureProvider).locationNotes[widget.locationId] ?? '';
+    _controller = TextEditingController(text: notes);
+    _isExpanded = notes.isNotEmpty;
+  }
+
+  @override
+  void didUpdateWidget(_LocationNotesSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.locationId != widget.locationId) {
+      final notes = ref.read(activeAdventureProvider).locationNotes[widget.locationId] ?? '';
+      _controller.text = notes;
+      _isExpanded = notes.isNotEmpty;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeState = ref.watch(activeAdventureProvider);
+    final hasNotes = (activeState.locationNotes[widget.locationId] ?? '').isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
+          borderRadius: BorderRadius.circular(4),
+          child: Row(
+            children: [
+              Icon(
+                Icons.sticky_note_2,
+                size: 20,
+                color: hasNotes ? AppTheme.warning : AppTheme.textMuted,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Notas do Mestre',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: hasNotes ? AppTheme.warning : AppTheme.textMuted,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                _isExpanded ? Icons.expand_less : Icons.expand_more,
+                size: 20,
+                color: AppTheme.textMuted,
+              ),
+            ],
+          ),
+        ),
+        if (_isExpanded) ...[
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.warning.withValues(alpha: 0.2)),
+            ),
+            child: TextField(
+              controller: _controller,
+              maxLines: 4,
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Anotações rápidas sobre este local...',
+                hintStyle: TextStyle(fontSize: 12, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(12),
+              ),
+              onChanged: (val) {
+                ref.read(activeAdventureProvider.notifier).updateLocationNote(widget.locationId, val);
+              },
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -2,7 +2,8 @@ import 'package:uuid/uuid.dart';
 
 class Legend {
   final String id;
-  final String adventureId;
+  final String campaignId;
+  final String? adventureId;
   final String text;
   final bool isTrue;
   final String? source;
@@ -12,7 +13,8 @@ class Legend {
 
   const Legend({
     required this.id,
-    required this.adventureId,
+    required this.campaignId,
+    this.adventureId,
     required this.text,
     required this.isTrue,
     this.source,
@@ -22,7 +24,8 @@ class Legend {
   });
 
   factory Legend.create({
-    required String adventureId,
+    required String campaignId,
+    String? adventureId,
     required String text,
     required bool isTrue,
     String? source,
@@ -32,6 +35,7 @@ class Legend {
   }) {
     return Legend(
       id: const Uuid().v4(),
+      campaignId: campaignId,
       adventureId: adventureId,
       text: text,
       isTrue: isTrue,
@@ -44,6 +48,7 @@ class Legend {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'campaignId': campaignId,
     'adventureId': adventureId,
     'text': text,
     'isTrue': isTrue,
@@ -55,7 +60,8 @@ class Legend {
 
   factory Legend.fromJson(Map<String, dynamic> json) => Legend(
     id: json['id'] as String,
-    adventureId: json['adventureId'] as String,
+    campaignId: json['campaignId'] as String? ?? json['adventureId'] as String,
+    adventureId: json['adventureId'] as String?,
     text: json['text'] as String,
     isTrue: json['isTrue'] as bool,
     source: json['source'] as String?,
@@ -71,10 +77,14 @@ class Legend {
     String? diceResult,
     String? relatedCreatureId,
     String? relatedLocationId,
+    String? adventureId,
+    bool clearAdventureId = false,
   }) {
     return Legend(
       id: id,
-      adventureId: adventureId,
+      campaignId: campaignId,
+      adventureId:
+          clearAdventureId ? null : (adventureId ?? this.adventureId),
       text: text ?? this.text,
       isTrue: isTrue ?? this.isTrue,
       source: source ?? this.source,

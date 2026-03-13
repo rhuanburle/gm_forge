@@ -6,6 +6,7 @@ import '../../../application/adventure_providers.dart';
 import '../../../application/active_adventure_state.dart';
 import '../../../domain/domain.dart';
 import 'detail_row.dart';
+import 'creature_detail_dialog.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 
 class LocationNavigator extends ConsumerStatefulWidget {
@@ -518,67 +519,10 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
     WidgetRef ref,
     Creature creature,
   ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              creature.type == CreatureType.npc ? Icons.person : Icons.pets,
-              color: creature.type == CreatureType.npc
-                  ? AppTheme.npc
-                  : AppTheme.accent,
-            ),
-            const SizedBox(width: 8),
-            Text(creature.name),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (creature.description.isNotEmpty) ...[
-                Text(
-                  creature.description,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-                ),
-                const SizedBox(height: 16),
-              ],
-              DetailRow('Motivação', creature.motivation),
-              const SizedBox(height: 8),
-              DetailRow('Ao Perder', creature.losingBehavior),
-              if (creature.stats.isNotEmpty) ...[
-                const Divider(),
-                const Text(
-                  'Ficha',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  color: AppTheme.overlay(context),
-                  child: Text(
-                    creature.stats,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
-        ],
-      ),
+    CreatureDetailDialog.show(
+      context,
+      creature: creature,
+      adventureId: widget.adventureId,
     );
   }
 
@@ -958,103 +902,11 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
   void _showQuestDetails(BuildContext context, Quest quest) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              _questStatusIcon(quest.status),
-              color: _questStatusColor(quest.status),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Text(quest.name)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _questStatusColor(
-                    quest.status,
-                  ).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: _questStatusColor(
-                      quest.status,
-                    ).withValues(alpha: 0.4),
-                  ),
-                ),
-                child: Text(
-                  quest.status.displayName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: _questStatusColor(quest.status),
-                  ),
-                ),
-              ),
-              if (quest.description.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  quest.description,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-                ),
-              ],
-              if (quest.objectives.isNotEmpty) ...[
-                const Divider(),
-                const Text(
-                  'Objetivos',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                ...quest.objectives.map(
-                  (o) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          o.isComplete
-                              ? Icons.check_box
-                              : Icons.check_box_outline_blank,
-                          size: 18,
-                          color: o.isComplete
-                              ? AppTheme.success
-                              : AppTheme.textMuted,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            o.text,
-                            style: TextStyle(
-                              decoration: o.isComplete
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              if (quest.rewardDescription.isNotEmpty) ...[
-                const Divider(),
-                DetailRow('Recompensa', quest.rewardDescription),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
-        ],
+      builder: (dialogContext) => _QuestDetailDialog(
+        quest: quest,
+        adventureId: widget.adventureId,
+        questStatusIcon: _questStatusIcon,
+        questStatusColor: _questStatusColor,
       ),
     );
   }
@@ -1116,6 +968,173 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
       onTap: () {
         ref.read(activeAdventureProvider.notifier).setLocation(poi.id);
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Quest detail dialog with toggleable objectives and status
+// ---------------------------------------------------------------------------
+
+class _QuestDetailDialog extends ConsumerStatefulWidget {
+  final Quest quest;
+  final String adventureId;
+  final IconData Function(QuestStatus) questStatusIcon;
+  final Color Function(QuestStatus) questStatusColor;
+
+  const _QuestDetailDialog({
+    required this.quest,
+    required this.adventureId,
+    required this.questStatusIcon,
+    required this.questStatusColor,
+  });
+
+  @override
+  ConsumerState<_QuestDetailDialog> createState() => _QuestDetailDialogState();
+}
+
+class _QuestDetailDialogState extends ConsumerState<_QuestDetailDialog> {
+  late Quest _quest;
+
+  @override
+  void initState() {
+    super.initState();
+    _quest = widget.quest;
+  }
+
+  Future<void> _saveQuest(Quest updated) async {
+    final db = ref.read(hiveDatabaseProvider);
+    await db.saveQuest(updated);
+    ref.invalidate(questsProvider(widget.adventureId));
+    ref.read(unsyncedChangesProvider.notifier).state = true;
+    setState(() => _quest = updated);
+  }
+
+  void _toggleObjective(int index) {
+    final objectives = List<QuestObjective>.from(_quest.objectives);
+    objectives[index] = QuestObjective(
+      text: objectives[index].text,
+      isComplete: !objectives[index].isComplete,
+    );
+    _saveQuest(_quest.copyWith(objectives: objectives));
+  }
+
+  void _cycleStatus() {
+    final statuses = QuestStatus.values;
+    final nextIndex = (statuses.indexOf(_quest.status) + 1) % statuses.length;
+    _saveQuest(_quest.copyWith(status: statuses[nextIndex]));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            widget.questStatusIcon(_quest.status),
+            color: widget.questStatusColor(_quest.status),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(_quest.name)),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Tappable status badge
+            InkWell(
+              onTap: _cycleStatus,
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: widget.questStatusColor(_quest.status).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: widget.questStatusColor(_quest.status).withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _quest.status.displayName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: widget.questStatusColor(_quest.status),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.swap_horiz,
+                      size: 14,
+                      color: widget.questStatusColor(_quest.status),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_quest.description.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                _quest.description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+            if (_quest.objectives.isNotEmpty) ...[
+              const Divider(),
+              const Text(
+                'Objetivos',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              ...List.generate(_quest.objectives.length, (i) {
+                final o = _quest.objectives[i];
+                return InkWell(
+                  onTap: () => _toggleObjective(i),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          o.isComplete ? Icons.check_box : Icons.check_box_outline_blank,
+                          size: 18,
+                          color: o.isComplete ? AppTheme.success : AppTheme.textMuted,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            o.text,
+                            style: TextStyle(
+                              decoration: o.isComplete ? TextDecoration.lineThrough : null,
+                              color: o.isComplete ? AppTheme.textMuted : null,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+            if (_quest.rewardDescription.isNotEmpty) ...[
+              const Divider(),
+              DetailRow('Recompensa', _quest.rewardDescription),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Fechar'),
+        ),
+      ],
     );
   }
 }

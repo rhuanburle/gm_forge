@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,15 @@ void main() async {
   runApp(const ProviderScope(child: QuestScriptApp()));
 }
 
+class MyCustomScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
+}
+
 class QuestScriptApp extends ConsumerWidget {
   const QuestScriptApp({super.key});
 
@@ -31,6 +41,7 @@ class QuestScriptApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: ref.watch(appRouterProvider),
+      scrollBehavior: MyCustomScrollBehavior(),
       builder: (context, child) {
         return MobileWarningWrapper(child: child!);
       },

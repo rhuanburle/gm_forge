@@ -21,6 +21,7 @@ class HiveDatabase {
   static const String _notesBox = 'notes';
   static const String _regionsBox = 'regions';
   static const String _settingsBox = 'settings';
+  static const String _quickRulesBox = 'quick_rules';
 
   static HiveDatabase? _instance;
 
@@ -54,6 +55,7 @@ class HiveDatabase {
     await Hive.openBox<Map>(_sessionsBox);
     await Hive.openBox<Map>(_notesBox);
     await Hive.openBox<Map>(_regionsBox);
+    await Hive.openBox<Map>(_quickRulesBox);
 
     try {
       final packageInfo = await PackageInfo.fromPlatform();
@@ -80,6 +82,7 @@ class HiveDatabase {
         await Hive.box<Map>(_sessionsBox).clear();
         await Hive.box<Map>(_notesBox).clear();
         await Hive.box<Map>(_regionsBox).clear();
+        await Hive.box<Map>(_quickRulesBox).clear();
       }
 
       await settingsBox.put('appVersion', currentVersion);
@@ -95,12 +98,21 @@ class HiveDatabase {
   HiveDatabase._();
 
   Future<void> _runMigrations() async {
-    final migrationDone =
+    final migrationV2Done =
         _settings.get('migration_v2_bidirectional_links') as bool? ?? false;
-    if (migrationDone) return;
+    if (!migrationV2Done) {
+      await _runMigrationV2();
+    }
 
+    final migrationV3Done =
+        _settings.get('migration_v3_campaign_id_population') as bool? ?? false;
+    if (!migrationV3Done) {
+      await _runMigrationV3();
+    }
+  }
+
+  Future<void> _runMigrationV2() async {
     try {
-      // Step 1: Re-save all creatures to convert old format to new format.
       // Old creatures have "location" (String?) field — fromJson preserves it
       // as legacyLocation. The new toJson writes "locationIds" instead.
       // This step ensures the stored JSON is in the new format.
@@ -184,6 +196,58 @@ class HiveDatabase {
       await _settings.put('migration_v2_bidirectional_links', true);
     } catch (_) {
       // Migration is best-effort; never block app startup
+    }
+  }
+
+  Future<void> _runMigrationV3() async {
+    try {
+      final adventuresBox = Hive.box<Map>(_adventuresBox);
+      final campaignIdMap = <String, String>{};
+
+      // 1. Map adventureId -> campaignId
+      for (final raw in adventuresBox.values) {
+        final data = Map<String, dynamic>.from(raw);
+        final advId = data['id'] as String?;
+        final campId = data['campaignId'] as String?;
+        if (advId != null && campId != null) {
+          campaignIdMap[advId] = campId;
+        }
+      }
+
+      final boxesToMigrate = [
+        _creaturesBox,
+        _locationsBox,
+        _itemsBox,
+        _poisBox,
+        _legendsBox,
+        _eventsBox,
+        _factsBox,
+        _questsBox,
+      ];
+
+      // 2. Update entities in each box
+      for (final boxName in boxesToMigrate) {
+        final box = Hive.box<Map>(boxName);
+        for (final key in box.keys.toList()) {
+          final raw = box.get(key);
+          if (raw == null) continue;
+          final data = Map<String, dynamic>.from(raw);
+
+          final advId = data['adventureId'] as String?;
+          final currentCampId = data['campaignId'] as String?;
+
+          if (currentCampId == null && advId != null) {
+            // Use mapped campaignId, or fallback to adventureId if not in a campaign
+            final newCampId = campaignIdMap[advId] ?? advId;
+            data['campaignId'] = newCampId;
+            await box.put(key, data);
+          }
+        }
+      }
+
+      await _settings.put('migration_v3_campaign_id_population', true);
+    } catch (_) {
+      // Migration is best-effort
     }
   }
 
@@ -320,10 +384,33 @@ class HiveDatabase {
 
   List<Location> getLocations(String adventureId) {
     final locations = <Location>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _locations.values) {
       final data = Map<String, dynamic>.from(entry);
       final location = Location.fromJson(data);
-      if (location.adventureId == adventureId) {
+      // Item is local to this adventure OR item is global to this campaign
+      final isLocal = location.adventureId == adventureId;
+      final isGlobal = location.adventureId == null && 
+                      campaignId != null && 
+                      location.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
+        locations.add(location);
+      }
+    }
+    locations.sort((a, b) => a.name.compareTo(b.name));
+    return locations;
+  }
+
+  List<Location> getCampaignLocations(String campaignId) {
+    final locations = <Location>[];
+    for (final entry in _locations.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final location = Location.fromJson(data);
+      // Return only global items (no adventureId) for the campaign hub
+      if (location.campaignId == campaignId && location.adventureId == null) {
         locations.add(location);
       }
     }
@@ -385,10 +472,18 @@ class HiveDatabase {
 
   List<Legend> getLegends(String adventureId) {
     final legends = <Legend>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _legends.values) {
       final data = Map<String, dynamic>.from(entry);
       final legend = Legend.fromJson(data);
-      if (legend.adventureId == adventureId) {
+      final isLocal = legend.adventureId == adventureId;
+      final isGlobal = legend.adventureId == null && 
+                      campaignId != null && 
+                      legend.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
         legends.add(legend);
       }
     }
@@ -407,10 +502,18 @@ class HiveDatabase {
 
   List<PointOfInterest> getPointsOfInterest(String adventureId) {
     final pois = <PointOfInterest>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _pois.values) {
       final data = Map<String, dynamic>.from(entry);
       final poi = PointOfInterest.fromJson(data);
-      if (poi.adventureId == adventureId) {
+      final isLocal = poi.adventureId == adventureId;
+      final isGlobal = poi.adventureId == null && 
+                      campaignId != null && 
+                      poi.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
         pois.add(poi);
       }
     }
@@ -455,10 +558,18 @@ class HiveDatabase {
 
   List<RandomEvent> getRandomEvents(String adventureId) {
     final events = <RandomEvent>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _events.values) {
       final data = Map<String, dynamic>.from(entry);
       final event = RandomEvent.fromJson(data);
-      if (event.adventureId == adventureId) {
+      final isLocal = event.adventureId == adventureId;
+      final isGlobal = event.adventureId == null && 
+                      campaignId != null && 
+                      event.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
         events.add(event);
       }
     }
@@ -477,10 +588,30 @@ class HiveDatabase {
 
   List<Creature> getCreatures(String adventureId) {
     final creatures = <Creature>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _creatures.values) {
       final data = Map<String, dynamic>.from(entry);
       final creature = Creature.fromJson(data);
-      if (creature.adventureId == adventureId) {
+      final isLocal = creature.adventureId == adventureId;
+      final isGlobal = creature.adventureId == null && 
+                      campaignId != null && 
+                      creature.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
+        creatures.add(creature);
+      }
+    }
+    return creatures;
+  }
+
+  List<Creature> getCampaignCreatures(String campaignId) {
+    final creatures = <Creature>[];
+    for (final entry in _creatures.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final creature = Creature.fromJson(data);
+      if (creature.campaignId == campaignId && creature.adventureId == null) {
         creatures.add(creature);
       }
     }
@@ -530,10 +661,18 @@ class HiveDatabase {
 
   List<Fact> getFacts(String adventureId) {
     final facts = <Fact>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _facts.values) {
       final data = Map<String, dynamic>.from(entry);
       final fact = Fact.fromJson(data);
-      if (fact.adventureId == adventureId) {
+      final isLocal = fact.adventureId == adventureId;
+      final isGlobal = fact.adventureId == null && 
+                      campaignId != null && 
+                      fact.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
         facts.add(fact);
       }
     }
@@ -582,7 +721,7 @@ class HiveDatabase {
     for (final entry in _factions.values) {
       final data = Map<String, dynamic>.from(entry);
       final faction = Faction.fromJson(data);
-      if (faction.campaignId == campaignId) {
+      if (faction.campaignId == campaignId && faction.adventureId == null) {
         items.add(faction);
       }
     }
@@ -591,10 +730,18 @@ class HiveDatabase {
 
   List<Faction> getFactionsByAdventure(String adventureId) {
     final items = <Faction>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _factions.values) {
       final data = Map<String, dynamic>.from(entry);
       final faction = Faction.fromJson(data);
-      if (faction.adventureId == adventureId) {
+      final isLocal = faction.adventureId == adventureId;
+      final isGlobal = faction.adventureId == null && 
+                      campaignId != null && 
+                      faction.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
         items.add(faction);
       }
     }
@@ -639,10 +786,30 @@ class HiveDatabase {
 
   List<Item> getItems(String adventureId) {
     final items = <Item>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _items.values) {
       final data = Map<String, dynamic>.from(entry);
       final item = Item.fromJson(data);
-      if (item.adventureId == adventureId) {
+      final isLocal = item.adventureId == adventureId;
+      final isGlobal = item.adventureId == null && 
+                      campaignId != null && 
+                      item.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
+        items.add(item);
+      }
+    }
+    return items;
+  }
+
+  List<Item> getCampaignItems(String campaignId) {
+    final items = <Item>[];
+    for (final entry in _items.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final item = Item.fromJson(data);
+      if (item.campaignId == campaignId && item.adventureId == null) {
         items.add(item);
       }
     }
@@ -687,10 +854,18 @@ class HiveDatabase {
 
   List<Quest> getQuests(String adventureId) {
     final items = <Quest>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
     for (final entry in _quests.values) {
       final data = Map<String, dynamic>.from(entry);
       final quest = Quest.fromJson(data);
-      if (quest.adventureId == adventureId) {
+      final isLocal = quest.adventureId == adventureId;
+      final isGlobal = quest.adventureId == null && 
+                      campaignId != null && 
+                      quest.campaignId == campaignId;
+      
+      if (isLocal || isGlobal) {
         items.add(quest);
       }
     }
@@ -777,6 +952,35 @@ class HiveDatabase {
 
   Future<void> deleteRegion(String id) async {
     await _regions.delete(id);
+  }
+
+  // ── Quick Rules ──
+
+  Box<Map> get _quickRules => Hive.box<Map>(_quickRulesBox);
+
+  List<QuickRule> getQuickRules(String campaignId) {
+    final items = <QuickRule>[];
+    for (final entry in _quickRules.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final rule = QuickRule.fromJson(data);
+      if (rule.campaignId == campaignId) {
+        items.add(rule);
+      }
+    }
+    items.sort((a, b) {
+      final categoryCmp = a.category.compareTo(b.category);
+      if (categoryCmp != 0) return categoryCmp;
+      return a.order.compareTo(b.order);
+    });
+    return items;
+  }
+
+  Future<void> saveQuickRule(QuickRule rule) async {
+    await _quickRules.put(rule.id, rule.toJson());
+  }
+
+  Future<void> deleteQuickRule(String id) async {
+    await _quickRules.delete(id);
   }
 
   Future<void> _deleteByCampaignId(Box<Map> box, String campaignId) async {

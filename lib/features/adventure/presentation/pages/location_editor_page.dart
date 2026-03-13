@@ -127,6 +127,67 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
               ),
               onChanged: (_) => _markUnsynced(),
             ),
+            const SizedBox(height: 16),
+            const Divider(),
+            SwitchListTile(
+              title: const Text('Disponível em toda a Campanha?'),
+              subtitle: const Text('Locais globais aparecem em todas as aventuras.'),
+              value: location.adventureId == null,
+              onChanged: (bool value) async {
+                final db = ref.read(hiveDatabaseProvider);
+                final updatedLocation = location.copyWith(
+                  adventureId: value ? null : widget.adventureId,
+                  clearAdventureId: value,
+                );
+
+                // Cascade to POIs
+                final locationPois = pois
+                    .where((p) => p.locationId == widget.locationId)
+                    .toList();
+                
+                final updatedPois = locationPois.map((poi) {
+                  return poi.copyWith(
+                    adventureId: value ? null : widget.adventureId,
+                    clearAdventureId: value,
+                  );
+                }).toList();
+
+                await db.saveLocation(updatedLocation);
+                for (final up in updatedPois) {
+                  await db.savePointOfInterest(up);
+                }
+
+                ref.read(historyProvider.notifier).recordAction(
+                  HistoryAction(
+                    description: value ? "Local promovido para Campanha" : "Local movido para Aventura",
+                    onUndo: () async {
+                      await db.saveLocation(location);
+                      for (final p in locationPois) {
+                        await db.savePointOfInterest(p);
+                      }
+                      ref.invalidate(locationsProvider(widget.adventureId));
+                      ref.invalidate(pointsOfInterestProvider(widget.adventureId));
+                    },
+                    onRedo: () async {
+                      await db.saveLocation(updatedLocation);
+                      for (final p in updatedPois) {
+                        await db.savePointOfInterest(p);
+                      }
+                      ref.invalidate(locationsProvider(widget.adventureId));
+                      ref.invalidate(pointsOfInterestProvider(widget.adventureId));
+                    },
+                  ),
+                );
+
+                ref.invalidate(locationsProvider(widget.adventureId));
+                ref.invalidate(pointsOfInterestProvider(widget.adventureId));
+                _markUnsynced();
+              },
+              secondary: Icon(
+                location.adventureId == null ? Icons.public : Icons.push_pin,
+                color: location.adventureId == null ? AppTheme.primary : AppTheme.textMuted,
+              ),
+            ),
             const SizedBox(height: 32),
 
             Row(
@@ -605,7 +666,11 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       );
                     }
                   } else {
+                    final adv = db.getAdventure(widget.adventureId);
+                    final campaignId = adv?.campaignId ?? widget.adventureId;
+
                     final newPoi = PointOfInterest.create(
+                      campaignId: campaignId,
                       adventureId: widget.adventureId,
                       locationId: widget.locationId,
                       number: number,

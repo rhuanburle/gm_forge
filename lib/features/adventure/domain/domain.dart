@@ -15,3 +15,4 @@ export 'location.dart';
 export 'fact.dart';
 export 'session.dart';
 export 'session_entry.dart';
+export 'quick_rule.dart';

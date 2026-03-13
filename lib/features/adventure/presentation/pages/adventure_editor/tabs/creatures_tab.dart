@@ -218,6 +218,7 @@ class CreaturesTab extends ConsumerWidget {
     );
 
     CreatureType selectedType = creatureToEdit?.type ?? CreatureType.monster;
+    String? adventureIdForCreation = creatureToEdit?.adventureId ?? adventureId;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -313,6 +314,22 @@ class CreaturesTab extends ConsumerWidget {
                     "creatureType": selectedType.displayName,
                   },
                 ),
+                const SizedBox(height: 16),
+                const Divider(),
+                SwitchListTile(
+                  title: const Text("Disponível em toda a Campanha?"),
+                  subtitle: const Text("Itens globais aparecem em todas as aventuras."),
+                  value: adventureIdForCreation == null,
+                  onChanged: (bool value) {
+                    setState(() {
+                      adventureIdForCreation = value ? null : adventureId;
+                    });
+                  },
+                  secondary: Icon(
+                    adventureIdForCreation == null ? Icons.public : Icons.push_pin,
+                    color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                  ),
+                ),
               ],
             ),
           ),
@@ -335,6 +352,8 @@ class CreaturesTab extends ConsumerWidget {
                       type: selectedType,
                       motivation: motivationController.text,
                       losingBehavior: losingBehaviorController.text,
+                      adventureId: adventureIdForCreation,
+                      clearAdventureId: adventureIdForCreation == null,
                     );
                     await db.saveCreature(updatedCreature);
 
@@ -354,8 +373,12 @@ class CreaturesTab extends ConsumerWidget {
                           ),
                         );
                   } else {
+                    final adv = db.getAdventure(adventureId);
+                    final campaignId = adv?.campaignId ?? adventureId;
+
                     final creature = Creature.create(
-                      adventureId: adventureId,
+                      campaignId: campaignId,
+                      adventureId: adventureIdForCreation,
                       name: nameController.text,
                       description: descController.text,
                       stats: statsController.text,
@@ -447,12 +470,65 @@ class _CreatureListItem extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        creature.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            creature.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (creature.adventureId == null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppTheme.primary.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.public, size: 10, color: AppTheme.primary),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    "CAMPANHA",
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.textMuted.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                "LOCAL",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       if (creature.description.isNotEmpty)
                         Text(
@@ -467,6 +543,37 @@ class _CreatureListItem extends ConsumerWidget {
                     ],
                   ),
                 ),
+                if (creature.adventureId != null)
+                  IconButton(
+                    icon: const Icon(Icons.drive_file_move_outlined),
+                    tooltip: "Promover para Campanha",
+                    onPressed: () async {
+                      final db = ref.read(hiveDatabaseProvider);
+                      final promoted = creature.copyWith(clearAdventureId: true);
+                      await db.saveCreature(promoted);
+
+                      ref.read(historyProvider.notifier).recordAction(
+                        HistoryAction(
+                          description: "Criatura promovida para Campanha",
+                          onUndo: () async {
+                            await db.saveCreature(creature);
+                            ref.invalidate(creaturesProvider(adventureId));
+                          },
+                          onRedo: () async {
+                            await db.saveCreature(promoted);
+                            ref.invalidate(creaturesProvider(adventureId));
+                          },
+                        ),
+                      );
+
+                      ref.invalidate(creaturesProvider(adventureId));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Promovido para itens da Campanha")),
+                        );
+                      }
+                    },
+                  ),
                 IconButton(icon: const Icon(Icons.edit), onPressed: onEdit),
                 if (creature.type == CreatureType.npc &&
                     ref.watch(hasAiConfiguredProvider))

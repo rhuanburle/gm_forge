@@ -141,16 +141,82 @@ class EventsTab extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          title: Text(event.description),
-                          subtitle: Text(
-                            'Impacto: ${event.impact}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontStyle: FontStyle.italic),
+                          title: Row(
+                            children: [
+                              Text(event.description),
+                              const SizedBox(width: 8),
+                              if (event.adventureId == null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: AppTheme.primary.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "CAMPANHA",
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.textMuted.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    "LOCAL",
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.textMuted,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              if (event.adventureId != null)
+                                IconButton(
+                                  icon: const Icon(Icons.drive_file_move_outlined),
+                                  tooltip: "Promover para Campanha",
+                                  onPressed: () async {
+                                    final db = ref.read(hiveDatabaseProvider);
+                                    final promoted = event.copyWith(clearAdventureId: true);
+                                    await db.saveRandomEvent(promoted);
+
+                                    ref.read(historyProvider.notifier).recordAction(
+                                      HistoryAction(
+                                        description: "Evento promovido para Campanha",
+                                        onUndo: () async {
+                                          await db.saveRandomEvent(event);
+                                          ref.invalidate(randomEventsProvider(adventureId));
+                                        },
+                                        onRedo: () async {
+                                          await db.saveRandomEvent(promoted);
+                                          ref.invalidate(randomEventsProvider(adventureId));
+                                        },
+                                      ),
+                                    );
+
+                                    ref.invalidate(randomEventsProvider(adventureId));
+                                  },
+                                ),
                               IconButton(
                                 icon: const Icon(Icons.edit),
                                 onPressed: () => _showEventDialog(
@@ -265,6 +331,7 @@ class EventsTab extends ConsumerWidget {
     );
     final diceController = TextEditingController(text: eventToEdit?.diceRange);
     final impactController = TextEditingController(text: eventToEdit?.impact);
+    String? adventureIdForCreation = eventToEdit?.adventureId ?? adventureId;
 
     showDialog(
       context: context,
@@ -304,6 +371,24 @@ class EventsTab extends ConsumerWidget {
                 aiFieldType: AiFieldType.eventImpact,
                 aiContext: {},
               ),
+              const SizedBox(height: 16),
+              const Divider(),
+              StatefulBuilder(builder: (context, setState) {
+                return SwitchListTile(
+                  title: const Text("Disponível em toda a Campanha?"),
+                  subtitle: const Text("Eventos globais aparecem em todas as aventuras."),
+                  value: adventureIdForCreation == null,
+                  onChanged: (bool value) {
+                    setState(() {
+                      adventureIdForCreation = value ? null : adventureId;
+                    });
+                  },
+                  secondary: Icon(
+                    adventureIdForCreation == null ? Icons.public : Icons.push_pin,
+                    color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                  ),
+                );
+              }),
             ],
           ),
         ),
@@ -323,6 +408,8 @@ class EventsTab extends ConsumerWidget {
                     description: descController.text,
                     diceRange: diceController.text,
                     impact: impactController.text,
+                    adventureId: adventureIdForCreation,
+                    clearAdventureId: adventureIdForCreation == null,
                   );
                   await db.saveRandomEvent(updatedEvent);
 
@@ -342,8 +429,12 @@ class EventsTab extends ConsumerWidget {
                         ),
                       );
                 } else {
+                  final adv = db.getAdventure(adventureId);
+                  final campaignId = adv?.campaignId ?? adventureId;
+
                   final event = RandomEvent.create(
-                    adventureId: adventureId,
+                    campaignId: campaignId,
+                    adventureId: adventureIdForCreation,
                     description: descController.text,
                     diceRange: diceController.text,
                     impact: impactController.text,

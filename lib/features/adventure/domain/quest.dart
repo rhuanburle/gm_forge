@@ -44,7 +44,8 @@ class QuestObjective {
 
 class Quest {
   final String id;
-  final String adventureId;
+  final String campaignId;
+  final String? adventureId;
   final String name;
   final String description;
   final QuestStatus status;
@@ -55,7 +56,8 @@ class Quest {
 
   const Quest({
     required this.id,
-    required this.adventureId,
+    required this.campaignId,
+    this.adventureId,
     required this.name,
     this.description = '',
     this.status = QuestStatus.notStarted,
@@ -66,7 +68,8 @@ class Quest {
   });
 
   factory Quest.create({
-    required String adventureId,
+    required String campaignId,
+    String? adventureId,
     required String name,
     String description = '',
     QuestStatus status = QuestStatus.notStarted,
@@ -77,6 +80,7 @@ class Quest {
   }) {
     return Quest(
       id: const Uuid().v4(),
+      campaignId: campaignId,
       adventureId: adventureId,
       name: name,
       description: description,
@@ -90,6 +94,7 @@ class Quest {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'campaignId': campaignId,
     'adventureId': adventureId,
     'name': name,
     'description': description,
@@ -102,7 +107,8 @@ class Quest {
 
   factory Quest.fromJson(Map<String, dynamic> json) => Quest(
     id: json['id'] as String,
-    adventureId: json['adventureId'] as String,
+    campaignId: json['campaignId'] as String? ?? json['adventureId'] as String,
+    adventureId: json['adventureId'] as String?,
     name: json['name'] as String,
     description: json['description'] as String? ?? '',
     status: QuestStatus.values[json['status'] as int? ?? 0],
@@ -126,10 +132,14 @@ class Quest {
     List<QuestObjective>? objectives,
     String? rewardDescription,
     List<String>? relatedLocationIds,
+    String? adventureId,
+    bool clearAdventureId = false,
   }) {
     return Quest(
       id: id,
-      adventureId: adventureId,
+      campaignId: campaignId,
+      adventureId:
+          clearAdventureId ? null : (adventureId ?? this.adventureId),
       name: name ?? this.name,
       description: description ?? this.description,
       status: status ?? this.status,

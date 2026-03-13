@@ -19,7 +19,8 @@ extension EventTypeExtension on EventType {
 
 class RandomEvent {
   final String id;
-  final String adventureId;
+  final String campaignId;
+  final String? adventureId;
   final String diceRange;
   final EventType eventType;
   final String description;
@@ -27,7 +28,8 @@ class RandomEvent {
 
   const RandomEvent({
     required this.id,
-    required this.adventureId,
+    required this.campaignId,
+    this.adventureId,
     required this.diceRange,
     this.eventType = EventType.calm,
     required this.description,
@@ -35,7 +37,8 @@ class RandomEvent {
   });
 
   factory RandomEvent.create({
-    required String adventureId,
+    required String campaignId,
+    String? adventureId,
     required String diceRange,
     EventType eventType = EventType.calm,
     required String description,
@@ -43,6 +46,7 @@ class RandomEvent {
   }) {
     return RandomEvent(
       id: const Uuid().v4(),
+      campaignId: campaignId,
       adventureId: adventureId,
       diceRange: diceRange,
       eventType: eventType,
@@ -53,6 +57,7 @@ class RandomEvent {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'campaignId': campaignId,
     'adventureId': adventureId,
     'diceRange': diceRange,
     'eventType': eventType.index,
@@ -62,7 +67,8 @@ class RandomEvent {
 
   factory RandomEvent.fromJson(Map<String, dynamic> json) => RandomEvent(
     id: json['id'] as String,
-    adventureId: json['adventureId'] as String,
+    campaignId: json['campaignId'] as String? ?? json['adventureId'] as String,
+    adventureId: json['adventureId'] as String?,
     diceRange: json['diceRange'] as String,
     eventType: EventType.values[json['eventType'] as int],
     description: json['description'] as String,
@@ -74,10 +80,13 @@ class RandomEvent {
     EventType? eventType,
     String? description,
     String? impact,
+    String? adventureId,
+    bool clearAdventureId = false,
   }) {
     return RandomEvent(
       id: id,
-      adventureId: adventureId,
+      campaignId: campaignId,
+      adventureId: clearAdventureId ? null : (adventureId ?? this.adventureId),
       diceRange: diceRange ?? this.diceRange,
       eventType: eventType ?? this.eventType,
       description: description ?? this.description,

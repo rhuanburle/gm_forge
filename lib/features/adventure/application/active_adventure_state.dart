@@ -4,31 +4,41 @@ import '../presentation/widgets/play_mode/scene_lenses.dart';
 class ActiveAdventureState {
   final String? currentLocationId;
   final Set<String> revealedRumors;
+  /// IDs of facts that have been revealed to players during play
+  final Set<String> revealedFacts;
   final Map<String, int> monsterHp;
   final List<String> eventLog;
   final SceneLens currentLens;
+  /// Session-scoped GM notes per location (locationId -> note text)
+  final Map<String, String> locationNotes;
 
   const ActiveAdventureState({
     this.currentLocationId,
     this.revealedRumors = const {},
+    this.revealedFacts = const {},
     this.monsterHp = const {},
     this.eventLog = const [],
     this.currentLens = SceneLens.narrative,
+    this.locationNotes = const {},
   });
 
   ActiveAdventureState copyWith({
     String? currentLocationId,
     Set<String>? revealedRumors,
+    Set<String>? revealedFacts,
     Map<String, int>? monsterHp,
     List<String>? eventLog,
     SceneLens? currentLens,
+    Map<String, String>? locationNotes,
   }) {
     return ActiveAdventureState(
       currentLocationId: currentLocationId ?? this.currentLocationId,
       revealedRumors: revealedRumors ?? this.revealedRumors,
+      revealedFacts: revealedFacts ?? this.revealedFacts,
       monsterHp: monsterHp ?? this.monsterHp,
       eventLog: eventLog ?? this.eventLog,
       currentLens: currentLens ?? this.currentLens,
+      locationNotes: locationNotes ?? this.locationNotes,
     );
   }
 }
@@ -59,6 +69,28 @@ class ActiveAdventureNotifier extends Notifier<ActiveAdventureState> {
       );
       logEvent('Rumor revelado!');
     }
+  }
+
+  void toggleFactRevealed(String factId) {
+    final revealed = {...state.revealedFacts};
+    if (revealed.contains(factId)) {
+      revealed.remove(factId);
+    } else {
+      revealed.add(factId);
+    }
+    state = state.copyWith(revealedFacts: revealed);
+  }
+
+  bool isFactRevealed(String factId) => state.revealedFacts.contains(factId);
+
+  void updateLocationNote(String locationId, String note) {
+    final notes = Map<String, String>.from(state.locationNotes);
+    if (note.trim().isEmpty) {
+      notes.remove(locationId);
+    } else {
+      notes[locationId] = note;
+    }
+    state = state.copyWith(locationNotes: notes);
   }
 
   void updateMonsterHp(String creatureId, int newHp) {

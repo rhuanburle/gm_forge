@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../../core/ai/ai_providers.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../application/session_export_service.dart';
 import '../../../domain/domain.dart';
@@ -80,12 +82,114 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
     ref.read(unsyncedChangesProvider.notifier).state = true;
   }
 
+  bool _isGeneratingRecap = false;
+
+  void _exportPlayerRecap() async {
+    final exportService = ref.read(sessionExportServiceProvider);
+    await exportService.copyPlayerRecapToClipboard(widget.adventureId);
+
+    if (!mounted) return;
+    AppSnackBar.success(context, 'Resumo para jogadores copiado! (sem notas do mestre)');
+  }
+
   void _exportLog() async {
     final exportService = ref.read(sessionExportServiceProvider);
     await exportService.copySessionLogToClipboard(widget.adventureId);
 
     if (!mounted) return;
     AppSnackBar.success(context, 'Log da sessão copiado para área de transferência!');
+  }
+
+  void _generateAiRecap() async {
+    final gemini = ref.read(geminiServiceProvider);
+    if (gemini == null) {
+      AppSnackBar.error(context, 'Configure a chave de API da IA primeiro.');
+      return;
+    }
+
+    final adventure = ref.read(adventureProvider(widget.adventureId));
+    final entries = ref.read(sessionEntriesProvider(widget.adventureId));
+    if (entries.isEmpty) {
+      AppSnackBar.info(context, 'Nenhuma entrada no log para gerar recap.');
+      return;
+    }
+
+    setState(() => _isGeneratingRecap = true);
+
+    try {
+      final sortedEntries = List<SessionEntry>.from(entries)
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+      final logText = sortedEntries.map((e) {
+        final type = e.entryType.displayName;
+        final turn = e.turnLabel?.isNotEmpty == true ? '[${e.turnLabel}] ' : '';
+        return '- ($type) $turn${e.text}';
+      }).join('\n');
+
+      final prompt = '''
+Você é um mestre de RPG experiente. Com base no log de sessão abaixo, gere um resumo narrativo envolvente da sessão para compartilhar com os jogadores.
+
+**Aventura:** ${adventure?.name ?? 'Sem nome'}
+**Conceito:** ${adventure?.conceptWhat ?? ''}
+**Conflito:** ${adventure?.conceptConflict ?? ''}
+
+**Log da Sessão:**
+$logText
+
+Instruções:
+- Escreva em português do Brasil
+- Use tom narrativo e envolvente (como se fosse um narrador contando a história)
+- Organize em 2-4 parágrafos
+- Destaque momentos dramáticos, descobertas e decisões importantes
+- Termine com um gancho para a próxima sessão se possível
+- Não invente fatos que não estejam no log
+- Máximo 300 palavras
+''';
+
+      final recap = await gemini.generateLongText(prompt);
+
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Recap da Sessão'),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: SelectableText(
+                recap,
+                style: const TextStyle(fontSize: 14, height: 1.5),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Fechar'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: recap));
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                }
+                if (mounted) {
+                  AppSnackBar.success(context, 'Recap copiado!');
+                }
+              },
+              icon: const Icon(Icons.copy, size: 16),
+              label: const Text('Copiar'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Erro ao gerar recap: $e');
+    } finally {
+      if (mounted) setState(() => _isGeneratingRecap = false);
+    }
   }
 
   @override
@@ -111,9 +215,30 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (_isGeneratingRecap)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  tooltip: 'Gerar Recap com IA',
+                  onPressed: entries.isEmpty ? null : _generateAiRecap,
+                  splashRadius: 16,
+                  color: AppTheme.secondary,
+                ),
+              IconButton(
+                icon: const Icon(Icons.people, size: 16),
+                tooltip: 'Exportar para Jogadores (sem segredos)',
+                onPressed: entries.isEmpty ? null : _exportPlayerRecap,
+                splashRadius: 16,
+                color: AppTheme.info,
+              ),
               IconButton(
                 icon: const Icon(Icons.copy, size: 16),
-                tooltip: 'Exportar Resumo (Markdown)',
+                tooltip: 'Exportar Resumo Completo (Markdown)',
                 onPressed:
                     entries.isEmpty && (adventure.sessionNotes?.isEmpty ?? true)
                     ? null

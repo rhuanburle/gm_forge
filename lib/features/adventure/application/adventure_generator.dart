@@ -53,11 +53,16 @@ class AdventureGenerator {
 
     final json = await service.generateStructured(prompt);
 
-    return _parseAdventure(json, adventureId);
+    final db = _ref.read(hiveDatabaseProvider);
+    final adv = db.getAdventure(adventureId);
+    final campaignId = adv?.campaignId ?? adventureId;
+
+    return _parseAdventure(json, campaignId, adventureId);
   }
 
   GeneratedAdventure _parseAdventure(
     Map<String, dynamic> json,
+    String campaignId,
     String adventureId,
   ) {
     final creatures = <Creature>[];
@@ -68,6 +73,7 @@ class AdventureGenerator {
     for (final c in creaturesJson) {
       final data = c as Map<String, dynamic>;
       final creature = Creature.create(
+        campaignId: campaignId,
         adventureId: adventureId,
         name: data['name'] as String? ?? 'Sem nome',
         description: data['description'] as String? ?? '',
@@ -90,6 +96,7 @@ class AdventureGenerator {
     for (final l in locationsJson) {
       final locData = l as Map<String, dynamic>;
       final location = Location.create(
+        campaignId: campaignId,
         adventureId: adventureId,
         name: locData['name'] as String? ?? 'Sem nome',
         description: locData['description'] as String? ?? '',
@@ -115,6 +122,7 @@ class AdventureGenerator {
 
         final purposeIndex = poiData['purpose'] as int? ?? 3;
         final poi = PointOfInterest.create(
+          campaignId: campaignId,
           adventureId: adventureId,
           locationId: location.id,
           number: poiData['number'] as int? ?? pois.length + 1,
@@ -156,6 +164,7 @@ class AdventureGenerator {
       final data = l as Map<String, dynamic>;
       legends.add(
         Legend.create(
+          campaignId: campaignId,
           adventureId: adventureId,
           text: data['text'] as String? ?? '',
           isTrue: data['isTrue'] as bool? ?? true,
@@ -173,6 +182,7 @@ class AdventureGenerator {
       final eventTypeIndex = data['eventType'] as int? ?? 3;
       events.add(
         RandomEvent.create(
+          campaignId: campaignId,
           adventureId: adventureId,
           diceRange: data['diceRange'] as String? ?? '1',
           eventType: EventType

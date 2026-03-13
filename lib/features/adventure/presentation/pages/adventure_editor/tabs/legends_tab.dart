@@ -175,6 +175,7 @@ class LegendsTab extends ConsumerWidget {
     bool isTrue = legendToEdit?.isTrue ?? true;
     String? selectedCreatureId = legendToEdit?.relatedCreatureId;
     String? selectedLocationId = legendToEdit?.relatedLocationId;
+    String? adventureIdForCreation = legendToEdit?.adventureId ?? adventureId;
     final creatures = ref.read(creaturesProvider(adventureId));
 
     showDialog(
@@ -265,6 +266,22 @@ class LegendsTab extends ConsumerWidget {
                   onChanged: (value) => setState(() => isTrue = value),
                   activeThumbColor: AppTheme.success,
                 ),
+                const SizedBox(height: 16),
+                const Divider(),
+                SwitchListTile(
+                  title: const Text("Disponível em toda a Campanha?"),
+                  subtitle: const Text("Rumores globais aparecem em todas as aventuras."),
+                  value: adventureIdForCreation == null,
+                  onChanged: (bool value) {
+                    setState(() {
+                      adventureIdForCreation = value ? null : adventureId;
+                    });
+                  },
+                  secondary: Icon(
+                    adventureIdForCreation == null ? Icons.public : Icons.push_pin,
+                    color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                  ),
+                ),
               ],
             ),
           ),
@@ -308,7 +325,11 @@ class LegendsTab extends ConsumerWidget {
                           ),
                         );
                   } else {
+                    final adv = db.getAdventure(adventureId);
+                    final campaignId = adv?.campaignId ?? adventureId;
+
                     final legend = Legend.create(
+                      campaignId: campaignId,
                       adventureId: adventureId,
                       text: textController.text,
                       isTrue: isTrue,
@@ -382,7 +403,53 @@ class _LegendCard extends ConsumerWidget {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
-        title: Text(legend.text),
+        title: Row(
+          children: [
+            Text(legend.text),
+            const SizedBox(width: 8),
+            if (legend.adventureId == null)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: const Text(
+                  "CAMPANHA",
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.textMuted.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  "LOCAL",
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+              ),
+          ],
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -396,6 +463,32 @@ class _LegendCard extends ConsumerWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (legend.adventureId != null)
+              IconButton(
+                icon: const Icon(Icons.drive_file_move_outlined),
+                tooltip: "Promover para Campanha",
+                onPressed: () async {
+                  final db = ref.read(hiveDatabaseProvider);
+                  final promoted = legend.copyWith(clearAdventureId: true);
+                  await db.saveLegend(promoted);
+
+                  ref.read(historyProvider.notifier).recordAction(
+                    HistoryAction(
+                      description: "Rumor promovido para Campanha",
+                      onUndo: () async {
+                        await db.saveLegend(legend);
+                        ref.invalidate(legendsProvider(adventureId));
+                      },
+                      onRedo: () async {
+                        await db.saveLegend(promoted);
+                        ref.invalidate(legendsProvider(adventureId));
+                      },
+                    ),
+                  );
+
+                  ref.invalidate(legendsProvider(adventureId));
+                },
+              ),
             IconButton(icon: const Icon(Icons.edit), onPressed: onEdit),
             IconButton(
               icon: const Icon(Icons.delete, color: AppTheme.error),

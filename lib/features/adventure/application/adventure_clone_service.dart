@@ -90,6 +90,7 @@ class AdventureCloneService {
       await _db.saveLocation(
         Location(
           id: newId,
+          campaignId: adventure.campaignId ?? adventure.id,
           adventureId: newAdventureId,
           name: replaceSmartText(loc.name),
           description: replaceSmartText(loc.description),
@@ -107,6 +108,7 @@ class AdventureCloneService {
       await _db.saveCreature(
         Creature(
           id: newId,
+          campaignId: adventure.campaignId ?? adventure.id,
           adventureId: newAdventureId,
           name: replaceSmartText(cr.name),
           type: cr.type,
@@ -126,6 +128,7 @@ class AdventureCloneService {
       await _db.saveFact(
         Fact(
           id: newId,
+          campaignId: adventure.campaignId ?? adventure.id,
           adventureId: newAdventureId,
           content: replaceSmartText(fact.content),
           sourceId: fact.sourceId != null
@@ -143,6 +146,7 @@ class AdventureCloneService {
       await _db.savePointOfInterest(
         PointOfInterest(
           id: newId,
+          campaignId: adventure.campaignId ?? adventure.id,
           adventureId: newAdventureId,
           number: poi.number,
           name: replaceSmartText(poi.name),
@@ -166,6 +170,7 @@ class AdventureCloneService {
       await _db.saveLegend(
         Legend(
           id: newId,
+          campaignId: adventure.campaignId ?? adventure.id,
           adventureId: newAdventureId,
           text: replaceSmartText(leg.text),
           isTrue: leg.isTrue,
@@ -186,6 +191,7 @@ class AdventureCloneService {
       await _db.saveRandomEvent(
         RandomEvent(
           id: newId,
+          campaignId: adventure.campaignId ?? adventure.id,
           adventureId: newAdventureId,
           diceRange: evt.diceRange,
           eventType: evt.eventType,
@@ -201,6 +207,7 @@ class AdventureCloneService {
       await _db.saveItem(
         Item(
           id: newId,
+          campaignId: adventure.campaignId ?? adventure.id,
           adventureId: newAdventureId,
           name: replaceSmartText(item.name),
           description: replaceSmartText(item.description),
@@ -223,6 +230,7 @@ class AdventureCloneService {
       await _db.saveQuest(
         Quest(
           id: newId,
+          campaignId: adventure.campaignId ?? adventure.id,
           adventureId: newAdventureId,
           name: replaceSmartText(quest.name),
           description: replaceSmartText(quest.description),

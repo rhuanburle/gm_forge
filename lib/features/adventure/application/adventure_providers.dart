@@ -142,6 +142,22 @@ final regionsProvider = Provider.family<List<Region>, String>((
   return db.getRegions(campaignId);
 });
 
+final campaignCreaturesProvider = Provider.family<List<Creature>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getCampaignCreatures(campaignId);
+});
+
+final campaignItemsProvider = Provider.family<List<Item>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getCampaignItems(campaignId);
+});
+
 class AdventureListNotifier extends Notifier<List<Adventure>> {
   @override
   List<Adventure> build() {
@@ -237,4 +253,8 @@ final campaignProvider = Provider.family<Campaign?, String>((ref, id) {
   } catch (_) {
     return null;
   }
+});
+
+final quickRulesProvider = Provider.family<List<QuickRule>, String>((ref, campaignId) {
+  return ref.watch(hiveDatabaseProvider).getQuickRules(campaignId);
 });

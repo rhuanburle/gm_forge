@@ -127,6 +127,7 @@ class SyncService {
     final notes = _hiveDb.getNotes(campaignId);
     final regions = _hiveDb.getRegions(campaignId);
     final campaignFactions = _hiveDb.getFactions(campaignId);
+    final quickRules = _hiveDb.getQuickRules(campaignId);
 
     await _campaignsRef.doc(campaignId).set({
       'campaign': campaign.toJson(),
@@ -136,6 +137,7 @@ class SyncService {
       'notes': notes.map((n) => n.toJson()).toList(),
       'regions': regions.map((r) => r.toJson()).toList(),
       'factions': campaignFactions.map((f) => f.toJson()).toList(),
+      'quickRules': quickRules.map((qr) => qr.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -288,6 +290,12 @@ class SyncService {
       for (final fJson in factionsJson) {
         final faction = Faction.fromJson(fJson as Map<String, dynamic>);
         await _hiveDb.saveFaction(faction);
+      }
+
+      final quickRulesJson = data['quickRules'] as List<dynamic>? ?? [];
+      for (final qrJson in quickRulesJson) {
+        final quickRule = QuickRule.fromJson(qrJson as Map<String, dynamic>);
+        await _hiveDb.saveQuickRule(quickRule);
       }
     }
   }

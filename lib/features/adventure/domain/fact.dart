@@ -2,7 +2,8 @@ import 'package:uuid/uuid.dart';
 
 class Fact {
   final String id;
-  final String adventureId;
+  final String campaignId;
+  final String? adventureId;
   final String content;
   final String? sourceId;
   final bool isSecret;
@@ -11,7 +12,8 @@ class Fact {
 
   Fact({
     required this.id,
-    required this.adventureId,
+    required this.campaignId,
+    this.adventureId,
     required this.content,
     this.sourceId,
     this.isSecret = false,
@@ -22,6 +24,7 @@ class Fact {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'campaignId': campaignId,
       'adventureId': adventureId,
       'content': content,
       'sourceId': sourceId,
@@ -34,7 +37,8 @@ class Fact {
   factory Fact.fromJson(Map<String, dynamic> json) {
     return Fact(
       id: json['id'] as String,
-      adventureId: json['adventureId'] as String,
+      campaignId: json['campaignId'] as String? ?? json['adventureId'] as String,
+      adventureId: json['adventureId'] as String?,
       content: json['content'] as String,
       sourceId: json['sourceId'] as String?,
       isSecret: json['isSecret'] as bool? ?? false,
@@ -44,7 +48,8 @@ class Fact {
   }
 
   factory Fact.create({
-    required String adventureId,
+    required String campaignId,
+    String? adventureId,
     required String content,
     String? sourceId,
     bool isSecret = false,
@@ -52,6 +57,7 @@ class Fact {
   }) {
     return Fact(
       id: const Uuid().v4(),
+      campaignId: campaignId,
       adventureId: adventureId,
       content: content,
       sourceId: sourceId,
@@ -68,6 +74,7 @@ class Fact {
   }) {
     return Fact(
       id: id,
+      campaignId: campaignId,
       adventureId: adventureId,
       content: content ?? this.content,
       sourceId: sourceId ?? this.sourceId,

@@ -65,7 +65,53 @@ class LocationsTab extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          title: Text(location.name),
+                          title: Row(
+                            children: [
+                              Text(location.name),
+                              const SizedBox(width: 8),
+                              if (location.adventureId == null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: AppTheme.primary.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "CAMPANHA",
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.textMuted.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    "LOCAL",
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.textMuted,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                           subtitle: Text(
                             location.description,
                             maxLines: 2,
@@ -76,12 +122,64 @@ class LocationsTab extends ConsumerWidget {
                               '/adventure/$adventureId/location/${location.id}',
                             );
                           },
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: AppTheme.error,
-                            ),
-                            onPressed: () async {
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (location.adventureId != null)
+                                IconButton(
+                                  icon: const Icon(Icons.drive_file_move_outlined),
+                                  tooltip: "Promover para Campanha",
+                                  onPressed: () async {
+                                    final db = ref.read(hiveDatabaseProvider);
+                                    final promoted = location.copyWith(clearAdventureId: true);
+                                    
+                                    // Get POIs to cascade
+                                    final pois = ref.read(pointsOfInterestProvider(adventureId));
+                                    final locationPois = pois.where((p) => p.locationId == location.id).toList();
+                                    final promotedPois = locationPois.map((p) => p.copyWith(clearAdventureId: true)).toList();
+
+                                    await db.saveLocation(promoted);
+                                    for (final p in promotedPois) {
+                                      await db.savePointOfInterest(p);
+                                    }
+
+                                    ref.read(historyProvider.notifier).recordAction(
+                                      HistoryAction(
+                                        description: "Local promovido para Campanha",
+                                        onUndo: () async {
+                                          await db.saveLocation(location);
+                                          for (final p in locationPois) {
+                                            await db.savePointOfInterest(p);
+                                          }
+                                          ref.invalidate(locationsProvider(adventureId));
+                                          ref.invalidate(pointsOfInterestProvider(adventureId));
+                                        },
+                                        onRedo: () async {
+                                          await db.saveLocation(promoted);
+                                          for (final p in promotedPois) {
+                                            await db.savePointOfInterest(p);
+                                          }
+                                          ref.invalidate(locationsProvider(adventureId));
+                                          ref.invalidate(pointsOfInterestProvider(adventureId));
+                                        },
+                                      ),
+                                    );
+
+                                    ref.invalidate(locationsProvider(adventureId));
+                                    ref.invalidate(pointsOfInterestProvider(adventureId));
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Local promovido para a Campanha")),
+                                      );
+                                    }
+                                  },
+                                ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: AppTheme.error,
+                                ),
+                                onPressed: () async {
                               final confirm = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
@@ -131,13 +229,12 @@ class LocationsTab extends ConsumerWidget {
                                       ),
                                     );
 
-                                ref.invalidate(locationsProvider(adventureId));
-                                ref
-                                        .read(unsyncedChangesProvider.notifier)
-                                        .state =
-                                    true;
-                              }
-                            },
+                                    ref.invalidate(locationsProvider(adventureId));
+                                    ref.read(unsyncedChangesProvider.notifier).state = true;
+                                  }
+                                },
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -148,13 +245,17 @@ class LocationsTab extends ConsumerWidget {
           Center(
             child: ElevatedButton.icon(
               onPressed: () async {
+                final db = ref.read(hiveDatabaseProvider);
+                final adv = db.getAdventure(adventureId);
+                final campaignId = adv?.campaignId ?? adventureId;
+
                 final newLocation = Location.create(
+                  campaignId: campaignId,
                   adventureId: adventureId,
                   name: 'Novo Local',
                   description: '',
                 );
 
-                final db = ref.read(hiveDatabaseProvider);
                 await db.saveLocation(newLocation);
 
                 ref

@@ -309,7 +309,10 @@ class _SuggestionList extends ConsumerWidget {
               title: Text('Criar criatura: "$query"'),
               onTap: () async {
                 final db = ref.read(hiveDatabaseProvider);
+                final adv = db.getAdventure(adventureId);
+                final campaignId = adv?.campaignId ?? adventureId;
                 final newCreature = Creature.create(
+                  campaignId: campaignId,
                   adventureId: adventureId,
                   name: query,
                   type: CreatureType.npc,
@@ -379,7 +382,10 @@ class _SuggestionList extends ConsumerWidget {
               title: Text('Criar local: "$query"'),
               onTap: () async {
                 final db = ref.read(hiveDatabaseProvider);
+                final adv = db.getAdventure(adventureId);
+                final campaignId = adv?.campaignId ?? adventureId;
                 final newLocation = Location.create(
+                  campaignId: campaignId,
                   adventureId: adventureId,
                   name: query,
                 );
@@ -445,7 +451,11 @@ class _SuggestionList extends ConsumerWidget {
               title: Text('Criar fato: "$query"'),
               onTap: () async {
                 final db = ref.read(hiveDatabaseProvider);
+                final adv = db.getAdventure(adventureId);
+                final campaignId = adv?.campaignId ?? adventureId;
+
                 final newFact = Fact.create(
+                  campaignId: campaignId,
                   adventureId: adventureId,
                   content: query,
                 );

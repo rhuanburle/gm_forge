@@ -116,6 +116,7 @@ class FactionsTab extends ConsumerWidget {
                             ),
                             onDelete: () =>
                                 _deleteFaction(context, ref, faction),
+                            adventureId: adventureId,
                           ),
                         ),
                       );
@@ -204,6 +205,7 @@ class FactionsTab extends ConsumerWidget {
         List.from(factionToEdit?.objectives ?? []);
     List<FactionDanger> dangers =
         List.from(factionToEdit?.dangers ?? []);
+    String? adventureIdForCreation = factionToEdit?.adventureId ?? adventureId;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -646,6 +648,22 @@ class FactionsTab extends ConsumerWidget {
                       );
                     }),
                   ],
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  SwitchListTile(
+                    title: const Text("Disponível em toda a Campanha?"),
+                    subtitle: const Text("Facções globais aparecem em todas as aventuras."),
+                    value: adventureIdForCreation == null,
+                    onChanged: (bool value) {
+                      setState(() {
+                        adventureIdForCreation = value ? null : adventureId;
+                      });
+                    },
+                    secondary: Icon(
+                      adventureIdForCreation == null ? Icons.public : Icons.push_pin,
+                      color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                    ),
+                  ),
                   ],
                 ),
               ),
@@ -698,7 +716,7 @@ class FactionsTab extends ConsumerWidget {
                   } else {
                     final faction = Faction.create(
                       campaignId: campaignId,
-                      adventureId: adventureId,
+                      adventureId: adventureIdForCreation,
                       name: nameController.text,
                       description: descController.text,
                       type: selectedType,
@@ -742,15 +760,17 @@ class FactionsTab extends ConsumerWidget {
   }
 }
 
-class _FactionListItem extends StatelessWidget {
+class _FactionListItem extends ConsumerWidget {
   final Faction faction;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final String adventureId;
 
   const _FactionListItem({
     required this.faction,
     required this.onEdit,
     required this.onDelete,
+    required this.adventureId,
   });
 
   Color _powerColor(FactionPower power) {
@@ -767,7 +787,7 @@ class _FactionListItem extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -796,12 +816,58 @@ class _FactionListItem extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        faction.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            faction.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (faction.adventureId == null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppTheme.primary.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: const Text(
+                                "CAMPANHA",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.textMuted.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                "LOCAL",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       if (faction.description.isNotEmpty)
                         Text(
@@ -816,6 +882,32 @@ class _FactionListItem extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (faction.adventureId != null)
+                  IconButton(
+                    icon: const Icon(Icons.drive_file_move_outlined),
+                    tooltip: "Promover para Campanha",
+                    onPressed: () async {
+                      final db = ref.read(hiveDatabaseProvider);
+                      final promoted = faction.copyWith(clearAdventureId: true);
+                      await db.saveFaction(promoted);
+
+                      ref.read(historyProvider.notifier).recordAction(
+                        HistoryAction(
+                          description: "Facção promovida para Campanha",
+                          onUndo: () async {
+                            await db.saveFaction(faction);
+                            ref.invalidate(factionsProvider(adventureId));
+                          },
+                          onRedo: () async {
+                            await db.saveFaction(promoted);
+                            ref.invalidate(factionsProvider(adventureId));
+                          },
+                        ),
+                      );
+
+                      ref.invalidate(factionsProvider(adventureId));
+                    },
+                  ),
                 IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: onEdit,

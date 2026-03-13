@@ -11,6 +11,7 @@ import '../widgets/campaign/pc_card.dart';
 import '../widgets/campaign/faction_card.dart';
 import '../widgets/campaign/lore_card.dart';
 import '../widgets/campaign/region_card.dart';
+import '../widgets/campaign/session_timeline.dart';
 
 class CampaignHubPage extends ConsumerStatefulWidget {
   final String campaignId;
@@ -61,6 +62,7 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
     final loreEntries = ref.watch(loreEntriesProvider(campaignId));
     final regions = ref.watch(regionsProvider(campaignId));
     final notes = ref.watch(notesProvider(campaignId));
+    final quickRules = ref.watch(quickRulesProvider(campaignId));
 
     return Scaffold(
       appBar: AppBar(
@@ -83,11 +85,16 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
               pcCount: pcs.length,
               factionCount: factions.length,
               loreCount: loreEntries.length,
+              quickRuleCount: quickRules.length,
             ),
             const SizedBox(height: 24),
 
             // Aventuras
             _buildAdventuresSection(context, adventures),
+            const SizedBox(height: 24),
+
+            // Timeline de Sessões
+            _buildSessionTimelineSection(context),
             const SizedBox(height: 24),
 
             // Personagens (PCs)
@@ -108,6 +115,10 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
 
             // Notas
             _buildNotesSection(context, notes),
+            const SizedBox(height: 24),
+
+            // Regras Rapidas
+            _buildQuickRulesSection(context, quickRules),
             const SizedBox(height: 32),
           ],
         ),
@@ -125,6 +136,7 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
     required int pcCount,
     required int factionCount,
     required int loreCount,
+    required int quickRuleCount,
   }) {
     final isCompact = screenSizeOf(context) == ScreenSize.compact;
     final cards = [
@@ -136,6 +148,8 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
           AppTheme.accent),
       _statCard(context, Icons.auto_stories, 'Lore', loreCount,
           AppTheme.info),
+      _statCard(context, Icons.gavel, 'Regras', quickRuleCount,
+          AppTheme.warning),
     ];
 
     if (isCompact) {
@@ -239,8 +253,39 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
   // Aventuras
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // Session Timeline
+  // ---------------------------------------------------------------------------
+
+  Widget _buildSessionTimelineSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.timeline, color: AppTheme.secondary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Histórico de Sessões',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+            ],
+          ),
+        ),
+        SessionTimeline(campaignId: campaignId),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Aventuras
+  // ---------------------------------------------------------------------------
+
   Widget _buildAdventuresSection(
       BuildContext context, List<Adventure> adventures) {
+    final scrollController = ScrollController();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -257,18 +302,24 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
           _emptyState(context, 'Nenhuma aventura vinculada a esta campanha.')
         else
           SizedBox(
-            height: 160,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: adventures.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final adventure = adventures[index];
-                return SizedBox(
-                  width: 220,
-                  child: _adventureMiniCard(context, adventure),
-                );
-              },
+            height: 180, // Increased slightly to accommodate scrollbar
+            child: Scrollbar(
+              controller: scrollController,
+              thumbVisibility: true,
+              child: ListView.separated(
+                controller: scrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(bottom: 16), // space for scrollbar
+                itemCount: adventures.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final adventure = adventures[index];
+                  return SizedBox(
+                    width: 220,
+                    child: _adventureMiniCard(context, adventure),
+                  );
+                },
+              ),
             ),
           ),
       ],
@@ -1443,6 +1494,153 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Regras Rapidas
+  // ---------------------------------------------------------------------------
+
+  Widget _buildQuickRulesSection(
+      BuildContext context, List<QuickRule> rules) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          context,
+          icon: Icons.gavel,
+          title: 'Regras Rápidas (Referência)',
+          onAdd: () => _showAddRuleDialog(context),
+        ),
+        if (rules.isEmpty)
+          _emptyState(context, 'Nenhuma regra de referência adicionada.')
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: rules.length,
+            itemBuilder: (context, index) {
+              final rule = rules[index];
+              return Card(
+                child: ListTile(
+                  dense: true,
+                  title: Text(rule.title),
+                  subtitle: Text(
+                    '${rule.category} • ${rule.content}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEditRuleDialog(context, rule);
+                      } else if (value == 'delete') {
+                        _confirmDelete(
+                          context,
+                          title: 'Excluir Regra',
+                          message: 'Deseja excluir "${rule.title}"?',
+                          onConfirm: () async {
+                            await ref
+                                .read(hiveDatabaseProvider)
+                                .deleteQuickRule(rule.id);
+                            ref.invalidate(quickRulesProvider(campaignId));
+                            _markUnsynced();
+                          },
+                        );
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Editar'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Excluir'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  void _showAddRuleDialog(BuildContext context) {
+    _showRuleFormDialog(context, null);
+  }
+
+  void _showEditRuleDialog(BuildContext context, QuickRule rule) {
+    _showRuleFormDialog(context, rule);
+  }
+
+  void _showRuleFormDialog(BuildContext context, QuickRule? rule) {
+    final titleController = TextEditingController(text: rule?.title);
+    final contentController = TextEditingController(text: rule?.content);
+    final categoryController = TextEditingController(text: rule?.category ?? 'Geral');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(rule == null ? 'Nova Regra' : 'Editar Regra'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Título'),
+              ),
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(
+                  labelText: 'Categoria',
+                  hintText: 'ex: Combate, Condições, DC',
+                ),
+              ),
+              TextField(
+                controller: contentController,
+                decoration: const InputDecoration(labelText: 'Conteúdo/Efeito'),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (titleController.text.isEmpty) return;
+              final db = ref.read(hiveDatabaseProvider);
+              if (rule == null) {
+                final newRule = QuickRule.create(
+                  campaignId: campaignId,
+                  title: titleController.text,
+                  content: contentController.text,
+                  category: categoryController.text,
+                );
+                await db.saveQuickRule(newRule);
+              } else {
+                final updated = rule.copyWith(
+                  title: titleController.text,
+                  content: contentController.text,
+                  category: categoryController.text,
+                );
+                await db.saveQuickRule(updated);
+              }
+              ref.invalidate(quickRulesProvider(campaignId));
+              _markUnsynced();
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
       ),
     );
   }

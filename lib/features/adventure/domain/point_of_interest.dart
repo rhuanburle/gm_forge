@@ -19,7 +19,8 @@ extension RoomPurposeExtension on RoomPurpose {
 
 class PointOfInterest {
   final String id;
-  final String adventureId;
+  final String campaignId;
+  final String? adventureId;
   final int number;
   final String name;
   final RoomPurpose purpose;
@@ -35,7 +36,8 @@ class PointOfInterest {
 
   const PointOfInterest({
     required this.id,
-    required this.adventureId,
+    required this.campaignId,
+    this.adventureId,
     required this.number,
     required this.name,
     this.purpose = RoomPurpose.narrative,
@@ -51,7 +53,8 @@ class PointOfInterest {
   });
 
   factory PointOfInterest.create({
-    required String adventureId,
+    required String campaignId,
+    String? adventureId,
     required int number,
     required String name,
     RoomPurpose purpose = RoomPurpose.narrative,
@@ -67,6 +70,7 @@ class PointOfInterest {
   }) {
     return PointOfInterest(
       id: const Uuid().v4(),
+      campaignId: campaignId,
       adventureId: adventureId,
       number: number,
       name: name,
@@ -85,6 +89,7 @@ class PointOfInterest {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'campaignId': campaignId,
     'adventureId': adventureId,
     'number': number,
     'name': name,
@@ -103,7 +108,8 @@ class PointOfInterest {
   factory PointOfInterest.fromJson(Map<String, dynamic> json) =>
       PointOfInterest(
         id: json['id'] as String,
-        adventureId: json['adventureId'] as String,
+        campaignId: json['campaignId'] as String? ?? json['adventureId'] as String,
+        adventureId: json['adventureId'] as String?,
         number: json['number'] as int,
         name: json['name'] as String,
         purpose: RoomPurpose.values[json['purpose'] as int],
@@ -132,10 +138,13 @@ class PointOfInterest {
     String? imagePath,
     String? locationId,
     bool? isVisited,
+    String? adventureId,
+    bool clearAdventureId = false,
   }) {
     return PointOfInterest(
       id: id,
-      adventureId: adventureId,
+      campaignId: campaignId,
+      adventureId: clearAdventureId ? null : (adventureId ?? this.adventureId),
       number: number ?? this.number,
       name: name ?? this.name,
       purpose: purpose ?? this.purpose,

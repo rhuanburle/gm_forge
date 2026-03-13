@@ -15,7 +15,8 @@ extension CreatureTypeExtension on CreatureType {
 
 class Creature {
   final String id;
-  final String adventureId;
+  final String campaignId;
+  final String? adventureId;
   final String name;
   final CreatureType type;
   final String description;
@@ -31,7 +32,8 @@ class Creature {
 
   const Creature({
     required this.id,
-    required this.adventureId,
+    required this.campaignId,
+    this.adventureId,
     required this.name,
     this.type = CreatureType.monster,
     required this.description,
@@ -44,7 +46,8 @@ class Creature {
   });
 
   factory Creature.create({
-    required String adventureId,
+    required String campaignId,
+    String? adventureId,
     required String name,
     CreatureType type = CreatureType.monster,
     required String description,
@@ -56,6 +59,7 @@ class Creature {
   }) {
     return Creature(
       id: const Uuid().v4(),
+      campaignId: campaignId,
       adventureId: adventureId,
       name: name,
       type: type,
@@ -70,6 +74,7 @@ class Creature {
 
   Map<String, dynamic> toJson() => {
     "id": id,
+    "campaignId": campaignId,
     "adventureId": adventureId,
     "name": name,
     "type": type.index,
@@ -83,7 +88,8 @@ class Creature {
 
   factory Creature.fromJson(Map<String, dynamic> json) => Creature(
     id: json["id"] as String,
-    adventureId: json["adventureId"] as String,
+    campaignId: json["campaignId"] as String? ?? json["adventureId"] as String, // Fallback for migration
+    adventureId: json["adventureId"] as String?,
     name: json["name"] as String,
     type: CreatureType.values[json["type"] as int? ?? 0],
     description: json["description"] as String,
@@ -98,6 +104,9 @@ class Creature {
   );
 
   Creature copyWith({
+    String? campaignId,
+    String? adventureId,
+    bool clearAdventureId = false,
     String? name,
     CreatureType? type,
     String? description,
@@ -109,7 +118,8 @@ class Creature {
   }) {
     return Creature(
       id: id,
-      adventureId: adventureId,
+      campaignId: campaignId ?? this.campaignId,
+      adventureId: clearAdventureId ? null : (adventureId ?? this.adventureId),
       name: name ?? this.name,
       type: type ?? this.type,
       description: description ?? this.description,

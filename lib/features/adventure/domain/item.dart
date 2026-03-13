@@ -42,7 +42,8 @@ extension ItemRarityExtension on ItemRarity {
 
 class Item {
   final String id;
-  final String adventureId;
+  final String campaignId;
+  final String? adventureId;
   final String name;
   final String description;
   final ItemType type;
@@ -53,7 +54,8 @@ class Item {
 
   const Item({
     required this.id,
-    required this.adventureId,
+    required this.campaignId,
+    this.adventureId,
     required this.name,
     this.description = '',
     this.type = ItemType.misc,
@@ -64,7 +66,8 @@ class Item {
   });
 
   factory Item.create({
-    required String adventureId,
+    required String campaignId,
+    String? adventureId,
     required String name,
     String description = '',
     ItemType type = ItemType.misc,
@@ -75,6 +78,7 @@ class Item {
   }) {
     return Item(
       id: const Uuid().v4(),
+      campaignId: campaignId,
       adventureId: adventureId,
       name: name,
       description: description,
@@ -88,6 +92,7 @@ class Item {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'campaignId': campaignId,
     'adventureId': adventureId,
     'name': name,
     'description': description,
@@ -100,7 +105,8 @@ class Item {
 
   factory Item.fromJson(Map<String, dynamic> json) => Item(
     id: json['id'] as String,
-    adventureId: json['adventureId'] as String,
+    campaignId: json["campaignId"] as String? ?? json["adventureId"] as String, // Fallback for migration
+    adventureId: json['adventureId'] as String?,
     name: json['name'] as String,
     description: json['description'] as String? ?? '',
     type: ItemType.values[json['type'] as int? ?? 5],
@@ -111,6 +117,9 @@ class Item {
   );
 
   Item copyWith({
+    String? campaignId,
+    String? adventureId,
+    bool clearAdventureId = false,
     String? name,
     String? description,
     ItemType? type,
@@ -123,7 +132,8 @@ class Item {
   }) {
     return Item(
       id: id,
-      adventureId: adventureId,
+      campaignId: campaignId ?? this.campaignId,
+      adventureId: clearAdventureId ? null : (adventureId ?? this.adventureId),
       name: name ?? this.name,
       description: description ?? this.description,
       type: type ?? this.type,

@@ -273,9 +273,12 @@ class _NpcKnowledgeDialogState extends ConsumerState<NpcKnowledgeDialog> {
     if (selectedFacts.isEmpty) return;
 
     final db = ref.read(hiveDatabaseProvider);
+    final adv = db.getAdventure(widget.adventureId);
+    final campaignId = adv?.campaignId ?? widget.adventureId;
 
     for (final fact in selectedFacts) {
       final domainFact = Fact.create(
+        campaignId: campaignId,
         adventureId: widget.adventureId,
         content: fact.content,
         sourceId: widget.creature.id,
