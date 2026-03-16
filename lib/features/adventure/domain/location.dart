@@ -72,6 +72,7 @@ class Location {
     String? name,
     String? description,
     String? imagePath,
+    bool clearImagePath = false,
     String? parentLocationId,
     List<String>? creatureIds,
     bool clearParent = false,
@@ -82,7 +83,7 @@ class Location {
       adventureId: clearAdventureId ? null : (adventureId ?? this.adventureId),
       name: name ?? this.name,
       description: description ?? this.description,
-      imagePath: imagePath ?? this.imagePath,
+      imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
       parentLocationId: clearParent
           ? null
           : (parentLocationId ?? this.parentLocationId),

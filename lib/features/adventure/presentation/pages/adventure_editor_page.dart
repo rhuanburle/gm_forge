@@ -104,6 +104,12 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
               tooltip: 'Refazer',
               onPressed: () => ref.read(historyProvider.notifier).redo(),
             ),
+          IconButton(
+            icon: const Icon(Icons.history_edu),
+            tooltip: 'Sessões',
+            onPressed: () =>
+                context.push('/adventure/${widget.adventureId}/sessions'),
+          ),
           CloudSyncButton(),
           IconButton(
             icon: Icon(

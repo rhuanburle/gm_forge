@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../application/adventure_providers.dart';
-import '../widgets/play_mode/location_navigator.dart';
 import '../../application/active_adventure_state.dart';
+import '../widgets/play_mode/location_navigator.dart';
 import '../../domain/domain.dart';
 import '../widgets/play_mode/scene_viewer.dart';
 import '../widgets/play_mode/dm_tools_sidebar.dart';
@@ -41,6 +41,63 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
       // Ignore if provider is already disposed or inaccessible
     }
     super.dispose();
+  }
+
+  Widget _buildSessionSelector() {
+    final sessions = ref.watch(sessionsProvider(widget.adventureId));
+    final activeState = ref.watch(activeAdventureProvider);
+    final activeSessionId = activeState.activeSessionId;
+
+    if (sessions.isEmpty) return const SizedBox.shrink();
+
+    final sorted = List<Session>.from(sessions)
+      ..sort((a, b) => b.number.compareTo(a.number));
+
+    return PopupMenuButton<String?>(
+      tooltip: 'Sessão ativa',
+      icon: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.history_edu,
+            color: activeSessionId != null
+                ? AppTheme.success
+                : AppTheme.textMuted,
+            size: 20,
+          ),
+          if (activeSessionId != null) ...[
+            const SizedBox(width: 4),
+            Text(
+              '#${sorted.firstWhere((s) => s.id == activeSessionId, orElse: () => sorted.first).number}',
+              style: const TextStyle(fontSize: 12, color: AppTheme.success),
+            ),
+          ],
+        ],
+      ),
+      onSelected: (sessionId) {
+        ref.read(activeAdventureProvider.notifier).setActiveSession(sessionId);
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem<String?>(
+          value: null,
+          child: Text('Nenhuma sessão', style: TextStyle(fontStyle: FontStyle.italic)),
+        ),
+        const PopupMenuDivider(),
+        ...sorted.map((s) => PopupMenuItem<String?>(
+          value: s.id,
+          child: Row(
+            children: [
+              if (s.id == activeSessionId)
+                const Icon(Icons.check, size: 16, color: AppTheme.success)
+              else
+                const SizedBox(width: 16),
+              const SizedBox(width: 8),
+              Text('Sessão #${s.number}: ${s.name}'),
+            ],
+          ),
+        )),
+      ],
+    );
   }
 
   void _loadAndInit() {
@@ -82,6 +139,7 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
           ),
         ),
         actions: [
+          _buildSessionSelector(),
           if (size == ScreenSize.medium)
             IconButton(
               icon: const Icon(Icons.menu_open),

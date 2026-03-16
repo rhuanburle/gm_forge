@@ -8,7 +8,6 @@ import '../../../../core/sync/sync_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/sync/unsynced_changes_provider.dart';
 import '../../application/adventure_providers.dart';
-import '../../domain/domain.dart';
 import '../controllers/dashboard_controller.dart';
 import '../widgets/dashboard/account_menu.dart';
 import '../widgets/dashboard/adventure_list.dart';
@@ -35,34 +34,65 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   void _checkInitialSync() {
     if (_hasSynced) return;
-
     final user = ref.read(currentUserProvider);
     if (user != null && !user.isAnonymous) {
       _performSync();
     }
   }
 
-  void _performSync() {
+  Future<void> _performSync() async {
     ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
-    ref
-        .read(syncServiceProvider)
-        .fullSync()
-        .then((_) {
-          if (mounted) {
-            ref.read(syncStatusProvider.notifier).state = SyncStatus.success;
-            ref.read(unsyncedChangesProvider.notifier).state = false;
-            ref.read(adventureListProvider.notifier).refresh();
-            ref.read(campaignListProvider.notifier).refresh();
-            setState(() {
-              _hasSynced = true;
-            });
-          }
-        })
-        .catchError((e) {
-          if (mounted) {
-            ref.read(syncStatusProvider.notifier).state = SyncStatus.error;
-          }
-        });
+    try {
+      await ref.read(syncServiceProvider).fullSync();
+      if (!mounted) return;
+      ref.read(syncStatusProvider.notifier).state = SyncStatus.success;
+      ref.read(unsyncedChangesProvider.notifier).state = false;
+      ref.read(adventureListProvider.notifier).refresh();
+      ref.read(campaignListProvider.notifier).refresh();
+      setState(() => _hasSynced = true);
+    } catch (e) {
+      if (!mounted) return;
+      ref.read(syncStatusProvider.notifier).state = SyncStatus.error;
+      _showSyncErrorDialog(e);
+    }
+  }
+
+  void _showSyncErrorDialog(Object error) {
+    final isNetwork = error.toString().toLowerCase().contains('network') ||
+        error.toString().toLowerCase().contains('unavailable') ||
+        error.toString().toLowerCase().contains('socket');
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.cloud_off, color: AppTheme.error),
+            SizedBox(width: 8),
+            Text('Erro de Sincronização'),
+          ],
+        ),
+        content: Text(
+          isNetwork
+              ? 'Sem conexão com a internet. Seus dados locais estão seguros.\n\nTente novamente quando estiver conectado.'
+              : 'Não foi possível sincronizar com a nuvem.\n\nDetalhe: ${error.toString().split('\n').first}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Continuar Offline'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Tentar Novamente'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _performSync();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -216,10 +246,7 @@ class _OverviewTab extends ConsumerWidget {
     final campaigns = ref.watch(campaignListProvider);
     final adventures = ref.watch(adventureListProvider);
 
-    // Recent activity: last 5 modified adventures sorted by updatedAt
-    final recentAdventures = List<Adventure>.from(adventures)
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    final last5 = recentAdventures.take(5).toList();
+    final last5 = ref.watch(recentAdventuresProvider);
 
     return RefreshIndicator(
       color: AppTheme.secondary,

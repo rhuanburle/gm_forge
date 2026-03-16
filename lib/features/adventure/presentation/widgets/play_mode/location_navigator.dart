@@ -8,6 +8,7 @@ import '../../../domain/domain.dart';
 import 'detail_row.dart';
 import 'creature_detail_dialog.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../../core/widgets/smart_network_image.dart';
 
 class LocationNavigator extends ConsumerStatefulWidget {
   final String adventureId;
@@ -148,16 +149,16 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
           ),
-          const TabBar(
+          TabBar(
             tabs: [
-              Tab(text: 'Locais'),
-              Tab(text: 'NPCs'),
-              Tab(text: 'Criaturas'),
-              Tab(text: 'Rumores'),
-              Tab(text: 'Eventos'),
-              Tab(text: 'Facções'),
-              Tab(text: 'Itens'),
-              Tab(text: 'Missões'),
+              _badgeTab('Locais', pois.length),
+              _badgeTab('NPCs', filteredCreatures.length),
+              _badgeTab('Criaturas', filteredMonsters.length),
+              _badgeTab('Rumores', mergedFacts.length),
+              _badgeTab('Eventos', filteredEvents.length),
+              _badgeTab('Facções', filteredFactions.length),
+              _badgeTab('Itens', filteredItems.length),
+              _badgeTab('Missões', filteredQuests.length),
             ],
             labelColor: AppTheme.primary,
             unselectedLabelColor: AppTheme.textMuted,
@@ -181,15 +182,48 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                         (p) => p.id == activeState.currentLocationId,
                       );
 
+                      final visitedCount = locationPois.where((p) => p.isVisited).length;
+
                       return ExpansionTile(
                         key: PageStorageKey('zone-${location.id}'),
                         initiallyExpanded:
                             hasActivePoi || _searchQuery.isNotEmpty,
                         leading: const Icon(Icons.map, size: 20),
-                        title: Text(
-                          location.name,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                location.name,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            if (locationPois.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: visitedCount == locationPois.length
+                                      ? AppTheme.success.withValues(alpha: 0.15)
+                                      : AppTheme.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: visitedCount == locationPois.length
+                                        ? AppTheme.success.withValues(alpha: 0.4)
+                                        : AppTheme.primary.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Text(
+                                  '$visitedCount/${locationPois.length}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: visitedCount == locationPois.length
+                                        ? AppTheme.success
+                                        : AppTheme.primary,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         subtitle: locationPois.isEmpty
                             ? const Text("Vazio")
@@ -234,7 +268,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                   itemBuilder: (context, index) {
                     final creature = filteredCreatures[index];
                     return ListTile(
-                      leading: const Icon(Icons.person, color: AppTheme.npc),
+                      leading: _creatureAvatar(creature, AppTheme.npc, Icons.person),
                       title: Text(creature.name),
                       subtitle: Text(
                         creature.description,
@@ -255,7 +289,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                   itemBuilder: (context, index) {
                     final creature = filteredMonsters[index];
                     return ListTile(
-                      leading: const Icon(Icons.pets, color: AppTheme.accent),
+                      leading: _creatureAvatar(creature, AppTheme.accent, Icons.pets),
                       title: Text(creature.name),
                       subtitle: Text(
                         creature.description,
@@ -911,6 +945,49 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
     );
   }
 
+  Widget _badgeTab(String label, int count) {
+    return Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          if (count > 0) ...[
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _creatureAvatar(Creature creature, Color fallbackColor, IconData fallbackIcon) {
+    if (creature.imagePath != null && creature.imagePath!.isNotEmpty) {
+      return ClipOval(
+        child: SmartNetworkImage(
+          imageUrl: creature.imagePath!,
+          width: 36,
+          height: 36,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: fallbackColor.withValues(alpha: 0.15),
+      child: Icon(fallbackIcon, size: 18, color: fallbackColor),
+    );
+  }
+
   Widget _buildPoiTile(PointOfInterest poi, ActiveAdventureState activeState) {
     final isSelected = activeState.currentLocationId == poi.id;
     return ListTile(
@@ -946,11 +1023,35 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
-      subtitle: Text(
-        poi.purpose.displayName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
+      subtitle: Wrap(
+        spacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            poi.purpose.displayName,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
+          ),
+          if (poi.creatureIds.isNotEmpty)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.pets,
+                  size: 12,
+                  color: AppTheme.combat.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  '${poi.creatureIds.length}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.combat.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       trailing: IconButton(
         icon: Icon(

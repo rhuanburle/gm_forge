@@ -136,6 +136,7 @@ class PointOfInterest {
     String? treasure,
     List<String>? creatureIds,
     String? imagePath,
+    bool clearImagePath = false,
     String? locationId,
     bool? isVisited,
     String? adventureId,
@@ -154,7 +155,7 @@ class PointOfInterest {
       connections: connections ?? this.connections,
       treasure: treasure ?? this.treasure,
       creatureIds: creatureIds ?? this.creatureIds,
-      imagePath: imagePath ?? this.imagePath,
+      imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
       locationId: locationId ?? this.locationId,
       isVisited: isVisited ?? this.isVisited,
     );

@@ -258,3 +258,13 @@ final campaignProvider = Provider.family<Campaign?, String>((ref, id) {
 final quickRulesProvider = Provider.family<List<QuickRule>, String>((ref, campaignId) {
   return ref.watch(hiveDatabaseProvider).getQuickRules(campaignId);
 });
+
+
+/// Pre-sorted view: most recently modified adventures first (max 5).
+/// Avoids sorting inside build() on every frame.
+final recentAdventuresProvider = Provider<List<Adventure>>((ref) {
+  final adventures = ref.watch(adventureListProvider);
+  final sorted = [...adventures]
+    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  return sorted.take(5).toList();
+});

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/widgets/smart_network_image.dart';
 import '../../../domain/player_character.dart';
 
 class PcCard extends StatelessWidget {
@@ -78,7 +79,18 @@ class PcCard extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
+    final hasImage = (pc.imageUrl ?? '').isNotEmpty;
     final initial = pc.name.isNotEmpty ? pc.name[0].toUpperCase() : '?';
+    if (hasImage) {
+      return ClipOval(
+        child: SmartNetworkImage(
+          imageUrl: pc.imageUrl!,
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
     return CircleAvatar(
       radius: 22,
       backgroundColor: AppTheme.primary,
@@ -195,6 +207,18 @@ class PcCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              if ((pc.imageUrl ?? '').isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.r8),
+                  child: SmartNetworkImage(
+                    imageUrl: pc.imageUrl!,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               if (pc.characterClass.isNotEmpty || pc.level > 0) ...[
                 _buildClassBadge(context),
                 const SizedBox(height: 8),

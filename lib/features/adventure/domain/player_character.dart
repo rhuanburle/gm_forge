@@ -99,6 +99,7 @@ class PlayerCharacter {
     String? criticalData,
     String? notes,
     String? imageUrl,
+    bool clearImageUrl = false,
     int? level,
   }) {
     return PlayerCharacter(
@@ -112,7 +113,7 @@ class PlayerCharacter {
       backstory: backstory ?? this.backstory,
       criticalData: criticalData ?? this.criticalData,
       notes: notes ?? this.notes,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
       level: level ?? this.level,
     );
   }

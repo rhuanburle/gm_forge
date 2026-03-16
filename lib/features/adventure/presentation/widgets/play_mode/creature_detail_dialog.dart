@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/widgets/smart_network_image.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../domain/domain.dart';
 import 'combat_tracker_panel.dart';
@@ -105,6 +106,21 @@ class CreatureDetailDialog extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Creature image
+              if (creature.imagePath != null && creature.imagePath!.isNotEmpty) ...[
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SmartNetworkImage(
+                      imageUrl: creature.imagePath!,
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               // Description
               if (creature.description.isNotEmpty) ...[
                 Text(

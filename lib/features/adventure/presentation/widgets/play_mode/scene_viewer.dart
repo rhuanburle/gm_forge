@@ -392,25 +392,62 @@ class _CreatureList extends ConsumerWidget {
                           creature: creature,
                           adventureId: adventureId,
                         ),
-                        child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                         children: [
-                          Text(
-                            creature.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              decoration: TextDecoration.underline,
-                              decorationStyle: TextDecorationStyle.dotted,
+                          if (creature.imagePath != null && creature.imagePath!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 10),
+                              child: ClipOval(
+                                child: SmartNetworkImage(
+                                  imageUrl: creature.imagePath!,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            )
+                          else
+                            Padding(
+                              padding: const EdgeInsets.only(right: 10),
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundColor: (creature.type == CreatureType.npc
+                                    ? AppTheme.npc
+                                    : AppTheme.accent).withValues(alpha: 0.15),
+                                child: Icon(
+                                  creature.type == CreatureType.npc
+                                      ? Icons.person
+                                      : Icons.pets,
+                                  size: 20,
+                                  color: creature.type == CreatureType.npc
+                                      ? AppTheme.npc
+                                      : AppTheme.accent,
+                                ),
+                              ),
                             ),
-                          ),
-                          Text(
-                            creature.type == CreatureType.monster
-                                ? 'Monstro'
-                                : 'NPC',
-                            style: TextStyle(
-                              color: AppTheme.textMuted,
-                              fontSize: 12,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  creature.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    decoration: TextDecoration.underline,
+                                    decorationStyle: TextDecorationStyle.dotted,
+                                  ),
+                                ),
+                                Text(
+                                  creature.type == CreatureType.monster
+                                      ? 'Monstro'
+                                      : 'NPC',
+                                  style: TextStyle(
+                                    color: AppTheme.textMuted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -477,6 +514,24 @@ class _CreatureList extends ConsumerWidget {
                   Text(
                     'Quer: ${creature.motivation}',
                     style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+                if (creature.losingBehavior.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.trending_down, size: 12, color: AppTheme.combat),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Ao perder: ${creature.losingBehavior}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.combat,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
                 _FactList(

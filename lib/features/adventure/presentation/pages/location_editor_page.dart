@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/ai/ai_prompts.dart';
+import '../../../../core/auth/auth_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../core/widgets/image_upload_field.dart';
 import '../../../../core/history/history_service.dart';
 import '../../application/adventure_providers.dart';
 import '../../application/link_service.dart';
@@ -27,22 +29,21 @@ class LocationEditorPage extends ConsumerStatefulWidget {
 class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
   late TextEditingController _nameController;
   late TextEditingController _descController;
-  late TextEditingController _imageController;
   String? _loadedLocationId;
+  String? _imageUrl;
+  bool _imageWasCleared = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
     _descController = TextEditingController();
-    _imageController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _imageController.dispose();
     super.dispose();
   }
 
@@ -68,7 +69,8 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
       _loadedLocationId = location.id;
       _nameController.text = location.name;
       _descController.text = location.description;
-      _imageController.text = location.imagePath ?? '';
+      _imageUrl = location.imagePath;
+      _imageWasCleared = false;
     }
 
     // Filter POIs for this location
@@ -118,14 +120,21 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
               aiContext: {'locationName': _nameController.text},
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _imageController,
-              decoration: const InputDecoration(
-                labelText: 'URL da Imagem (Opcional)',
-                hintText: 'https://...',
-                prefixIcon: Icon(Icons.image),
-              ),
-              onChanged: (_) => _markUnsynced(),
+            ImageUploadField(
+              preset: ImageCompressPreset.location,
+              currentImageUrl: _imageUrl,
+              storagePath:
+                  'images/${ref.read(authServiceProvider).currentUser?.uid ?? 'guest'}/locations/${widget.locationId}',
+              label: 'Imagem do Local (Opcional)',
+              placeholderIcon: Icons.place,
+              height: 180,
+              onChanged: (url) {
+                setState(() {
+                  _imageUrl = url;
+                  _imageWasCleared = url == null;
+                });
+                _markUnsynced();
+              },
             ),
             const SizedBox(height: 16),
             const Divider(),
@@ -334,7 +343,8 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
     final updatedLocation = location.copyWith(
       name: _nameController.text,
       description: _descController.text,
-      imagePath: _imageController.text,
+      imagePath: _imageUrl,
+      clearImagePath: _imageWasCleared,
     );
 
     final db = ref.read(hiveDatabaseProvider);

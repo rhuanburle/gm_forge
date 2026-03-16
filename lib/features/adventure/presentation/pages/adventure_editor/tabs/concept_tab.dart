@@ -5,7 +5,7 @@ import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/utils/debouncer.dart';
 import '../../../../../../core/auth/auth_service.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
-import '../../../../../../core/widgets/smart_network_image.dart';
+import '../../../../../../core/widgets/image_upload_field.dart';
 import '../../../../application/adventure_providers.dart';
 import '../../../../domain/domain.dart';
 import '../../../widgets/smart_text_field.dart';
@@ -27,8 +27,8 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
   late TextEditingController _conflictController;
   late TextEditingController _nextHintController;
   late TextEditingController _tagsController;
-  late TextEditingController _dungeonMapController;
   String? _selectedCampaignId;
+  String? _dungeonMapUrl;
 
   // Controllers for secondary conflicts
   final List<TextEditingController> _secondaryConflictControllers = [];
@@ -50,9 +50,7 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
     _tagsController = TextEditingController(
       text: widget.adventure.tags.join(', '),
     );
-    _dungeonMapController = TextEditingController(
-      text: widget.adventure.dungeonMapPath,
-    );
+    _dungeonMapUrl = widget.adventure.dungeonMapPath;
     _selectedCampaignId = widget.adventure.campaignId;
 
     // Initialize secondary conflicts
@@ -68,7 +66,6 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
     _conflictController.addListener(_onFieldChanged);
     _nextHintController.addListener(_onFieldChanged);
     _tagsController.addListener(_onFieldChanged);
-    _dungeonMapController.addListener(_onFieldChanged);
   }
 
   @override
@@ -80,7 +77,6 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
     _conflictController.dispose();
     _nextHintController.dispose();
     _tagsController.dispose();
-    _dungeonMapController.dispose();
     for (final ctrl in _secondaryConflictControllers) {
       ctrl.dispose();
     }
@@ -119,9 +115,7 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
       conceptWhat: _whatController.text,
       conceptConflict: _conflictController.text,
       nextAdventureHint: _nextHintController.text,
-      dungeonMapPath: _dungeonMapController.text.isEmpty
-          ? null
-          : _dungeonMapController.text,
+      dungeonMapPath: (_dungeonMapUrl ?? '').isEmpty ? null : _dungeonMapUrl,
       campaignId: _selectedCampaignId,
       clearCampaignId: _selectedCampaignId == null,
       tags: _tagsController.text
@@ -403,27 +397,20 @@ class _ConceptTabState extends ConsumerState<ConceptTab> {
                   'Imagem do mapa completo (onde cada Local individual é uma sala).',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _dungeonMapController,
-                  decoration: const InputDecoration(
-                    labelText: 'URL ou Caminho da Imagem',
-                    hintText: 'https://exemplo.com/mapa-masmorra.png',
-                    prefixIcon: Icon(Icons.map),
-                    border: OutlineInputBorder(),
-                  ),
+                const SizedBox(height: 16),
+                ImageUploadField(
+                  preset: ImageCompressPreset.map,
+                  currentImageUrl: _dungeonMapUrl,
+                  storagePath:
+                      'images/${ref.read(authServiceProvider).currentUser?.uid ?? 'guest'}/adventures/${widget.adventure.id}/maps',
+                  label: 'Mapa da Masmorra',
+                  placeholderIcon: Icons.map,
+                  height: 220,
+                  onChanged: (url) {
+                    setState(() => _dungeonMapUrl = url);
+                    _onFieldChanged();
+                  },
                 ),
-                if (_dungeonMapController.text.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SmartNetworkImage(
-                      imageUrl: _dungeonMapController.text,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

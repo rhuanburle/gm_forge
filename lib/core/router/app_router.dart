@@ -10,6 +10,8 @@ import '../../features/adventure/presentation/pages/location_editor_page.dart';
 import '../../features/adventure/presentation/pages/adventure_play_page.dart';
 import '../../features/adventure/presentation/pages/campaign_hub_page.dart';
 import '../../features/adventure/presentation/pages/session_prep_page.dart';
+import '../../features/adventure/presentation/pages/session_list_page.dart';
+import '../../features/public/presentation/pages/public_campaign_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 
 CustomTransitionPage<void> _fadeTransition(GoRouterState state, Widget child) {
@@ -30,6 +32,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     redirect: (context, state) {
       final isLoggingIn = state.matchedLocation == '/login';
+      final isPublicRoute = state.matchedLocation.startsWith('/p/');
+
+      // Public pages bypass authentication
+      if (isPublicRoute) return null;
 
       if (!isLoggedIn && !isLoggingIn) {
         return '/login';
@@ -84,6 +90,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/adventure/:id/sessions',
+        pageBuilder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return _fadeTransition(state, SessionListPage(adventureId: id));
+        },
+      ),
+      GoRoute(
         path: '/adventure/:id/session/new',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id'] ?? '';
@@ -98,6 +111,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return _fadeTransition(
             state,
             SessionPrepPage(adventureId: id, sessionId: sessionId),
+          );
+        },
+      ),
+      // Public pages (no auth required)
+      GoRoute(
+        path: '/p/:shareId',
+        pageBuilder: (context, state) {
+          final shareId = state.pathParameters['shareId'] ?? '';
+          return _fadeTransition(
+            state,
+            PublicCampaignPage(shareId: shareId),
           );
         },
       ),

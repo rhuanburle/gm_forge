@@ -118,6 +118,7 @@ class Adventure {
     bool clearCampaignId = false,
     String? nextAdventureHint,
     String? dungeonMapPath,
+    bool clearDungeonMapPath = false,
     String? sessionNotes,
     Map<String, String>? locationNotes,
     DateTime? updatedAt,
@@ -135,7 +136,7 @@ class Adventure {
     tags: tags ?? this.tags,
     campaignId: clearCampaignId ? null : (campaignId ?? this.campaignId),
     nextAdventureHint: nextAdventureHint ?? this.nextAdventureHint,
-    dungeonMapPath: dungeonMapPath ?? this.dungeonMapPath,
+    dungeonMapPath: clearDungeonMapPath ? null : (dungeonMapPath ?? this.dungeonMapPath),
     sessionNotes: sessionNotes ?? this.sessionNotes,
     locationNotes: locationNotes ?? this.locationNotes,
   );

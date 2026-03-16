@@ -50,13 +50,30 @@ class CloudSyncButton extends ConsumerWidget {
               ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
               try {
                 await ref.read(syncServiceProvider).fullSync();
-                ref.read(syncStatusProvider.notifier).state =
-                    SyncStatus.success;
+                ref.read(syncStatusProvider.notifier).state = SyncStatus.success;
                 ref.read(unsyncedChangesProvider.notifier).state = false;
                 ref.read(adventureListProvider.notifier).refresh();
                 ref.read(campaignListProvider.notifier).refresh();
               } catch (e) {
                 ref.read(syncStatusProvider.notifier).state = SyncStatus.error;
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Erro ao sincronizar: ${e.toString().split('\n').first}',
+                      ),
+                      backgroundColor: AppTheme.error,
+                      action: SnackBarAction(
+                        label: 'Tentar novamente',
+                        textColor: Colors.white,
+                        onPressed: () {
+                          ref.read(syncStatusProvider.notifier).state =
+                              SyncStatus.idle;
+                        },
+                      ),
+                    ),
+                  );
+                }
               }
             },
     );

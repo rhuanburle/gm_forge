@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../../core/ai/ai_providers.dart';
+import '../../../application/active_adventure_state.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../application/session_export_service.dart';
 import '../../../domain/domain.dart';
@@ -38,11 +39,13 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
     if (text.isEmpty) return;
 
     final db = ref.read(hiveDatabaseProvider);
+    final activeSessionId = ref.read(activeAdventureProvider).activeSessionId;
     final entry = SessionEntry.create(
       adventureId: widget.adventureId,
       text: text,
       entryType: _selectedType,
       turnLabel: _turnController.text.trim(),
+      sessionId: activeSessionId,
     );
 
     await db.saveSessionEntry(entry);

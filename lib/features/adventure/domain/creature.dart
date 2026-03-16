@@ -115,6 +115,7 @@ class Creature {
     List<String>? locationIds,
     String? stats,
     String? imagePath,
+    bool clearImagePath = false,
   }) {
     return Creature(
       id: id,
@@ -127,7 +128,7 @@ class Creature {
       losingBehavior: losingBehavior ?? this.losingBehavior,
       locationIds: locationIds ?? this.locationIds,
       stats: stats ?? this.stats,
-      imagePath: imagePath ?? this.imagePath,
+      imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
     );
   }
 }

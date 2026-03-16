@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -21,9 +22,7 @@ class SmartNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl.isEmpty) {
-      return _buildPlaceholder();
-    }
+    if (imageUrl.isEmpty) return _buildPlaceholder();
 
     if (imageUrl.startsWith('assets/')) {
       return Image.asset(
@@ -31,29 +30,31 @@ class SmartNetworkImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        errorBuilder: (context, error, stack) => _buildPlaceholder(),
       );
     }
 
-    return Image.network(
-      imageUrl,
+    // Use CachedNetworkImage for persistent disk cache (not available on web,
+    // but the package gracefully falls back to a memory-only cache there).
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
       width: width,
       height: height,
       fit: fit,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Center(
-          child: CircularProgressIndicator(
-            value: loadingProgress.expectedTotalBytes != null
-                ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
-                : null,
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return _buildErrorWidget(context);
-      },
+      placeholder: (context, url) => _buildLoading(),
+      errorWidget: (context, url, error) => _buildErrorWidget(context),
+      // Limit decoded size to save memory on large images
+      memCacheWidth: width?.toInt(),
+      memCacheHeight: height?.toInt(),
+    );
+  }
+
+  Widget _buildLoading() {
+    return Container(
+      width: width,
+      height: height,
+      color: AppTheme.surfaceLight,
+      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
     );
   }
 
@@ -63,10 +64,7 @@ class SmartNetworkImage extends StatelessWidget {
           width: width,
           height: height,
           color: AppTheme.surfaceLight,
-          child: const Icon(
-            Icons.image_not_supported,
-            color: AppTheme.textMuted,
-          ),
+          child: const Icon(Icons.image_not_supported, color: AppTheme.textMuted),
         );
   }
 
@@ -85,7 +83,7 @@ class SmartNetworkImage extends StatelessWidget {
             if (kIsWeb) ...[
               const SizedBox(height: 8),
               const Text(
-                'Erro de CORS no Web',
+                'Erro ao carregar imagem',
                 style: TextStyle(fontSize: 10, color: AppTheme.textSecondary),
                 textAlign: TextAlign.center,
               ),
@@ -93,13 +91,8 @@ class SmartNetworkImage extends StatelessWidget {
               TextButton.icon(
                 onPressed: () => launchUrl(Uri.parse(imageUrl)),
                 icon: const Icon(Icons.open_in_new, size: 14),
-                label: const Text(
-                  'Abrir imagem',
-                  style: TextStyle(fontSize: 10),
-                ),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
+                label: const Text('Abrir imagem', style: TextStyle(fontSize: 10)),
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
               ),
             ] else ...[
               const SizedBox(height: 4),

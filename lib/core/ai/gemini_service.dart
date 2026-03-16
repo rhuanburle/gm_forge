@@ -1,6 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'ai_prompts.dart';
+
+class TimeoutException implements Exception {
+  @override
+  String toString() => 'A IA demorou muito para responder. Tente novamente.';
+}
 
 class GeminiService {
   final String _apiKey;
@@ -76,12 +82,14 @@ class GeminiService {
     return await _generate(prompt);
   }
 
+  static const _timeout = Duration(seconds: 45);
+
   /// Generates structured JSON output from a prompt.
   /// Returns parsed Map from the JSON response.
   Future<Map<String, dynamic>> generateStructured(String prompt) async {
-    final response = await _structuredModel.generateContent([
-      Content.text(prompt),
-    ]);
+    final response = await _structuredModel
+        .generateContent([Content.text(prompt)])
+        .timeout(_timeout, onTimeout: () => throw TimeoutException());
 
     final text = _extractText(response);
     try {
@@ -93,12 +101,16 @@ class GeminiService {
 
   /// Generates longer text content (up to 4096 tokens).
   Future<String> generateLongText(String prompt) async {
-    final response = await _longModel.generateContent([Content.text(prompt)]);
+    final response = await _longModel
+        .generateContent([Content.text(prompt)])
+        .timeout(_timeout, onTimeout: () => throw TimeoutException());
     return _extractText(response);
   }
 
   Future<String> _generate(String prompt) async {
-    final response = await _model.generateContent([Content.text(prompt)]);
+    final response = await _model
+        .generateContent([Content.text(prompt)])
+        .timeout(_timeout, onTimeout: () => throw TimeoutException());
     return _extractText(response);
   }
 

@@ -68,7 +68,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
           children: [
             const Icon(Icons.casino, color: AppTheme.warning),
             const SizedBox(width: 8),
-            Text('Evento Aleatório: $d1$d2'),
+            Expanded(child: Text('Evento Aleatório: $d1$d2')),
           ],
         ),
         content: found != null
@@ -273,6 +273,23 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
     Adventure adventure,
     ActiveAdventureState activeState,
   ) {
+    final pois = ref.watch(pointsOfInterestProvider(widget.adventureId));
+    final creatures = ref.watch(creaturesProvider(widget.adventureId));
+    final facts = ref.watch(factsProvider(widget.adventureId));
+
+    // Current location info
+    PointOfInterest? currentPoi;
+    if (activeState.currentLocationId != null) {
+      currentPoi = pois
+          .where((p) => p.id == activeState.currentLocationId)
+          .firstOrNull;
+    }
+
+    // Fact tracking
+    final totalFacts = facts.length;
+    final revealedCount = facts.where((f) => activeState.revealedFacts.contains(f.id)).length;
+    final secretFacts = facts.where((f) => f.isSecret).length;
+
     return Scrollbar(
       controller: _scrollController,
       thumbVisibility: true,
@@ -283,13 +300,27 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
             // Dice roller
             const DiceRollerPanel(),
 
+            // Current scene quick reference
+            if (currentPoi != null) ...[
+              _buildCurrentSceneCard(context, currentPoi, creatures, activeState),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+            ],
+
+            // Fact/Discovery tracker
+            if (totalFacts > 0) ...[
+              _buildFactTracker(context, totalFacts, revealedCount, secretFacts),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+            ],
+
             // Adventure concept (always expanded for quick reference)
             if (adventure.conceptWhat.isNotEmpty ||
                 adventure.conceptConflict.isNotEmpty) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.symmetric(horizontal: 12),
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppTheme.primary.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
@@ -346,10 +377,53 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                         ],
                       ),
                     ],
+                    // Secondary conflicts
+                    if (adventure.conceptSecondaryConflicts.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ...adventure.conceptSecondaryConflicts.map((c) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.subdirectory_arrow_right, size: 12,
+                                color: AppTheme.textMuted.withValues(alpha: 0.6)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                c,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(fontSize: 10, color: AppTheme.textMuted),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                    ],
+                    // Narrative hook
+                    if ((adventure.nextAdventureHint ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.link, size: 12, color: AppTheme.discovery),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              adventure.nextAdventureHint!,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    fontSize: 10,
+                                    fontStyle: FontStyle.italic,
+                                    color: AppTheme.discovery,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
               const Divider(height: 1),
             ],
             if (adventure.campaignId != null) ...[
@@ -361,5 +435,195 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
         ),
       ),
     );
+  }
+
+  /// Quick reference card showing the current scene's creatures and purpose
+  Widget _buildCurrentSceneCard(
+    BuildContext context,
+    PointOfInterest poi,
+    List<Creature> allCreatures,
+    ActiveAdventureState activeState,
+  ) {
+    final sceneCreatures = allCreatures
+        .where((c) => poi.creatureIds.contains(c.id))
+        .toList();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.secondary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.secondary.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.place, size: 14, color: AppTheme.secondary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '#${poi.number} ${poi.name}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.secondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppTheme.textMuted.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  poi.purpose.displayName,
+                  style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                ),
+              ),
+            ],
+          ),
+          if (sceneCreatures.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...sceneCreatures.map((c) {
+              final maxHp = _parseHp(c.stats);
+              final currentHp = activeState.monsterHp[c.id] ?? maxHp;
+              final hpRatio = maxHp > 0 ? currentHp / maxHp : 1.0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      c.type == CreatureType.npc ? Icons.person : Icons.pets,
+                      size: 12,
+                      color: c.type == CreatureType.npc ? AppTheme.npc : AppTheme.accent,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        c.name,
+                        style: const TextStyle(fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (c.type == CreatureType.monster) ...[
+                      SizedBox(
+                        width: 40,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(2),
+                          child: LinearProgressIndicator(
+                            value: hpRatio.clamp(0.0, 1.0),
+                            minHeight: 4,
+                            backgroundColor: AppTheme.textMuted.withValues(alpha: 0.15),
+                            color: hpRatio > 0.5
+                                ? AppTheme.success
+                                : hpRatio > 0.25
+                                    ? AppTheme.warning
+                                    : AppTheme.error,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$currentHp',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: hpRatio > 0.5
+                              ? AppTheme.success
+                              : hpRatio > 0.25
+                                  ? AppTheme.warning
+                                  : AppTheme.error,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
+          ],
+          if (poi.connections.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.alt_route, size: 10, color: AppTheme.textMuted.withValues(alpha: 0.6)),
+                const SizedBox(width: 4),
+                Text(
+                  'Saídas: ${poi.connections.join(", ")}',
+                  style: TextStyle(fontSize: 9, color: AppTheme.textMuted.withValues(alpha: 0.7)),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Tracker showing how many facts have been revealed to players
+  Widget _buildFactTracker(BuildContext context, int total, int revealed, int secrets) {
+    final progress = total > 0 ? revealed / total : 0.0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.visibility, size: 14, color: AppTheme.discovery),
+              const SizedBox(width: 6),
+              const Text(
+                'Revelações',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.discovery,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$revealed/$total revelados',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: AppTheme.textMuted.withValues(alpha: 0.7),
+                ),
+              ),
+              if (secrets > 0) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.lock, size: 10, color: AppTheme.combat.withValues(alpha: 0.6)),
+                const SizedBox(width: 2),
+                Text(
+                  '$secrets',
+                  style: TextStyle(fontSize: 10, color: AppTheme.combat.withValues(alpha: 0.6)),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 4,
+              backgroundColor: AppTheme.textMuted.withValues(alpha: 0.12),
+              color: AppTheme.discovery,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _parseHp(String stats) {
+    final regex = RegExp(r'(?:HP|PV|Vida)[: ]\s*(\d+)', caseSensitive: false);
+    final match = regex.firstMatch(stats);
+    return match != null ? (int.tryParse(match.group(1) ?? '') ?? 10) : 10;
   }
 }

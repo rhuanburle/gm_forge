@@ -13,6 +13,8 @@ class ActiveAdventureState {
   final SceneLens currentLens;
   /// Session-scoped GM notes per location (locationId -> note text)
   final Map<String, String> locationNotes;
+  /// Currently active session ID (links session log entries to a session)
+  final String? activeSessionId;
 
   const ActiveAdventureState({
     this.adventureId,
@@ -23,6 +25,7 @@ class ActiveAdventureState {
     this.eventLog = const [],
     this.currentLens = SceneLens.narrative,
     this.locationNotes = const {},
+    this.activeSessionId,
   });
 
   ActiveAdventureState copyWith({
@@ -34,6 +37,8 @@ class ActiveAdventureState {
     List<String>? eventLog,
     SceneLens? currentLens,
     Map<String, String>? locationNotes,
+    String? activeSessionId,
+    bool clearActiveSessionId = false,
   }) {
     return ActiveAdventureState(
       adventureId: adventureId ?? this.adventureId,
@@ -44,6 +49,7 @@ class ActiveAdventureState {
       eventLog: eventLog ?? this.eventLog,
       currentLens: currentLens ?? this.currentLens,
       locationNotes: locationNotes ?? this.locationNotes,
+      activeSessionId: clearActiveSessionId ? null : (activeSessionId ?? this.activeSessionId),
     );
   }
 
@@ -57,6 +63,7 @@ class ActiveAdventureState {
     'eventLog': eventLog,
     'currentLens': currentLens.index,
     'locationNotes': locationNotes,
+    'activeSessionId': activeSessionId,
   };
 
   /// Deserialize from JSON
@@ -85,6 +92,7 @@ class ActiveAdventureState {
           (json['locationNotes'] as Map<dynamic, dynamic>?)
               ?.cast<String, String>() ??
           const {},
+      activeSessionId: json['activeSessionId'] as String?,
     );
   }
 }
@@ -171,6 +179,15 @@ class ActiveAdventureNotifier extends Notifier<ActiveAdventureState> {
       notes[locationId] = note;
     }
     state = state.copyWith(locationNotes: notes);
+    _persist();
+  }
+
+  void setActiveSession(String? sessionId) {
+    if (sessionId == null) {
+      state = state.copyWith(clearActiveSessionId: true);
+    } else {
+      state = state.copyWith(activeSessionId: sessionId);
+    }
     _persist();
   }
 

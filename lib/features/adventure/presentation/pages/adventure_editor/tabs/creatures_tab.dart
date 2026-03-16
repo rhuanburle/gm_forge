@@ -2,14 +2,17 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../../../../core/ai/ai_prompts.dart";
 import "../../../../../../core/ai/ai_providers.dart";
+import '../../../../../../core/auth/auth_service.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../../../core/history/history_service.dart';
+import '../../../../../../core/widgets/image_upload_field.dart';
 import '../../../../application/adventure_providers.dart';
 import "../../../../domain/domain.dart";
 import "../../../widgets/npc_knowledge_dialog.dart";
 import "../../../widgets/smart_text_field.dart";
 import '../../../../../../core/widgets/animated_list_item.dart';
+import '../../../../../../core/widgets/smart_network_image.dart';
 import "../widgets/section_header.dart";
 
 class CreaturesTab extends ConsumerWidget {
@@ -219,6 +222,7 @@ class CreaturesTab extends ConsumerWidget {
 
     CreatureType selectedType = creatureToEdit?.type ?? CreatureType.monster;
     String? adventureIdForCreation = creatureToEdit?.adventureId ?? adventureId;
+    String? imageUrl = creatureToEdit?.imagePath;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -232,6 +236,20 @@ class CreaturesTab extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Center(
+                    child: ImageUploadField(
+                      isCircular: true,
+                      preset: ImageCompressPreset.avatar,
+                      currentImageUrl: imageUrl,
+                      storagePath:
+                          'images/${ref.read(authServiceProvider).currentUser?.uid ?? 'guest'}/creatures',
+                      placeholderIcon: selectedType == CreatureType.npc
+                          ? Icons.person
+                          : Icons.pest_control,
+                      onChanged: (url) => setState(() => imageUrl = url),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   SegmentedButton<CreatureType>(
                   segments: const [
                     ButtonSegment(
@@ -354,6 +372,8 @@ class CreaturesTab extends ConsumerWidget {
                       losingBehavior: losingBehaviorController.text,
                       adventureId: adventureIdForCreation,
                       clearAdventureId: adventureIdForCreation == null,
+                      imagePath: imageUrl,
+                      clearImagePath: imageUrl == null,
                     );
                     await db.saveCreature(updatedCreature);
 
@@ -385,6 +405,7 @@ class CreaturesTab extends ConsumerWidget {
                       type: selectedType,
                       motivation: motivationController.text,
                       losingBehavior: losingBehaviorController.text,
+                      imagePath: imageUrl,
                     );
                     await db.saveCreature(creature);
 
@@ -452,19 +473,30 @@ class _CreatureListItem extends ConsumerWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: creature.type == CreatureType.npc
-                      ? AppTheme.npc.withValues(alpha: 0.2)
-                      : AppTheme.accent.withValues(alpha: 0.2),
-                  child: Icon(
-                    creature.type == CreatureType.npc
-                        ? Icons.person
-                        : Icons.pets,
-                    color: creature.type == CreatureType.npc
-                        ? AppTheme.npc
-                        : AppTheme.accent,
+                if (creature.imagePath != null && creature.imagePath!.isNotEmpty)
+                  ClipOval(
+                    child: SmartNetworkImage(
+                      imageUrl: creature.imagePath!,
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                else
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: creature.type == CreatureType.npc
+                        ? AppTheme.npc.withValues(alpha: 0.2)
+                        : AppTheme.accent.withValues(alpha: 0.2),
+                    child: Icon(
+                      creature.type == CreatureType.npc
+                          ? Icons.person
+                          : Icons.pets,
+                      color: creature.type == CreatureType.npc
+                          ? AppTheme.npc
+                          : AppTheme.accent,
+                    ),
                   ),
-                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

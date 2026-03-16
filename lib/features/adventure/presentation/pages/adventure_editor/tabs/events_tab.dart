@@ -143,7 +143,13 @@ class EventsTab extends ConsumerWidget {
                           ),
                           title: Row(
                             children: [
-                              Text(event.description),
+                              Expanded(
+                                child: Text(
+                                  event.description,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                               const SizedBox(width: 8),
                               if (event.adventureId == null)
                                 Container(
@@ -154,9 +160,6 @@ class EventsTab extends ConsumerWidget {
                                   decoration: BoxDecoration(
                                     color: AppTheme.primary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: AppTheme.primary.withValues(alpha: 0.3),
-                                    ),
                                   ),
                                   child: const Text(
                                     "CAMPANHA",
@@ -164,25 +167,6 @@ class EventsTab extends ConsumerWidget {
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       color: AppTheme.primary,
-                                    ),
-                                  ),
-                                )
-                              else
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.textMuted.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    "LOCAL",
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.textMuted,
                                     ),
                                   ),
                                 ),

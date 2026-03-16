@@ -173,8 +173,10 @@ class HiveDatabase {
       }
 
       await _settings.put('migration_v2_bidirectional_links', true);
-    } catch (_) {
+    } catch (e, stack) {
       // Migration is best-effort; never block app startup
+      // ignore: avoid_print
+      print('[HiveDB] Migration v2 failed (non-fatal): $e\n$stack');
     }
   }
 
@@ -225,8 +227,10 @@ class HiveDatabase {
       }
 
       await _settings.put('migration_v3_campaign_id_population', true);
-    } catch (_) {
-      // Migration is best-effort
+    } catch (e, stack) {
+      // Migration is best-effort; never block app startup
+      // ignore: avoid_print
+      print('[HiveDB] Migration v3 failed (non-fatal): $e\n$stack');
     }
   }
 
@@ -237,6 +241,12 @@ class HiveDatabase {
 
   Future<void> setGuestMode(bool value) async {
     await _settings.put('isGuestMode', value);
+  }
+
+  String? getMetaValue(String key) => _settings.get(key) as String?;
+
+  Future<void> setMetaValue(String key, String value) async {
+    await _settings.put(key, value);
   }
 
   Box<Map> get _campaigns => Hive.box<Map>(_campaignsBox);
@@ -509,6 +519,7 @@ class HiveDatabase {
     if (poiData != null) {
       final data = Map<String, dynamic>.from(poiData);
       final adventureId = data['adventureId'] as String?;
+      final poiNumber = data['number'] as int?;
       final creatureIds =
           (data['creatureIds'] as List<dynamic>?)?.cast<String>() ?? [];
       if (adventureId != null) {
@@ -526,6 +537,21 @@ class HiveDatabase {
                     .toList(),
               ),
             );
+          }
+        }
+        // Remove this POI's number from sibling POIs' connections
+        if (poiNumber != null) {
+          final siblingPois = getPointsOfInterest(adventureId);
+          for (final sibling in siblingPois) {
+            if (sibling.id != id && sibling.connections.contains(poiNumber)) {
+              await savePointOfInterest(
+                sibling.copyWith(
+                  connections: sibling.connections
+                      .where((n) => n != poiNumber)
+                      .toList(),
+                ),
+              );
+            }
           }
         }
       }

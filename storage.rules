@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Helper functions ────────────────────────────────────────────────────
+
+    function isAuthed() {
+      return request.auth != null
+        && !request.auth.token.firebase.sign_in_provider.matches('anonymous');
+    }
+
+    function isOwner(uid) {
+      return isAuthed() && request.auth.uid == uid;
+    }
+
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < 10 * 1024 * 1024; // Max 10MB per image
+    }
+
+    // ── User images: images/{uid}/** ────────────────────────────────────────
+    match /images/{uid}/{allPaths=**} {
+      // User can read their own images
+      allow read: if isOwner(uid);
+
+      // User can upload images (max 10MB, must be image type)
+      allow create: if isOwner(uid) && isValidImage();
+
+      // User can replace or delete their own images
+      allow update, delete: if isOwner(uid);
+    }
+
+    // Deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

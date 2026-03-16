@@ -128,6 +128,8 @@ class SyncService {
     final regions = _hiveDb.getRegions(campaignId);
     final campaignFactions = _hiveDb.getFactions(campaignId);
     final quickRules = _hiveDb.getQuickRules(campaignId);
+    final campaignItems = _hiveDb.getCampaignItems(campaignId);
+    final campaignCreatures = _hiveDb.getCampaignCreatures(campaignId);
 
     await _campaignsRef.doc(campaignId).set({
       'campaign': campaign.toJson(),
@@ -138,6 +140,8 @@ class SyncService {
       'regions': regions.map((r) => r.toJson()).toList(),
       'factions': campaignFactions.map((f) => f.toJson()).toList(),
       'quickRules': quickRules.map((qr) => qr.toJson()).toList(),
+      'items': campaignItems.map((i) => i.toJson()).toList(),
+      'creatures': campaignCreatures.map((c) => c.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -163,92 +167,72 @@ class SyncService {
   }
 
   Future<bool> _importAdventureData(Map<String, dynamic> data) async {
-    final cloudUpdatedAtRaw = data['updatedAt'];
-    final cloudUpdatedAt = cloudUpdatedAtRaw is Timestamp
-        ? cloudUpdatedAtRaw.toDate()
-        : DateTime.now();
+    try {
+      final cloudUpdatedAtRaw = data['updatedAt'];
+      final cloudUpdatedAt = cloudUpdatedAtRaw is Timestamp
+          ? cloudUpdatedAtRaw.toDate()
+          : DateTime.now();
 
-    final adventureJson = data['adventure'] as Map<String, dynamic>;
-    final adventureId = adventureJson['id'] as String;
+      final adventureJson = data['adventure'] as Map<String, dynamic>?;
+      if (adventureJson == null || adventureJson['id'] == null) return false;
+      final adventureId = adventureJson['id'] as String;
 
-    final localAdventure = _hiveDb.getAdventure(adventureId);
-
-    if (localAdventure != null) {
-      if (localAdventure.updatedAt.isAfter(cloudUpdatedAt)) {
+      final localAdventure = _hiveDb.getAdventure(adventureId);
+      if (localAdventure != null &&
+          localAdventure.updatedAt.isAfter(cloudUpdatedAt)) {
         return false;
       }
+
+      final adventure = Adventure.fromJson(adventureJson);
+      await _hiveDb.saveAdventure(adventure);
+
+      await _importList<PointOfInterest>(
+        data['pois'], PointOfInterest.fromJson, _hiveDb.savePointOfInterest);
+      await _importList<Creature>(
+        data['creatures'], Creature.fromJson, _hiveDb.saveCreature);
+      await _importList<Legend>(
+        data['legends'], Legend.fromJson, _hiveDb.saveLegend);
+      await _importList<RandomEvent>(
+        data['events'], RandomEvent.fromJson, _hiveDb.saveRandomEvent);
+      await _importList<Location>(
+        data['locations'], Location.fromJson, _hiveDb.saveLocation);
+      await _importList<Fact>(
+        data['facts'], Fact.fromJson, _hiveDb.saveFact);
+      await _importList<SessionEntry>(
+        data['session_entries'], SessionEntry.fromJson, _hiveDb.saveSessionEntry);
+      await _importList<Item>(
+        data['items'], Item.fromJson, _hiveDb.saveItem);
+      await _importList<Quest>(
+        data['quests'], Quest.fromJson, _hiveDb.saveQuest);
+      await _importList<Session>(
+        data['sessions'], Session.fromJson, _hiveDb.saveSession);
+      await _importList<Faction>(
+        data['factions'], Faction.fromJson, _hiveDb.saveFaction);
+
+      return true;
+    } catch (e, stack) {
+      // ignore: avoid_print
+      print('[SyncService] Failed to import adventure data: $e\n$stack');
+      return false;
     }
+  }
 
-    final adventure = Adventure.fromJson(adventureJson);
-    await _hiveDb.saveAdventure(adventure);
-
-    final poisJson = data['pois'] as List<dynamic>? ?? [];
-    for (final poiJson in poisJson) {
-      final poi = PointOfInterest.fromJson(poiJson as Map<String, dynamic>);
-      await _hiveDb.savePointOfInterest(poi);
+  Future<void> _importList<T>(
+    dynamic rawList,
+    T Function(Map<String, dynamic>) fromJson,
+    Future<void> Function(T) save,
+  ) async {
+    final list = rawList as List<dynamic>? ?? [];
+    for (final item in list) {
+      try {
+        final entity = fromJson(item as Map<String, dynamic>);
+        await save(entity);
+      } catch (e) {
+        // Skip malformed entries rather than aborting the whole import
+        // ignore: avoid_print
+        print('[SyncService] Skipping malformed entry: $e');
+      }
     }
-
-    final creaturesJson = data['creatures'] as List<dynamic>? ?? [];
-    for (final creatureJson in creaturesJson) {
-      final creature = Creature.fromJson(creatureJson as Map<String, dynamic>);
-      await _hiveDb.saveCreature(creature);
-    }
-
-    final legendsJson = data['legends'] as List<dynamic>? ?? [];
-    for (final legendJson in legendsJson) {
-      final legend = Legend.fromJson(legendJson as Map<String, dynamic>);
-      await _hiveDb.saveLegend(legend);
-    }
-
-    final eventsJson = data['events'] as List<dynamic>? ?? [];
-    for (final eventJson in eventsJson) {
-      final event = RandomEvent.fromJson(eventJson as Map<String, dynamic>);
-      await _hiveDb.saveRandomEvent(event);
-    }
-
-    final locationsJson = data['locations'] as List<dynamic>? ?? [];
-    for (final locationJson in locationsJson) {
-      final location = Location.fromJson(locationJson as Map<String, dynamic>);
-      await _hiveDb.saveLocation(location);
-    }
-
-    final factsJson = data['facts'] as List<dynamic>? ?? [];
-    for (final factJson in factsJson) {
-      final fact = Fact.fromJson(factJson as Map<String, dynamic>);
-      await _hiveDb.saveFact(fact);
-    }
-
-    final sessionEntriesJson = data['session_entries'] as List<dynamic>? ?? [];
-    for (final seJson in sessionEntriesJson) {
-      final entry = SessionEntry.fromJson(seJson as Map<String, dynamic>);
-      await _hiveDb.saveSessionEntry(entry);
-    }
-
-    final itemsJson = data['items'] as List<dynamic>? ?? [];
-    for (final itemJson in itemsJson) {
-      final item = Item.fromJson(itemJson as Map<String, dynamic>);
-      await _hiveDb.saveItem(item);
-    }
-
-    final questsJson = data['quests'] as List<dynamic>? ?? [];
-    for (final questJson in questsJson) {
-      final quest = Quest.fromJson(questJson as Map<String, dynamic>);
-      await _hiveDb.saveQuest(quest);
-    }
-
-    final sessionsJson = data['sessions'] as List<dynamic>? ?? [];
-    for (final sessionJson in sessionsJson) {
-      final session = Session.fromJson(sessionJson as Map<String, dynamic>);
-      await _hiveDb.saveSession(session);
-    }
-
-    final factionsJson = data['factions'] as List<dynamic>? ?? [];
-    for (final factionJson in factionsJson) {
-      final faction = Faction.fromJson(factionJson as Map<String, dynamic>);
-      await _hiveDb.saveFaction(faction);
-    }
-
-    return true;
   }
 
   Future<void> pullAllCampaigns() async {
@@ -296,6 +280,18 @@ class SyncService {
       for (final qrJson in quickRulesJson) {
         final quickRule = QuickRule.fromJson(qrJson as Map<String, dynamic>);
         await _hiveDb.saveQuickRule(quickRule);
+      }
+
+      final itemsJson = data['items'] as List<dynamic>? ?? [];
+      for (final iJson in itemsJson) {
+        final item = Item.fromJson(iJson as Map<String, dynamic>);
+        await _hiveDb.saveItem(item);
+      }
+
+      final creaturesJson = data['creatures'] as List<dynamic>? ?? [];
+      for (final cJson in creaturesJson) {
+        final creature = Creature.fromJson(cJson as Map<String, dynamic>);
+        await _hiveDb.saveCreature(creature);
       }
     }
   }
