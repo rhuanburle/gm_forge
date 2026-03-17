@@ -317,11 +317,11 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
             const Divider(height: 1),
 
             // Scratchpad
-            _buildScratchpad(context, activeState),
+            const _ScratchpadPanel(),
             const Divider(height: 1),
 
             // March & Watch Order
-            _buildOrdersPanel(context, activeState),
+            const _OrdersPanel(),
             const Divider(height: 1),
 
             // Narrative panel (campaign context)
@@ -461,102 +461,6 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
             QuickReferencePanel(campaignId: adventure.campaignId),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Free-form scratchpad for quick notes during play
-  Widget _buildScratchpad(BuildContext context, ActiveAdventureState activeState) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        initiallyExpanded: activeState.scratchpad.isNotEmpty,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        leading: const Icon(Icons.note_alt, size: 16, color: AppTheme.warning),
-        title: const Text(
-          'Rascunho',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.warning,
-          ),
-        ),
-        children: [
-          TextField(
-            controller: TextEditingController(text: activeState.scratchpad),
-            maxLines: 4,
-            style: const TextStyle(fontSize: 12),
-            decoration: InputDecoration(
-              hintText: 'Anotações rápidas...',
-              hintStyle: TextStyle(fontSize: 11, color: AppTheme.textMuted.withValues(alpha: 0.5)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.all(10),
-              isDense: true,
-            ),
-            onChanged: (val) {
-              ref.read(activeAdventureProvider.notifier).updateScratchpad(val);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// March order and watch order for the party
-  Widget _buildOrdersPanel(BuildContext context, ActiveAdventureState activeState) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        initiallyExpanded: activeState.marchOrder.isNotEmpty || activeState.watchOrder.isNotEmpty,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        leading: const Icon(Icons.group, size: 16, color: AppTheme.secondary),
-        title: const Text(
-          'Ordem de Marcha / Vigília',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.secondary,
-          ),
-        ),
-        children: [
-          TextField(
-            controller: TextEditingController(text: activeState.marchOrder),
-            maxLines: 2,
-            style: const TextStyle(fontSize: 11),
-            decoration: InputDecoration(
-              labelText: 'Marcha',
-              labelStyle: const TextStyle(fontSize: 11),
-              hintText: 'ex: Guerreiro > Mago > Ladino > Clérigo',
-              hintStyle: TextStyle(fontSize: 10, color: AppTheme.textMuted.withValues(alpha: 0.5)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.all(8),
-              isDense: true,
-            ),
-            onChanged: (val) {
-              ref.read(activeAdventureProvider.notifier).updateMarchOrder(val);
-            },
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: TextEditingController(text: activeState.watchOrder),
-            maxLines: 2,
-            style: const TextStyle(fontSize: 11),
-            decoration: InputDecoration(
-              labelText: 'Vigília',
-              labelStyle: const TextStyle(fontSize: 11),
-              hintText: 'ex: 1o turno: Guerreiro, 2o turno: Mago...',
-              hintStyle: TextStyle(fontSize: 10, color: AppTheme.textMuted.withValues(alpha: 0.5)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.all(8),
-              isDense: true,
-            ),
-            onChanged: (val) {
-              ref.read(activeAdventureProvider.notifier).updateWatchOrder(val);
-            },
-          ),
-        ],
       ),
     );
   }
@@ -878,5 +782,161 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
     final regex = RegExp(r'(?:HP|PV|Vida)[: ]\s*(\d+)', caseSensitive: false);
     final match = regex.firstMatch(stats);
     return match != null ? (int.tryParse(match.group(1) ?? '') ?? 10) : 10;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Scratchpad — stateful to keep TextEditingController stable
+// ---------------------------------------------------------------------------
+
+class _ScratchpadPanel extends ConsumerStatefulWidget {
+  const _ScratchpadPanel();
+
+  @override
+  ConsumerState<_ScratchpadPanel> createState() => _ScratchpadPanelState();
+}
+
+class _ScratchpadPanelState extends ConsumerState<_ScratchpadPanel> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: ref.read(activeAdventureProvider).scratchpad,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: _controller.text.isNotEmpty,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        leading: const Icon(Icons.note_alt, size: 16, color: AppTheme.warning),
+        title: const Text(
+          'Rascunho',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.warning,
+          ),
+        ),
+        children: [
+          TextField(
+            controller: _controller,
+            maxLines: 4,
+            style: const TextStyle(fontSize: 12),
+            decoration: InputDecoration(
+              hintText: 'Anotações rápidas...',
+              hintStyle: TextStyle(fontSize: 11, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(10),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              ref.read(activeAdventureProvider.notifier).updateScratchpad(val);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// March / Watch Order — stateful to keep TextEditingControllers stable
+// ---------------------------------------------------------------------------
+
+class _OrdersPanel extends ConsumerStatefulWidget {
+  const _OrdersPanel();
+
+  @override
+  ConsumerState<_OrdersPanel> createState() => _OrdersPanelState();
+}
+
+class _OrdersPanelState extends ConsumerState<_OrdersPanel> {
+  late TextEditingController _marchController;
+  late TextEditingController _watchController;
+
+  @override
+  void initState() {
+    super.initState();
+    final state = ref.read(activeAdventureProvider);
+    _marchController = TextEditingController(text: state.marchOrder);
+    _watchController = TextEditingController(text: state.watchOrder);
+  }
+
+  @override
+  void dispose() {
+    _marchController.dispose();
+    _watchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: _marchController.text.isNotEmpty || _watchController.text.isNotEmpty,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        leading: const Icon(Icons.group, size: 16, color: AppTheme.secondary),
+        title: const Text(
+          'Ordem de Marcha / Vigília',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.secondary,
+          ),
+        ),
+        children: [
+          TextField(
+            controller: _marchController,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 11),
+            decoration: InputDecoration(
+              labelText: 'Marcha',
+              labelStyle: const TextStyle(fontSize: 11),
+              hintText: 'ex: Guerreiro > Mago > Ladino > Clérigo',
+              hintStyle: TextStyle(fontSize: 10, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(8),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              ref.read(activeAdventureProvider.notifier).updateMarchOrder(val);
+            },
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _watchController,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 11),
+            decoration: InputDecoration(
+              labelText: 'Vigília',
+              labelStyle: const TextStyle(fontSize: 11),
+              hintText: 'ex: 1o turno: Guerreiro, 2o turno: Mago...',
+              hintStyle: TextStyle(fontSize: 10, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(8),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              ref.read(activeAdventureProvider.notifier).updateWatchOrder(val);
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

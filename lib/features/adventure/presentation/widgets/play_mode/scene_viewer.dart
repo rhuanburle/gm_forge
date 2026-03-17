@@ -7,7 +7,6 @@ import '../../../domain/domain.dart';
 import 'editable_smart_text.dart';
 import 'dart:math';
 import 'creature_detail_dialog.dart';
-import 'scene_lenses.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 
@@ -85,13 +84,6 @@ class SceneViewer extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Scene Lens Selector
-          LensSelector(
-            currentLens: activeState.currentLens,
-            onLensChanged: (lens) {
-              ref.read(activeAdventureProvider.notifier).setLens(lens);
-            },
-          ),
           if (parentLocation != null) ...[
             Container(
               width: double.infinity,
