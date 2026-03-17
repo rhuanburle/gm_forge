@@ -13,6 +13,9 @@ import 'quick_reference_panel.dart';
 import 'campaign_summary_panel.dart';
 import 'dice_roller_panel.dart';
 import 'combat_tracker_panel.dart';
+import 'exploration_tracker_panel.dart';
+import 'previous_session_recap.dart';
+import 'gm_inspiration_panel.dart';
 
 class DMToolsSidebar extends ConsumerStatefulWidget {
   final String adventureId;
@@ -253,15 +256,16 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           foregroundColor: color,
           side: color != null ? BorderSide(color: color) : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14),
-            Text(label, style: const TextStyle(fontSize: 9)),
+            Icon(icon, size: 16),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(fontSize: 10)),
           ],
         ),
       ),
@@ -299,6 +303,30 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
           children: [
             // Dice roller
             const DiceRollerPanel(),
+
+            // Exploration tracker (turns, resources, checkboxes)
+            const ExplorationTrackerPanel(),
+            const Divider(height: 1),
+
+            // Previous session recap
+            PreviousSessionRecap(adventureId: widget.adventureId),
+            const Divider(height: 1),
+
+            // GM Inspiration (random tables)
+            GmInspirationPanel(campaignId: adventure.campaignId),
+            const Divider(height: 1),
+
+            // Scratchpad
+            _buildScratchpad(context, activeState),
+            const Divider(height: 1),
+
+            // March & Watch Order
+            _buildOrdersPanel(context, activeState),
+            const Divider(height: 1),
+
+            // Narrative panel (campaign context)
+            if (adventure.campaignId != null)
+              _buildNarrativePanel(context, adventure),
 
             // Current scene quick reference
             if (currentPoi != null) ...[
@@ -437,6 +465,231 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
     );
   }
 
+  /// Free-form scratchpad for quick notes during play
+  Widget _buildScratchpad(BuildContext context, ActiveAdventureState activeState) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: activeState.scratchpad.isNotEmpty,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        leading: const Icon(Icons.note_alt, size: 16, color: AppTheme.warning),
+        title: const Text(
+          'Rascunho',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.warning,
+          ),
+        ),
+        children: [
+          TextField(
+            controller: TextEditingController(text: activeState.scratchpad),
+            maxLines: 4,
+            style: const TextStyle(fontSize: 12),
+            decoration: InputDecoration(
+              hintText: 'Anotações rápidas...',
+              hintStyle: TextStyle(fontSize: 11, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(10),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              ref.read(activeAdventureProvider.notifier).updateScratchpad(val);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// March order and watch order for the party
+  Widget _buildOrdersPanel(BuildContext context, ActiveAdventureState activeState) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: activeState.marchOrder.isNotEmpty || activeState.watchOrder.isNotEmpty,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        leading: const Icon(Icons.group, size: 16, color: AppTheme.secondary),
+        title: const Text(
+          'Ordem de Marcha / Vigília',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.secondary,
+          ),
+        ),
+        children: [
+          TextField(
+            controller: TextEditingController(text: activeState.marchOrder),
+            maxLines: 2,
+            style: const TextStyle(fontSize: 11),
+            decoration: InputDecoration(
+              labelText: 'Marcha',
+              labelStyle: const TextStyle(fontSize: 11),
+              hintText: 'ex: Guerreiro > Mago > Ladino > Clérigo',
+              hintStyle: TextStyle(fontSize: 10, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(8),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              ref.read(activeAdventureProvider.notifier).updateMarchOrder(val);
+            },
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: TextEditingController(text: activeState.watchOrder),
+            maxLines: 2,
+            style: const TextStyle(fontSize: 11),
+            decoration: InputDecoration(
+              labelText: 'Vigília',
+              labelStyle: const TextStyle(fontSize: 11),
+              hintText: 'ex: 1o turno: Guerreiro, 2o turno: Mago...',
+              hintStyle: TextStyle(fontSize: 10, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(8),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              ref.read(activeAdventureProvider.notifier).updateWatchOrder(val);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Narrative context panel showing campaign plot threads, quests, and hint
+  Widget _buildNarrativePanel(BuildContext context, Adventure adventure) {
+    final campaign = ref.watch(campaignProvider(adventure.campaignId!));
+    if (campaign == null) return const SizedBox.shrink();
+
+    final activeThreads = campaign.plotThreads
+        .where((t) => t.status == PlotThreadStatus.active)
+        .toList();
+    final quests = ref.watch(questsProvider(adventure.id));
+    final activeQuests = quests
+        .where((q) =>
+            q.status != QuestStatus.completed &&
+            q.status != QuestStatus.failed)
+        .toList();
+    final hint = adventure.nextAdventureHint ?? '';
+
+    if (activeThreads.isEmpty && activeQuests.isEmpty && hint.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.secondary.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.secondary.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.auto_stories, size: 14, color: AppTheme.secondary),
+              SizedBox(width: 6),
+              Text(
+                'Contexto Narrativo',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.secondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          // Plot threads
+          if (activeThreads.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...activeThreads.map((t) => Padding(
+              padding: const EdgeInsets.only(bottom: 3),
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.success,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      t.title,
+                      style: const TextStyle(fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+          // Active quests for this adventure
+          if (activeQuests.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...activeQuests.map((q) {
+              final statusIcon = q.status == QuestStatus.inProgress
+                  ? Icons.flag
+                  : Icons.flag_outlined;
+              final statusColor = q.status == QuestStatus.inProgress
+                  ? AppTheme.warning
+                  : AppTheme.textMuted;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Row(
+                  children: [
+                    Icon(statusIcon, size: 10, color: statusColor),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        q.name,
+                        style: const TextStyle(fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          // Next adventure hint
+          if (hint.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.arrow_forward, size: 10, color: AppTheme.discovery),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    hint,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                      color: AppTheme.discovery,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   /// Quick reference card showing the current scene's creatures and purpose
   Widget _buildCurrentSceneCard(
     BuildContext context,
@@ -520,7 +773,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                           borderRadius: BorderRadius.circular(2),
                           child: LinearProgressIndicator(
                             value: hpRatio.clamp(0.0, 1.0),
-                            minHeight: 4,
+                            minHeight: 6,
                             backgroundColor: AppTheme.textMuted.withValues(alpha: 0.15),
                             color: hpRatio > 0.5
                                 ? AppTheme.success

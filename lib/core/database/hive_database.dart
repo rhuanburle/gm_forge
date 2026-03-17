@@ -877,6 +877,18 @@ class HiveDatabase {
     return items;
   }
 
+  List<Quest> getAllQuestsByCampaign(String campaignId) {
+    final items = <Quest>[];
+    for (final entry in _quests.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final quest = Quest.fromJson(data);
+      if (quest.campaignId == campaignId) {
+        items.add(quest);
+      }
+    }
+    return items;
+  }
+
   Future<void> saveQuest(Quest quest) async {
     await _quests.put(quest.id, quest.toJson());
   }

@@ -47,6 +47,35 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    // Force update: when a new service worker activates, reload the page
+    if ('serviceWorker' in navigator) {
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+      navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (!reg) return;
+        // When a new SW is found, tell it to skip waiting immediately
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New content available — skip waiting to activate it
+              newWorker.postMessage('skipWaiting');
+            }
+          });
+        });
+        // If a waiting worker already exists (user had tab open), activate it now
+        if (reg.waiting) {
+          reg.waiting.postMessage('skipWaiting');
+        }
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

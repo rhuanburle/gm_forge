@@ -104,35 +104,8 @@ class AdventureCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      if (adventure.isComplete)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.success.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.check, color: Colors.white, size: 12),
-                              SizedBox(width: 4),
-                              Text(
-                                'PRONTA',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      const Spacer(),
                       PopupMenuButton<String>(
                         icon: const Icon(
                           Icons.more_vert,
@@ -209,28 +182,62 @@ class AdventureCard extends ConsumerWidget {
                     ],
                   ),
                   const Spacer(),
-                  Hero(
-                    tag: 'adventure_title_${adventure.id}',
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Text(
-                        adventure.name,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              shadows: [
-                                const Shadow(
-                                  blurRadius: 4,
-                                  color: Colors.black,
-                                  offset: Offset(1, 1),
-                                ),
-                              ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Hero(
+                          tag: 'adventure_title_${adventure.id}',
+                          child: Material(
+                            color: Colors.transparent,
+                            child: Text(
+                              adventure.name,
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    shadows: [
+                                      const Shadow(
+                                        blurRadius: 4,
+                                        color: Colors.black,
+                                        offset: Offset(1, 1),
+                                      ),
+                                    ],
+                                  ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (adventure.isComplete) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.success.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check, color: Colors.white, size: 12),
+                              SizedBox(width: 4),
+                              Text(
+                                'PRONTA',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(

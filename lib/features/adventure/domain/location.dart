@@ -9,6 +9,7 @@ class Location {
   final String? imagePath;
   final String? parentLocationId;
   final List<String> creatureIds;
+  final List<String> scenicEncounters;
 
   const Location({
     required this.id,
@@ -19,6 +20,7 @@ class Location {
     this.imagePath,
     this.parentLocationId,
     this.creatureIds = const [],
+    this.scenicEncounters = const [],
   });
 
   factory Location.create({
@@ -29,6 +31,7 @@ class Location {
     String? imagePath,
     String? parentLocationId,
     List<String> creatureIds = const [],
+    List<String> scenicEncounters = const [],
   }) {
     return Location(
       id: const Uuid().v4(),
@@ -39,6 +42,7 @@ class Location {
       imagePath: imagePath,
       parentLocationId: parentLocationId,
       creatureIds: creatureIds,
+      scenicEncounters: scenicEncounters,
     );
   }
 
@@ -51,6 +55,7 @@ class Location {
     "imagePath": imagePath,
     "parentLocationId": parentLocationId,
     "creatureIds": creatureIds,
+    "scenicEncounters": scenicEncounters,
   };
 
   factory Location.fromJson(Map<String, dynamic> json) => Location(
@@ -63,6 +68,8 @@ class Location {
     parentLocationId: json["parentLocationId"] as String?,
     creatureIds:
         (json["creatureIds"] as List<dynamic>?)?.cast<String>() ?? const [],
+    scenicEncounters:
+        (json["scenicEncounters"] as List<dynamic>?)?.cast<String>() ?? const [],
   );
 
   Location copyWith({
@@ -76,6 +83,7 @@ class Location {
     String? parentLocationId,
     List<String>? creatureIds,
     bool clearParent = false,
+    List<String>? scenicEncounters,
   }) {
     return Location(
       id: id,
@@ -88,6 +96,7 @@ class Location {
           ? null
           : (parentLocationId ?? this.parentLocationId),
       creatureIds: creatureIds ?? this.creatureIds,
+      scenicEncounters: scenicEncounters ?? this.scenicEncounters,
     );
   }
 }

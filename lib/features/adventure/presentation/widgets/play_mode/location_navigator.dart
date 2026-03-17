@@ -63,17 +63,29 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
 
     final legends = ref.watch(legendsProvider(widget.adventureId));
 
+    final pinnedIds = activeState.pinnedCreatureIds;
+
     final filteredCreatures = creatures.where((c) {
       if (c.type != CreatureType.npc) return false;
       if (_searchQuery.isEmpty) return true;
       return c.name.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+    }).toList()
+      ..sort((a, b) {
+        final aPinned = pinnedIds.contains(a.id) ? 0 : 1;
+        final bPinned = pinnedIds.contains(b.id) ? 0 : 1;
+        return aPinned.compareTo(bPinned);
+      });
 
     final filteredMonsters = creatures.where((c) {
       if (c.type != CreatureType.monster) return false;
       if (_searchQuery.isEmpty) return true;
       return c.name.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+    }).toList()
+      ..sort((a, b) {
+        final aPinned = pinnedIds.contains(a.id) ? 0 : 1;
+        final bPinned = pinnedIds.contains(b.id) ? 0 : 1;
+        return aPinned.compareTo(bPinned);
+      });
 
     // Merge Facts and Legends for visibility
     final mergedFacts =
@@ -150,15 +162,16 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
             ),
           ),
           TabBar(
+            tabAlignment: TabAlignment.start,
             tabs: [
-              _badgeTab('Locais', pois.length),
-              _badgeTab('NPCs', filteredCreatures.length),
-              _badgeTab('Criaturas', filteredMonsters.length),
-              _badgeTab('Rumores', mergedFacts.length),
-              _badgeTab('Eventos', filteredEvents.length),
-              _badgeTab('Facções', filteredFactions.length),
-              _badgeTab('Itens', filteredItems.length),
-              _badgeTab('Missões', filteredQuests.length),
+              _badgeTab('Locais', pois.length, Icons.place),
+              _badgeTab('NPCs', filteredCreatures.length, Icons.person),
+              _badgeTab('Criaturas', filteredMonsters.length, Icons.pets),
+              _badgeTab('Rumores', mergedFacts.length, Icons.chat_bubble_outline),
+              _badgeTab('Eventos', filteredEvents.length, Icons.casino),
+              _badgeTab('Facções', filteredFactions.length, Icons.groups),
+              _badgeTab('Itens', filteredItems.length, Icons.diamond),
+              _badgeTab('Missões', filteredQuests.length, Icons.flag),
             ],
             labelColor: AppTheme.primary,
             unselectedLabelColor: AppTheme.textMuted,
@@ -267,13 +280,35 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                   itemCount: filteredCreatures.length,
                   itemBuilder: (context, index) {
                     final creature = filteredCreatures[index];
+                    final isPinned = pinnedIds.contains(creature.id);
                     return ListTile(
                       leading: _creatureAvatar(creature, AppTheme.npc, Icons.person),
-                      title: Text(creature.name),
+                      title: Row(
+                        children: [
+                          if (isPinned)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 4),
+                              child: Icon(Icons.push_pin, size: 12, color: AppTheme.secondary),
+                            ),
+                          Expanded(child: Text(creature.name)),
+                        ],
+                      ),
                       subtitle: Text(
                         creature.description,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(
+                          isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                          size: 16,
+                          color: isPinned ? AppTheme.secondary : AppTheme.textMuted,
+                        ),
+                        onPressed: () {
+                          ref.read(activeAdventureProvider.notifier)
+                              .togglePinCreature(creature.id);
+                        },
+                        tooltip: isPinned ? 'Desafixar' : 'Fixar no topo',
                       ),
                       onTap: () {
                         _showCreatureDetails(context, ref, creature);
@@ -288,13 +323,35 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                   itemCount: filteredMonsters.length,
                   itemBuilder: (context, index) {
                     final creature = filteredMonsters[index];
+                    final isPinned = pinnedIds.contains(creature.id);
                     return ListTile(
                       leading: _creatureAvatar(creature, AppTheme.accent, Icons.pets),
-                      title: Text(creature.name),
+                      title: Row(
+                        children: [
+                          if (isPinned)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 4),
+                              child: Icon(Icons.push_pin, size: 12, color: AppTheme.secondary),
+                            ),
+                          Expanded(child: Text(creature.name)),
+                        ],
+                      ),
                       subtitle: Text(
                         creature.description,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(
+                          isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                          size: 16,
+                          color: isPinned ? AppTheme.secondary : AppTheme.textMuted,
+                        ),
+                        onPressed: () {
+                          ref.read(activeAdventureProvider.notifier)
+                              .togglePinCreature(creature.id);
+                        },
+                        tooltip: isPinned ? 'Desafixar' : 'Fixar no topo',
                       ),
                       onTap: () {
                         _showCreatureDetails(context, ref, creature);
@@ -350,8 +407,9 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                           final event = filteredEvents[index];
                           return ListTile(
                             leading: Container(
-                              width: 32,
+                              constraints: const BoxConstraints(minWidth: 40),
                               height: 24,
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
                                 color: AppTheme.warning.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(4),
@@ -362,12 +420,15 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                                 ),
                               ),
                               alignment: Alignment.center,
-                              child: Text(
-                                event.diceRange,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.warning,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  event.diceRange,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.warning,
+                                  ),
                                 ),
                               ),
                             ),
@@ -945,11 +1006,13 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
     );
   }
 
-  Widget _badgeTab(String label, int count) {
+  Widget _badgeTab(String label, int count, IconData icon) {
     return Tab(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(icon, size: 14),
+          const SizedBox(width: 4),
           Text(label),
           if (count > 0) ...[
             const SizedBox(width: 4),
@@ -999,12 +1062,18 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary : AppTheme.surfaceLight,
+          color: isSelected
+              ? AppTheme.primary
+              : poi.isVisited
+                  ? AppTheme.success.withValues(alpha: 0.15)
+                  : AppTheme.surfaceLight,
           borderRadius: BorderRadius.circular(4),
           border: Border.all(
             color: isSelected
                 ? AppTheme.primary
-                : AppTheme.textMuted.withValues(alpha: 0.3),
+                : poi.isVisited
+                    ? AppTheme.success.withValues(alpha: 0.5)
+                    : AppTheme.textMuted.withValues(alpha: 0.3),
           ),
         ),
         alignment: Alignment.center,
@@ -1013,7 +1082,11 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: isSelected ? AppTheme.textPrimary : AppTheme.textMuted,
+            color: isSelected
+                ? AppTheme.textPrimary
+                : poi.isVisited
+                    ? AppTheme.success
+                    : AppTheme.textMuted,
           ),
         ),
       ),
@@ -1021,6 +1094,9 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
         poi.name,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: poi.isVisited && !isSelected
+              ? AppTheme.textSecondary
+              : null,
         ),
       ),
       subtitle: Wrap(

@@ -30,6 +30,8 @@ class Session {
   final List<String> monsters;
   final List<String> treasures;
   final String recap;
+  final List<String> stars;
+  final List<String> wishes;
 
   const Session({
     required this.id,
@@ -46,6 +48,8 @@ class Session {
     this.monsters = const [],
     this.treasures = const [],
     this.recap = '',
+    this.stars = const [],
+    this.wishes = const [],
   });
 
   factory Session.create({
@@ -62,6 +66,8 @@ class Session {
     List<String> monsters = const [],
     List<String> treasures = const [],
     String recap = '',
+    List<String> stars = const [],
+    List<String> wishes = const [],
   }) {
     return Session(
       id: const Uuid().v4(),
@@ -78,6 +84,8 @@ class Session {
       monsters: monsters,
       treasures: treasures,
       recap: recap,
+      stars: stars,
+      wishes: wishes,
     );
   }
 
@@ -96,6 +104,8 @@ class Session {
     'monsters': monsters,
     'treasures': treasures,
     'recap': recap,
+    'stars': stars,
+    'wishes': wishes,
   };
 
   factory Session.fromJson(Map<String, dynamic> json) => Session(
@@ -121,6 +131,10 @@ class Session {
     treasures:
         (json['treasures'] as List<dynamic>?)?.cast<String>() ?? const [],
     recap: json['recap'] as String? ?? '',
+    stars:
+        (json['stars'] as List<dynamic>?)?.cast<String>() ?? const [],
+    wishes:
+        (json['wishes'] as List<dynamic>?)?.cast<String>() ?? const [],
   );
 
   Session copyWith({
@@ -136,6 +150,8 @@ class Session {
     List<String>? monsters,
     List<String>? treasures,
     String? recap,
+    List<String>? stars,
+    List<String>? wishes,
   }) {
     return Session(
       id: id,
@@ -152,6 +168,8 @@ class Session {
       monsters: monsters ?? this.monsters,
       treasures: treasures ?? this.treasures,
       recap: recap ?? this.recap,
+      stars: stars ?? this.stars,
+      wishes: wishes ?? this.wishes,
     );
   }
 }

@@ -5,6 +5,7 @@ import '../../../application/adventure_providers.dart';
 import '../../../application/active_adventure_state.dart';
 import '../../../domain/domain.dart';
 import 'editable_smart_text.dart';
+import 'dart:math';
 import 'creature_detail_dialog.dart';
 import 'scene_lenses.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
@@ -130,6 +131,10 @@ class SceneViewer extends ConsumerWidget {
                         color: AppTheme.mutedForeground(context, alpha: 0.7),
                       ),
                     ),
+                  ],
+                  if (parentLocation.scenicEncounters.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _ScenicEncounterRoll(encounters: parentLocation.scenicEncounters),
                   ],
                 ],
               ),
@@ -310,14 +315,20 @@ class SceneViewer extends ConsumerWidget {
                 );
                 return ActionChip(
                   avatar: CircleAvatar(
-                    radius: 10,
+                    radius: 12,
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                    child: Text(
-                      '$connNumber',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: Text(
+                          '$connNumber',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primary,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -806,6 +817,67 @@ class _LocationNotesSectionState extends ConsumerState<_LocationNotesSection> {
                 contentPadding: const EdgeInsets.all(12),
               ),
               onChanged: _saveNote,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Scenic encounter roll button for locations with ambient encounters
+// ---------------------------------------------------------------------------
+
+class _ScenicEncounterRoll extends StatefulWidget {
+  final List<String> encounters;
+  const _ScenicEncounterRoll({required this.encounters});
+
+  @override
+  State<_ScenicEncounterRoll> createState() => _ScenicEncounterRollState();
+}
+
+class _ScenicEncounterRollState extends State<_ScenicEncounterRoll> {
+  final _rng = Random();
+  String? _result;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () {
+            setState(() {
+              _result = widget.encounters[_rng.nextInt(widget.encounters.length)];
+            });
+          },
+          icon: const Icon(Icons.casino, size: 14),
+          label: Text(
+            'Encontro Ambiental (${widget.encounters.length})',
+            style: const TextStyle(fontSize: 11),
+          ),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: AppTheme.secondary,
+            side: BorderSide(color: AppTheme.secondary.withValues(alpha: 0.4)),
+          ),
+        ),
+        if (_result != null) ...[
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.secondary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              _result!,
+              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
             ),
           ),
         ],

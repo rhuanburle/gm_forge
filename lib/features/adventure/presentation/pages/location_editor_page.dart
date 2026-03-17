@@ -32,6 +32,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
   String? _loadedLocationId;
   String? _imageUrl;
   bool _imageWasCleared = false;
+  List<String> _scenicEncounters = [];
 
   @override
   void initState() {
@@ -71,6 +72,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
       _descController.text = location.description;
       _imageUrl = location.imagePath;
       _imageWasCleared = false;
+      _scenicEncounters = List.from(location.scenicEncounters);
     }
 
     // Filter POIs for this location
@@ -136,7 +138,113 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                 _markUnsynced();
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            // Scenic Encounters
+            Row(
+              children: [
+                const Icon(Icons.nature_people, size: 18, color: AppTheme.secondary),
+                const SizedBox(width: 8),
+                Text(
+                  'Encontros Ambientais',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppTheme.secondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.add_circle, size: 20, color: AppTheme.secondary),
+                  onPressed: () {
+                    final ctrl = TextEditingController();
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Novo Encontro Ambiental'),
+                        content: TextField(
+                          controller: ctrl,
+                          autofocus: true,
+                          maxLines: 2,
+                          decoration: const InputDecoration(
+                            hintText: 'ex: Bandidos emboscam na curva da trilha...',
+                          ),
+                        ),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                          ElevatedButton(
+                            onPressed: () {
+                              final text = ctrl.text.trim();
+                              if (text.isNotEmpty) {
+                                setState(() => _scenicEncounters.add(text));
+                                _markUnsynced();
+                              }
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text('Adicionar'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            if (_scenicEncounters.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              ...List.generate(_scenicEncounters.length, (i) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Text('${i + 1}.', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(_scenicEncounters[i], style: const TextStyle(fontSize: 13)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 16),
+                      onPressed: () {
+                        final ctrl = TextEditingController(text: _scenicEncounters[i]);
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Editar Encontro'),
+                            content: TextField(controller: ctrl, maxLines: 2, autofocus: true),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                              ElevatedButton(
+                                onPressed: () {
+                                  final text = ctrl.text.trim();
+                                  if (text.isNotEmpty) {
+                                    setState(() => _scenicEncounters[i] = text);
+                                    _markUnsynced();
+                                  }
+                                  Navigator.pop(ctx);
+                                },
+                                child: const Text('Salvar'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 16, color: AppTheme.error),
+                      onPressed: () {
+                        setState(() => _scenicEncounters.removeAt(i));
+                        _markUnsynced();
+                      },
+                    ),
+                  ],
+                ),
+              )),
+            ] else
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 8),
+                child: Text(
+                  'Nenhum encontro ambiental. Adicione para usar como tabela de rolagem no play mode.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted.withValues(alpha: 0.6)),
+                ),
+              ),
+            const SizedBox(height: 8),
             const Divider(),
             SwitchListTile(
               title: const Text('Disponível em toda a Campanha?'),
@@ -345,6 +453,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
       description: _descController.text,
       imagePath: _imageUrl,
       clearImagePath: _imageWasCleared,
+      scenicEncounters: _scenicEncounters,
     );
 
     final db = ref.read(hiveDatabaseProvider);

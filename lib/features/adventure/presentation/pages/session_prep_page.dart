@@ -37,6 +37,8 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
   List<TextEditingController> _npcsControllers = [];
   List<TextEditingController> _monstersControllers = [];
   List<TextEditingController> _treasuresControllers = [];
+  List<TextEditingController> _starsControllers = [];
+  List<TextEditingController> _wishesControllers = [];
 
   String? _existingSessionId;
   bool _isLoaded = false;
@@ -78,6 +80,12 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
         _treasuresControllers = session.treasures
             .map((s) => TextEditingController(text: s))
             .toList();
+        _starsControllers = session.stars
+            .map((s) => TextEditingController(text: s))
+            .toList();
+        _wishesControllers = session.wishes
+            .map((s) => TextEditingController(text: s))
+            .toList();
 
         setState(() => _isLoaded = true);
         return;
@@ -110,6 +118,12 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
     for (final c in _treasuresControllers) {
       c.dispose();
     }
+    for (final c in _starsControllers) {
+      c.dispose();
+    }
+    for (final c in _wishesControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -131,6 +145,8 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
         monsters: _monstersControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
         treasures: _treasuresControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
         recap: _recapController.text.trim(),
+        stars: _starsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
+        wishes: _wishesControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
       );
     }
     return Session.create(
@@ -147,6 +163,8 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
       monsters: _monstersControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
       treasures: _treasuresControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
       recap: _recapController.text.trim(),
+      stars: _starsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
+      wishes: _wishesControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
     );
   }
 
@@ -440,6 +458,32 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
           minLines: 2,
         ),
         const SizedBox(height: 24),
+
+        // Stars (what went well)
+        _buildDynamicListSection(
+          title: 'Estrelas (O que funcionou)',
+          icon: Icons.star,
+          controllers: _starsControllers,
+          hintText: 'O que os jogadores gostaram...',
+          onAdd: () => setState(() => _starsControllers.add(TextEditingController())),
+          onRemove: (index) => setState(() {
+            _starsControllers[index].dispose();
+            _starsControllers.removeAt(index);
+          }),
+        ),
+
+        // Wishes (what players want more of)
+        _buildDynamicListSection(
+          title: 'Desejos (O que querem mais)',
+          icon: Icons.auto_awesome,
+          controllers: _wishesControllers,
+          hintText: 'O que os jogadores querem mais...',
+          onAdd: () => setState(() => _wishesControllers.add(TextEditingController())),
+          onRemove: (index) => setState(() {
+            _wishesControllers[index].dispose();
+            _wishesControllers.removeAt(index);
+          }),
+        ),
 
         // Save button
         SizedBox(

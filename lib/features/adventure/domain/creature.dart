@@ -25,6 +25,8 @@ class Creature {
   final List<String> locationIds;
   final String stats;
   final String? imagePath;
+  final String roleplayNotes;
+  final List<String> conversationTopics;
 
   /// Legacy field — preserved from old data where location was free-text.
   /// Read-only: NOT written to toJson(). Used during migration only.
@@ -42,6 +44,8 @@ class Creature {
     this.locationIds = const [],
     this.stats = "",
     this.imagePath,
+    this.roleplayNotes = '',
+    this.conversationTopics = const [],
     this.legacyLocation,
   });
 
@@ -56,6 +60,8 @@ class Creature {
     List<String> locationIds = const [],
     String stats = "",
     String? imagePath,
+    String roleplayNotes = '',
+    List<String> conversationTopics = const [],
   }) {
     return Creature(
       id: const Uuid().v4(),
@@ -69,6 +75,8 @@ class Creature {
       locationIds: locationIds,
       stats: stats,
       imagePath: imagePath,
+      roleplayNotes: roleplayNotes,
+      conversationTopics: conversationTopics,
     );
   }
 
@@ -84,6 +92,8 @@ class Creature {
     "locationIds": locationIds,
     "stats": stats,
     "imagePath": imagePath,
+    "roleplayNotes": roleplayNotes,
+    "conversationTopics": conversationTopics,
   };
 
   factory Creature.fromJson(Map<String, dynamic> json) => Creature(
@@ -99,6 +109,9 @@ class Creature {
         (json["locationIds"] as List<dynamic>?)?.cast<String>() ?? const [],
     stats: json["stats"] as String? ?? "",
     imagePath: json["imagePath"] as String?,
+    roleplayNotes: json["roleplayNotes"] as String? ?? '',
+    conversationTopics:
+        (json["conversationTopics"] as List<dynamic>?)?.cast<String>() ?? const [],
     // Preserve the old free-text "location" field for migration purposes
     legacyLocation: json["location"] as String?,
   );
@@ -116,6 +129,8 @@ class Creature {
     String? stats,
     String? imagePath,
     bool clearImagePath = false,
+    String? roleplayNotes,
+    List<String>? conversationTopics,
   }) {
     return Creature(
       id: id,
@@ -129,6 +144,8 @@ class Creature {
       locationIds: locationIds ?? this.locationIds,
       stats: stats ?? this.stats,
       imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
+      roleplayNotes: roleplayNotes ?? this.roleplayNotes,
+      conversationTopics: conversationTopics ?? this.conversationTopics,
     );
   }
 }

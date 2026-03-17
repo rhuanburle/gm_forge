@@ -102,6 +102,14 @@ final factionsProvider = Provider.family<List<Faction>, String>((
 });
 
 // Campaign-level providers
+final campaignQuestsProvider = Provider.family<List<Quest>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getAllQuestsByCampaign(campaignId);
+});
+
 final campaignFactionsProvider = Provider.family<List<Faction>, String>((
   ref,
   campaignId,

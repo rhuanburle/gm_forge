@@ -181,33 +181,67 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         ],
                       ),
                     ),
-                    Row(
-                      children: [
-                        Image.asset(
-                          'assets/images/logo_quest_script.png',
-                          height: 120,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompact = constraints.maxWidth < 500;
+                        if (isCompact) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/logo_quest_script.png',
+                                    height: 64,
+                                    fit: BoxFit.contain,
+                                  ),
+                                  const AccountMenu(),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
                               Text(
                                 'Quest Script',
-                                style: Theme.of(context).textTheme.displaySmall
+                                style: Theme.of(context).textTheme.headlineMedium
                                     ?.copyWith(color: AppTheme.secondary),
                               ),
                               Text(
                                 'Criador de Locais de Aventura',
-                                style: Theme.of(context).textTheme.bodyMedium
+                                style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(color: AppTheme.textSecondary),
                               ),
                             ],
-                          ),
-                        ),
-                        const AccountMenu(),
-                      ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Image.asset(
+                              'assets/images/logo_quest_script.png',
+                              height: 120,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Quest Script',
+                                    style: Theme.of(context).textTheme.displaySmall
+                                        ?.copyWith(color: AppTheme.secondary),
+                                  ),
+                                  Text(
+                                    'Criador de Locais de Aventura',
+                                    style: Theme.of(context).textTheme.bodyMedium
+                                        ?.copyWith(color: AppTheme.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const AccountMenu(),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 24),
                     const TabBar(

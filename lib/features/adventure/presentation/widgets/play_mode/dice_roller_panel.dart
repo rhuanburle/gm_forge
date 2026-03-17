@@ -347,13 +347,27 @@ class _LastRollDisplay extends StatelessWidget {
       badge = 'FALHA!';
     }
 
+    final isCritical = roll.isNat20 || roll.isNat1;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: resultColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: resultColor.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: resultColor.withValues(alpha: isCritical ? 0.6 : 0.3),
+          width: isCritical ? 2 : 1,
+        ),
+        boxShadow: isCritical
+            ? [
+                BoxShadow(
+                  color: resultColor.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -458,20 +472,26 @@ class _DiceButtonState extends State<_DiceButton>
           child: child,
         ),
         child: Container(
-          width: 38,
-          height: 38,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: AppTheme.surfaceLight,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.5)),
           ),
           alignment: Alignment.center,
-          child: Text(
-            'd${widget.sides}',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.secondary,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Text(
+                'd${widget.sides}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.secondary,
+                ),
+              ),
             ),
           ),
         ),

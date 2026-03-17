@@ -219,6 +219,10 @@ class CreaturesTab extends ConsumerWidget {
     final losingBehaviorController = TextEditingController(
       text: creatureToEdit?.losingBehavior,
     );
+    final roleplayNotesController = TextEditingController(
+      text: creatureToEdit?.roleplayNotes,
+    );
+    List<String> conversationTopics = List.from(creatureToEdit?.conversationTopics ?? []);
 
     CreatureType selectedType = creatureToEdit?.type ?? CreatureType.monster;
     String? adventureIdForCreation = creatureToEdit?.adventureId ?? adventureId;
@@ -333,6 +337,77 @@ class CreaturesTab extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 16),
+                SmartTextField(
+                  controller: roleplayNotesController,
+                  adventureId: adventureId,
+                  label: "Notas de Roleplay",
+                  hint: "Voz, maneirismos, atitude... (ex: Fala baixo, coça o nariz)",
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                // Conversation Topics
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.chat_bubble, size: 16, color: AppTheme.npc),
+                        SizedBox(width: 6),
+                        Text(
+                          "Tópicos de Conversa",
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        ...conversationTopics.asMap().entries.map((entry) => Chip(
+                          label: Text(entry.value, style: const TextStyle(fontSize: 11)),
+                          onDeleted: () => setState(() => conversationTopics.removeAt(entry.key)),
+                          deleteIconColor: AppTheme.error,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        )),
+                        ActionChip(
+                          label: const Text('+ Tópico', style: TextStyle(fontSize: 11)),
+                          onPressed: () {
+                            final ctrl = TextEditingController();
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Novo Tópico'),
+                                content: TextField(
+                                  controller: ctrl,
+                                  autofocus: true,
+                                  decoration: const InputDecoration(hintText: 'ex: Política local, Tesouros...'),
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      final text = ctrl.text.trim();
+                                      if (text.isNotEmpty) {
+                                        setState(() => conversationTopics.add(text));
+                                      }
+                                      Navigator.pop(ctx);
+                                    },
+                                    child: const Text('Adicionar'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 const Divider(),
                 SwitchListTile(
                   title: const Text("Disponível em toda a Campanha?"),
@@ -370,6 +445,8 @@ class CreaturesTab extends ConsumerWidget {
                       type: selectedType,
                       motivation: motivationController.text,
                       losingBehavior: losingBehaviorController.text,
+                      roleplayNotes: roleplayNotesController.text,
+                      conversationTopics: conversationTopics,
                       adventureId: adventureIdForCreation,
                       clearAdventureId: adventureIdForCreation == null,
                       imagePath: imageUrl,
@@ -405,6 +482,8 @@ class CreaturesTab extends ConsumerWidget {
                       type: selectedType,
                       motivation: motivationController.text,
                       losingBehavior: losingBehaviorController.text,
+                      roleplayNotes: roleplayNotesController.text,
+                      conversationTopics: conversationTopics,
                       imagePath: imageUrl,
                     );
                     await db.saveCreature(creature);

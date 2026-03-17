@@ -149,8 +149,35 @@ class CreatureDetailDialog extends ConsumerWidget {
                       value: creature.losingBehavior,
                       color: AppTheme.combat,
                     ),
+                  if (creature.roleplayNotes.isNotEmpty)
+                    _IconRow(
+                      icon: Icons.theater_comedy,
+                      label: 'Roleplay',
+                      value: creature.roleplayNotes,
+                      color: AppTheme.npc,
+                    ),
                 ],
               ),
+
+              // Conversation topics
+              if (creature.conversationTopics.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _SectionHeader(icon: Icons.chat_bubble, label: 'Tópicos de Conversa', color: AppTheme.npc),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: creature.conversationTopics.map((topic) => Chip(
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: EdgeInsets.zero,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                    label: Text(topic, style: const TextStyle(fontSize: 10, color: AppTheme.npc)),
+                    side: BorderSide(color: AppTheme.npc.withValues(alpha: 0.4)),
+                    backgroundColor: AppTheme.npc.withValues(alpha: 0.1),
+                    visualDensity: VisualDensity.compact,
+                  )).toList(),
+                ),
+              ],
 
               // Stats
               if (creature.stats.isNotEmpty) ...[

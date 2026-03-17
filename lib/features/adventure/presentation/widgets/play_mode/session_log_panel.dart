@@ -208,45 +208,71 @@ Instruções:
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '📜 Log da Sessão',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textMuted,
-                  fontWeight: FontWeight.bold,
+              const Expanded(
+                child: Text(
+                  '📜 Log da Sessão',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textMuted,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               if (_isGeneratingRecap)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 )
               else
                 IconButton(
                   icon: const Icon(Icons.auto_awesome, size: 16),
                   tooltip: 'Gerar Recap com IA',
                   onPressed: entries.isEmpty ? null : _generateAiRecap,
-                  splashRadius: 16,
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
                   color: AppTheme.secondary,
                 ),
-              IconButton(
-                icon: const Icon(Icons.people, size: 16),
-                tooltip: 'Exportar para Jogadores (sem segredos)',
-                onPressed: entries.isEmpty ? null : _exportPlayerRecap,
-                splashRadius: 16,
-                color: AppTheme.info,
-              ),
-              IconButton(
-                icon: const Icon(Icons.copy, size: 16),
-                tooltip: 'Exportar Resumo Completo (Markdown)',
-                onPressed:
-                    entries.isEmpty && (adventure.sessionNotes?.isEmpty ?? true)
-                    ? null
-                    : _exportLog,
-                splashRadius: 16,
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.ios_share, size: 16),
+                tooltip: 'Exportar',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onSelected: (value) {
+                  if (value == 'players') {
+                    _exportPlayerRecap();
+                  } else if (value == 'full') {
+                    _exportLog();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'players',
+                    enabled: entries.isNotEmpty,
+                    child: const Row(
+                      children: [
+                        Icon(Icons.people, size: 16, color: AppTheme.info),
+                        SizedBox(width: 8),
+                        Text('Para Jogadores (sem segredos)'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'full',
+                    enabled: entries.isNotEmpty || (adventure.sessionNotes?.isNotEmpty ?? false),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.copy, size: 16),
+                        SizedBox(width: 8),
+                        Text('Resumo Completo (Markdown)'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
