@@ -6,8 +6,7 @@ service firebase.storage {
     // ── Helper functions ────────────────────────────────────────────────────
 
     function isAuthed() {
-      return request.auth != null
-        && !request.auth.token.firebase.sign_in_provider.matches('anonymous');
+      return request.auth != null;
     }
 
     function isOwner(uid) {
@@ -21,13 +20,13 @@ service firebase.storage {
 
     // ── User images: images/{uid}/** ────────────────────────────────────────
     match /images/{uid}/{allPaths=**} {
-      // User can read their own images
-      allow read: if isOwner(uid);
+      // Anyone authenticated can read images (needed for shared/public pages)
+      allow read: if isAuthed();
 
-      // User can upload images (max 10MB, must be image type)
+      // Owner can upload images (max 10MB, must be image type)
       allow create: if isOwner(uid) && isValidImage();
 
-      // User can replace or delete their own images
+      // Owner can replace or delete their own images
       allow update, delete: if isOwner(uid);
     }
 
