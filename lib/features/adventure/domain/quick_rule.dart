@@ -46,8 +46,8 @@ class QuickRule {
   factory QuickRule.fromJson(Map<String, dynamic> json) => QuickRule(
     id: json['id'] as String,
     campaignId: json['campaignId'] as String? ?? '',
-    title: json['title'] as String,
-    content: json['content'] as String,
+    title: json['title'] as String? ?? '',
+    content: json['content'] as String? ?? '',
     category: json['category'] as String? ?? 'Geral',
     order: json['order'] as int? ?? 0,
   );

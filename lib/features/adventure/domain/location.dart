@@ -1,5 +1,43 @@
 import "package:uuid/uuid.dart";
 
+enum LocationStatus { intact, damaged, destroyed, occupied, liberated, hidden }
+
+extension LocationStatusExtension on LocationStatus {
+  String get displayName {
+    switch (this) {
+      case LocationStatus.intact:
+        return "Intacto";
+      case LocationStatus.damaged:
+        return "Danificado";
+      case LocationStatus.destroyed:
+        return "Destruído";
+      case LocationStatus.occupied:
+        return "Ocupado";
+      case LocationStatus.liberated:
+        return "Liberado";
+      case LocationStatus.hidden:
+        return "Oculto";
+    }
+  }
+
+  String get icon {
+    switch (this) {
+      case LocationStatus.intact:
+        return "🏛️";
+      case LocationStatus.damaged:
+        return "🔨";
+      case LocationStatus.destroyed:
+        return "💥";
+      case LocationStatus.occupied:
+        return "🚩";
+      case LocationStatus.liberated:
+        return "🕊️";
+      case LocationStatus.hidden:
+        return "🫥";
+    }
+  }
+}
+
 class Location {
   final String id;
   final String campaignId;
@@ -10,6 +48,9 @@ class Location {
   final String? parentLocationId;
   final List<String> creatureIds;
   final List<String> scenicEncounters;
+  final LocationStatus status;
+  final List<String> tags;
+  final List<String> notes;
 
   const Location({
     required this.id,
@@ -21,6 +62,9 @@ class Location {
     this.parentLocationId,
     this.creatureIds = const [],
     this.scenicEncounters = const [],
+    this.status = LocationStatus.intact,
+    this.tags = const [],
+    this.notes = const [],
   });
 
   factory Location.create({
@@ -32,6 +76,9 @@ class Location {
     String? parentLocationId,
     List<String> creatureIds = const [],
     List<String> scenicEncounters = const [],
+    LocationStatus status = LocationStatus.intact,
+    List<String> tags = const [],
+    List<String> notes = const [],
   }) {
     return Location(
       id: const Uuid().v4(),
@@ -43,6 +90,9 @@ class Location {
       parentLocationId: parentLocationId,
       creatureIds: creatureIds,
       scenicEncounters: scenicEncounters,
+      status: status,
+      tags: tags,
+      notes: notes,
     );
   }
 
@@ -56,6 +106,9 @@ class Location {
     "parentLocationId": parentLocationId,
     "creatureIds": creatureIds,
     "scenicEncounters": scenicEncounters,
+    "status": status.index,
+    "tags": tags,
+    "notes": notes,
   };
 
   factory Location.fromJson(Map<String, dynamic> json) => Location(
@@ -70,6 +123,9 @@ class Location {
         (json["creatureIds"] as List<dynamic>?)?.cast<String>() ?? const [],
     scenicEncounters:
         (json["scenicEncounters"] as List<dynamic>?)?.cast<String>() ?? const [],
+    status: LocationStatus.values[json["status"] as int? ?? 0],
+    tags: (json["tags"] as List<dynamic>?)?.cast<String>() ?? const [],
+    notes: (json["notes"] as List<dynamic>?)?.cast<String>() ?? const [],
   );
 
   Location copyWith({
@@ -84,6 +140,9 @@ class Location {
     List<String>? creatureIds,
     bool clearParent = false,
     List<String>? scenicEncounters,
+    LocationStatus? status,
+    List<String>? tags,
+    List<String>? notes,
   }) {
     return Location(
       id: id,
@@ -97,6 +156,9 @@ class Location {
           : (parentLocationId ?? this.parentLocationId),
       creatureIds: creatureIds ?? this.creatureIds,
       scenicEncounters: scenicEncounters ?? this.scenicEncounters,
+      status: status ?? this.status,
+      tags: tags ?? this.tags,
+      notes: notes ?? this.notes,
     );
   }
 }

@@ -115,6 +115,19 @@ class SceneViewer extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  if (parentLocation.imagePath != null &&
+                      parentLocation.imagePath!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SmartNetworkImage(
+                        imageUrl: parentLocation.imagePath!,
+                        height: 160,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ],
                   if (parentLocation.description.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -622,13 +635,34 @@ class _FactList extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           ...relatedFacts.map((fact) {
-            final isRevealed = activeState.revealedFacts.contains(fact.id);
+            final isRevealed = fact.revealed || activeState.revealedFacts.contains(fact.id);
             final isSecret = fact.isSecret;
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: InkWell(
-                onTap: () {
+                onTap: () async {
+                  // Toggle in runtime state
                   ref.read(activeAdventureProvider.notifier).toggleFactRevealed(fact.id);
+
+                  // Persist the reveal to the Fact model
+                  final nowRevealed = !isRevealed;
+                  final updated = fact.copyWith(
+                    revealed: nowRevealed,
+                    revealedAt: nowRevealed ? DateTime.now() : null,
+                    clearRevealedAt: !nowRevealed,
+                  );
+                  await ref.read(hiveDatabaseProvider).saveFact(updated);
+                  ref.invalidate(factsProvider(adventureId));
+                  ref.markUnsynced();
+
+                  // Auto-log the reveal
+                  if (nowRevealed) {
+                    final preview = fact.content.length > 40
+                        ? '${fact.content.substring(0, 40)}...'
+                        : fact.content;
+                    ref.read(activeAdventureProvider.notifier)
+                        .logEvent('Segredo revelado: $preview');
+                  }
                 },
                 borderRadius: BorderRadius.circular(4),
                 child: Container(

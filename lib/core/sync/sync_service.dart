@@ -150,10 +150,19 @@ class SyncService {
     if (!_isAuthenticated) return;
 
     final snapshot = await _adventuresRef.get();
+    final cloudIds = snapshot.docs.map((d) => d.id).toSet();
 
     for (final doc in snapshot.docs) {
       final data = doc.data();
       await _importAdventureData(data);
+    }
+
+    // Remove local adventures that were deleted on another device
+    final localAdventures = _hiveDb.getAllAdventures();
+    for (final local in localAdventures) {
+      if (!cloudIds.contains(local.id)) {
+        await _hiveDb.deleteAdventure(local.id);
+      }
     }
   }
 
@@ -244,6 +253,18 @@ class SyncService {
       final data = doc.data();
       final campaignJson = data['campaign'] as Map<String, dynamic>;
       final campaign = Campaign.fromJson(campaignJson);
+
+      // Check if local version is newer — skip import if so
+      final cloudUpdatedAtRaw = data['updatedAt'];
+      final cloudUpdatedAt = cloudUpdatedAtRaw is Timestamp
+          ? cloudUpdatedAtRaw.toDate()
+          : DateTime.now();
+      final localCampaign = _hiveDb.getCampaign(campaign.id);
+      if (localCampaign != null &&
+          localCampaign.updatedAt.isAfter(cloudUpdatedAt)) {
+        continue;
+      }
+
       await _hiveDb.saveCampaign(campaign);
 
       final pcsJson = data['playerCharacters'] as List<dynamic>? ?? [];
@@ -294,21 +315,32 @@ class SyncService {
         await _hiveDb.saveCreature(creature);
       }
     }
+
+    // Remove local campaigns that were deleted on another device
+    final cloudCampaignIds = snapshot.docs.map((d) => d.id).toSet();
+    final localCampaigns = _hiveDb.getAllCampaigns();
+    for (final local in localCampaigns) {
+      if (!cloudCampaignIds.contains(local.id)) {
+        await _hiveDb.deleteCampaign(local.id);
+      }
+    }
   }
 
   Future<void> fullSync() async {
     if (!_isAuthenticated) return;
 
     try {
-      await pullAllAdventures();
-      await pullAllCampaigns();
-
+      // Push local changes FIRST to avoid cloud overwriting unsaved edits
       await pushAllAdventures();
 
       final campaigns = _hiveDb.getAllCampaigns();
       for (final campaign in campaigns) {
         await pushCampaign(campaign.id);
       }
+
+      // Then pull cloud data (which now includes our pushed changes)
+      await pullAllAdventures();
+      await pullAllCampaigns();
     } catch (e) {
       rethrow;
     }

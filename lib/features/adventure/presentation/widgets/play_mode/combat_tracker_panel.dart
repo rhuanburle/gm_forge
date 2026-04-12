@@ -1,15 +1,17 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/utils/debouncer.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../application/active_adventure_state.dart';
 import '../../../domain/domain.dart';
 
 // ---------------------------------------------------------------------------
-// Combat participant model (runtime only, not persisted)
+// Combat participant model (persisted to Hive)
 // ---------------------------------------------------------------------------
 
 enum CombatCondition {
@@ -219,6 +221,48 @@ class CombatParticipant {
     if (hpPercent > 0.25) return AppTheme.warning;
     return AppTheme.combat;
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'initiative': initiative,
+    'currentHp': currentHp,
+    'maxHp': maxHp,
+    'armorClass': armorClass,
+    'conditions': conditions.map((c) => c.name).toList(),
+    'isPlayerCharacter': isPlayerCharacter,
+    'creatureId': creatureId,
+    'notes': notes,
+  };
+
+  factory CombatParticipant.fromJson(Map<String, dynamic> json) {
+    return CombatParticipant(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      initiative: json['initiative'] as int? ?? 0,
+      currentHp: json['currentHp'] as int? ?? 10,
+      maxHp: json['maxHp'] as int? ?? 10,
+      armorClass: json['armorClass'] as int? ?? 10,
+      conditions: (json['conditions'] as List<dynamic>?)
+              ?.map((c) {
+                if (c is int) {
+                  // Legacy index-based format
+                  return c < CombatCondition.values.length
+                      ? CombatCondition.values[c]
+                      : CombatCondition.blinded;
+                }
+                return CombatCondition.values.firstWhere(
+                  (v) => v.name == (c as String),
+                  orElse: () => CombatCondition.blinded,
+                );
+              })
+              .toList() ??
+          const [],
+      isPlayerCharacter: json['isPlayerCharacter'] as bool? ?? false,
+      creatureId: json['creatureId'] as String?,
+      notes: json['notes'] as String? ?? '',
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -256,25 +300,91 @@ class CombatState {
       isActive: isActive ?? this.isActive,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'participants': participants.map((p) => p.toJson()).toList(),
+    'currentRound': currentRound,
+    'currentTurnIndex': currentTurnIndex,
+    'isActive': isActive,
+  };
+
+  factory CombatState.fromJson(Map<String, dynamic> json) {
+    return CombatState(
+      participants: (json['participants'] as List<dynamic>?)
+              ?.map((p) => CombatParticipant.fromJson(Map<String, dynamic>.from(p as Map)))
+              .toList() ??
+          const [],
+      currentRound: json['currentRound'] as int? ?? 1,
+      currentTurnIndex: json['currentTurnIndex'] as int? ?? 0,
+      isActive: json['isActive'] as bool? ?? false,
+    );
+  }
 }
 
 class CombatNotifier extends Notifier<CombatState> {
+  static const String _boxName = 'settings';
+  static const String _keyPrefix = 'combat_state_';
+
+  String? _adventureId;
+  final Debouncer _debouncer = Debouncer(milliseconds: 500);
+
   @override
   CombatState build() => const CombatState();
+
+  /// Load persisted combat state for the given adventure
+  void loadForAdventure(String adventureId) {
+    _adventureId = adventureId;
+    try {
+      final box = Hive.box<dynamic>(_boxName);
+      final raw = box.get('$_keyPrefix$adventureId');
+      if (raw != null) {
+        final data = Map<String, dynamic>.from(raw as Map);
+        state = CombatState.fromJson(data);
+        return;
+      }
+    } catch (_) {
+      // Fallback to empty state
+    }
+    state = const CombatState();
+  }
+
+  void _persist() {
+    if (_adventureId == null) return;
+    _debouncer.run(() {
+      try {
+        final box = Hive.box<dynamic>(_boxName);
+        box.put('$_keyPrefix$_adventureId', state.toJson());
+      } catch (_) {}
+    });
+  }
+
+  /// Flush pending persistence (call before leaving play mode)
+  void flush() => _debouncer.flush();
 
   void startCombat() {
     state = state.copyWith(isActive: true, currentRound: 1, currentTurnIndex: 0);
     _sortByInitiative();
+    _persist();
   }
 
   void endCombat() {
     state = const CombatState();
+    _persistImmediate();
+  }
+
+  void _persistImmediate() {
+    if (_adventureId == null) return;
+    try {
+      final box = Hive.box<dynamic>(_boxName);
+      box.put('$_keyPrefix$_adventureId', state.toJson());
+    } catch (_) {}
   }
 
   void addParticipant(CombatParticipant participant) {
     final list = [...state.participants, participant];
     state = state.copyWith(participants: list);
     if (state.isActive) _sortByInitiative();
+    _persist();
   }
 
   void removeParticipant(String id) {
@@ -282,13 +392,19 @@ class CombatNotifier extends Notifier<CombatState> {
     if (idx == -1) return;
 
     final list = [...state.participants]..removeAt(idx);
+    if (list.isEmpty) {
+      state = state.copyWith(participants: list, currentTurnIndex: 0);
+      _persist();
+      return;
+    }
     var turnIdx = state.currentTurnIndex;
     if (idx < turnIdx) {
       turnIdx = (turnIdx - 1).clamp(0, list.length - 1);
-    } else if (turnIdx >= list.length && list.isNotEmpty) {
+    } else if (turnIdx >= list.length) {
       turnIdx = 0;
     }
     state = state.copyWith(participants: list, currentTurnIndex: turnIdx);
+    _persist();
   }
 
   void nextTurn() {
@@ -300,6 +416,7 @@ class CombatNotifier extends Notifier<CombatState> {
       nextRound++;
     }
     state = state.copyWith(currentTurnIndex: nextIdx, currentRound: nextRound);
+    _persist();
   }
 
   void previousTurn() {
@@ -311,11 +428,13 @@ class CombatNotifier extends Notifier<CombatState> {
       prevRound = (prevRound - 1).clamp(1, 999);
     }
     state = state.copyWith(currentTurnIndex: prevIdx, currentRound: prevRound);
+    _persist();
   }
 
   void updateParticipant(String id, CombatParticipant Function(CombatParticipant) updater) {
     final list = state.participants.map((p) => p.id == id ? updater(p) : p).toList();
     state = state.copyWith(participants: list);
+    _persist();
   }
 
   void updateInitiative(String id, int initiative) {
@@ -357,14 +476,17 @@ class CombatNotifier extends Notifier<CombatState> {
     state = state.copyWith(participants: sorted, currentTurnIndex: newIdx);
   }
 
-  void rollAllInitiatives() {
+  /// Roll d20 for NPC participants only (PCs keep their current initiative).
+  void rollAllInitiatives({bool includePlayerCharacters = false}) {
     final rng = Random();
     final list = state.participants.map((p) {
+      if (!includePlayerCharacters && p.isPlayerCharacter) return p;
       final roll = rng.nextInt(20) + 1;
       return p.copyWith(initiative: roll);
     }).toList();
     state = state.copyWith(participants: list);
     _sortByInitiative();
+    _persist();
   }
 }
 
@@ -661,7 +783,7 @@ class _CombatControls extends ConsumerWidget {
             IconButton(
               onPressed: () => combat.rollAllInitiatives(),
               icon: const Icon(Icons.casino, size: 18),
-              tooltip: 'Rolar Iniciativas (d20)',
+              tooltip: 'Rolar Iniciativas NPCs (d20)',
               style: IconButton.styleFrom(
                 backgroundColor: AppTheme.surfaceLight,
               ),
@@ -690,7 +812,7 @@ class _CombatControls extends ConsumerWidget {
             IconButton(
               onPressed: () => combat.rollAllInitiatives(),
               icon: const Icon(Icons.casino, size: 18),
-              tooltip: 'Re-rolar Iniciativas',
+              tooltip: 'Re-rolar Iniciativas NPCs',
               constraints: const BoxConstraints(),
               padding: const EdgeInsets.all(8),
             ),

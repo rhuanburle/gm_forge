@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../../core/widgets/import_json_dialog.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../domain/domain.dart';
 
@@ -322,67 +324,58 @@ class _NotesTabState extends ConsumerState<NotesTab> {
 
   Widget _buildQuickRulesSection(
       BuildContext context, List<QuickRule> rules) {
+    // Group by category to render category headers
+    final grouped = <String, List<QuickRule>>{};
+    for (final rule in rules) {
+      grouped.putIfAbsent(rule.category, () => []).add(rule);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
           context,
-          icon: Icons.gavel,
-          title: 'Regras Rápidas (Referência)',
+          icon: Icons.shield_outlined,
+          title: 'Escudo do Mestre',
           onAdd: () => _showAddRuleDialog(context),
+          onImport: () => _showImportRuleDialog(context),
         ),
         if (rules.isEmpty)
-          _emptyState(context, 'Nenhuma regra de referência adicionada.')
+          _emptyState(context, 'Nenhuma regra adicionada.\nCrie cards de referência rápida para usar durante a sessão.')
         else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: rules.length,
-            itemBuilder: (context, index) {
-              final rule = rules[index];
-              return Card(
-                child: ListTile(
-                  dense: true,
-                  title: Text(rule.title),
-                  subtitle: Text(
-                    '${rule.category} • ${rule.content}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showEditRuleDialog(context, rule);
-                      } else if (value == 'delete') {
-                        _confirmDelete(
-                          context,
-                          title: 'Excluir Regra',
-                          message: 'Deseja excluir "${rule.title}"?',
-                          onConfirm: () async {
-                            await ref
-                                .read(hiveDatabaseProvider)
-                                .deleteQuickRule(rule.id);
-                            ref.invalidate(quickRulesProvider(campaignId));
-                            _markUnsynced();
-                          },
-                        );
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Text('Editar'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Excluir'),
-                      ),
-                    ],
+          ...grouped.entries.map((group) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (group.key.isNotEmpty && group.key != 'Geral') ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 6),
+                  child: Text(
+                    group.key.toUpperCase(),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.secondary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
-              );
-            },
-          ),
+              ] else
+                const SizedBox(height: 4),
+              _RuleCardGrid(
+                rules: group.value,
+                onEdit: (r) => _showEditRuleDialog(context, r),
+                onDelete: (r) => _confirmDelete(
+                  context,
+                  title: 'Excluir Card',
+                  message: 'Deseja excluir "${r.title}"?',
+                  onConfirm: () async {
+                    await ref.read(hiveDatabaseProvider).deleteQuickRule(r.id);
+                    ref.invalidate(quickRulesProvider(campaignId));
+                    _markUnsynced();
+                  },
+                ),
+              ),
+            ],
+          )),
       ],
     );
   }
@@ -396,35 +389,58 @@ class _NotesTabState extends ConsumerState<NotesTab> {
   }
 
   void _showRuleFormDialog(BuildContext context, QuickRule? rule) {
-    final titleController = TextEditingController(text: rule?.title);
-    final contentController = TextEditingController(text: rule?.content);
-    final categoryController = TextEditingController(text: rule?.category ?? 'Geral');
+    final titleCtrl = TextEditingController(text: rule?.title ?? '');
+    final contentCtrl = TextEditingController(text: rule?.content ?? '');
+    final categoryCtrl = TextEditingController(text: rule?.category ?? 'Geral');
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(rule == null ? 'Nova Regra' : 'Editar Regra'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Título'),
-              ),
-              TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(
-                  labelText: 'Categoria',
-                  hintText: 'ex: Combate, Condições, DC',
+        title: Text(rule == null ? 'Novo Card de Referência' : 'Editar Card'),
+        content: SizedBox(
+          width: 460,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Título do card *',
+                    hintText: 'ex: Condições, Combate — Ações, DCs',
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  autofocus: true,
                 ),
-              ),
-              TextField(
-                controller: contentController,
-                decoration: const InputDecoration(labelText: 'Conteúdo/Efeito'),
-                maxLines: 3,
-              ),
-            ],
+                const SizedBox(height: 8),
+                TextField(
+                  controller: categoryCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Grupo (opcional)',
+                    hintText: 'ex: Combate, Magia, Geral',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: contentCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Conteúdo',
+                    hintText: 'Use quebras de linha para organizar.\nex:\nAtaque = Ação\nMover = Movimento\nAparar = Reação',
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 10,
+                  minLines: 5,
+                  keyboardType: TextInputType.multiline,
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Dica: quebras de linha são preservadas no card.',
+                  style: Theme.of(ctx).textTheme.labelSmall?.copyWith(color: AppTheme.textMuted),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -432,23 +448,24 @@ class _NotesTabState extends ConsumerState<NotesTab> {
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
-              if (titleController.text.isEmpty) return;
+              final title = titleCtrl.text.trim();
+              if (title.isEmpty) return;
               final db = ref.read(hiveDatabaseProvider);
               if (rule == null) {
                 final newRule = QuickRule.create(
                   campaignId: campaignId,
-                  title: titleController.text,
-                  content: contentController.text,
-                  category: categoryController.text,
+                  title: title,
+                  content: contentCtrl.text,
+                  category: categoryCtrl.text.trim().isEmpty ? 'Geral' : categoryCtrl.text.trim(),
                 );
                 await db.saveQuickRule(newRule);
               } else {
                 final updated = rule.copyWith(
-                  title: titleController.text,
-                  content: contentController.text,
-                  category: categoryController.text,
+                  title: title,
+                  content: contentCtrl.text,
+                  category: categoryCtrl.text.trim().isEmpty ? 'Geral' : categoryCtrl.text.trim(),
                 );
                 await db.saveQuickRule(updated);
               }
@@ -472,6 +489,7 @@ class _NotesTabState extends ConsumerState<NotesTab> {
     required IconData icon,
     required String title,
     required VoidCallback onAdd,
+    VoidCallback? onImport,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -484,6 +502,13 @@ class _NotesTabState extends ConsumerState<NotesTab> {
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const Spacer(),
+          if (onImport != null)
+            IconButton(
+              icon: const Icon(Icons.upload_file, size: 18),
+              tooltip: 'Importar via JSON',
+              color: AppTheme.textMuted,
+              onPressed: onImport,
+            ),
           TextButton.icon(
             onPressed: onAdd,
             icon: const Icon(Icons.add, size: 18),
@@ -494,6 +519,34 @@ class _NotesTabState extends ConsumerState<NotesTab> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showImportRuleDialog(BuildContext context) {
+    showImportJsonDialog(
+      context: context,
+      title: 'Importar Card do Escudo',
+      exampleJson: '''{
+  "title": "Teste de Atributo",
+  "content": "Role 1d20 + mod\\n≥ CD: sucesso\\n< CD: falha",
+  "category": "Regras Básicas"
+}''',
+      legend: 'category: agrupa os cards (ex: "Combate", "Magia", "Geral")\n'
+          'content: use \\n para quebras de linha',
+      onImport: (json) async {
+        json['id'] = const Uuid().v4();
+        json['campaignId'] = campaignId;
+        json['order'] = json['order'] ?? 0;
+        try {
+          final rule = QuickRule.fromJson(json);
+          await ref.read(hiveDatabaseProvider).saveQuickRule(rule);
+          ref.invalidate(quickRulesProvider(campaignId));
+          _markUnsynced();
+          if (context.mounted) AppSnackBar.success(context, '"${rule.title}" importado!');
+        } catch (e) {
+          if (context.mounted) AppSnackBar.error(context, 'Erro ao importar: $e');
+        }
+      },
     );
   }
 
@@ -538,6 +591,116 @@ class _NotesTabState extends ConsumerState<NotesTab> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Grid de cards do escudo
+// ---------------------------------------------------------------------------
+
+class _RuleCardGrid extends StatelessWidget {
+  final List<QuickRule> rules;
+  final ValueChanged<QuickRule> onEdit;
+  final ValueChanged<QuickRule> onDelete;
+
+  const _RuleCardGrid({required this.rules, required this.onEdit, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth > 600 ? 3 : 2;
+        final cardWidth = (constraints.maxWidth - (cols - 1) * 8) / cols;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: rules
+              .map((rule) => SizedBox(
+                    width: cardWidth,
+                    child: _RuleCard(
+                      rule: rule,
+                      onEdit: () => onEdit(rule),
+                      onDelete: () => onDelete(rule),
+                    ),
+                  ))
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _RuleCard extends StatelessWidget {
+  final QuickRule rule;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _RuleCard({required this.rule, required this.onEdit, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.r12),
+        onLongPress: onEdit,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 6, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      rule.title,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    iconSize: 16,
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.more_vert, size: 16, color: AppTheme.textMuted),
+                    onSelected: (v) {
+                      if (v == 'edit') onEdit();
+                      if (v == 'delete') onDelete();
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(children: [Icon(Icons.edit, size: 15), SizedBox(width: 8), Text('Editar')]),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(children: [Icon(Icons.delete, size: 15, color: AppTheme.error), SizedBox(width: 8), Text('Excluir', style: TextStyle(color: AppTheme.error))]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (rule.content.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                const Divider(height: 1),
+                const SizedBox(height: 6),
+                Text(
+                  rule.content,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                    height: 1.55,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

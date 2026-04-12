@@ -20,6 +20,7 @@ class _GmInspirationPanelState extends ConsumerState<GmInspirationPanel> {
   final _rng = Random();
   String? _lastResult;
   String? _lastTableName;
+  List<_ChainResult>? _lastChainResult;
 
   List<InspirationTable> get _tables {
     if (widget.campaignId != null) {
@@ -69,10 +70,26 @@ class _GmInspirationPanelState extends ConsumerState<GmInspirationPanel> {
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: tables.map((table) => _rollButton(table)).toList(),
+            children: [
+              ...tables.map((table) => _rollButton(table)),
+              // Chain roll button — rolls from all tables at once
+              if (tables.length >= 2)
+                OutlinedButton.icon(
+                  onPressed: () => _rollChain(tables),
+                  icon: const Icon(Icons.link, size: 14),
+                  label: const Text('Cadeia', style: TextStyle(fontSize: 10)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: AppTheme.secondary,
+                    side: BorderSide(color: AppTheme.secondary.withValues(alpha: 0.4)),
+                  ),
+                ),
+            ],
           ),
-          // Result display
-          if (_lastResult != null) ...[
+          // Single result display
+          if (_lastResult != null && _lastChainResult == null) ...[
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -105,6 +122,58 @@ class _GmInspirationPanelState extends ConsumerState<GmInspirationPanel> {
               ),
             ),
           ],
+          // Chain result display
+          if (_lastChainResult != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.secondary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppTheme.secondary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'ROLAGEM ENCADEADA',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.secondary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ..._lastChainResult!.map((r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${r.tableName}: ',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.warning.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            r.entry,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -119,6 +188,7 @@ class _GmInspirationPanelState extends ConsumerState<GmInspirationPanel> {
                 _lastTableName = table.name;
                 _lastResult =
                     table.entries[_rng.nextInt(table.entries.length)];
+                _lastChainResult = null;
               });
             },
       icon: const Icon(Icons.casino, size: 14),
@@ -131,6 +201,23 @@ class _GmInspirationPanelState extends ConsumerState<GmInspirationPanel> {
         side: BorderSide(color: AppTheme.warning.withValues(alpha: 0.4)),
       ),
     );
+  }
+
+  void _rollChain(List<InspirationTable> tables) {
+    final results = <_ChainResult>[];
+    for (final table in tables) {
+      if (table.entries.isNotEmpty) {
+        results.add(_ChainResult(
+          tableName: table.name,
+          entry: table.entries[_rng.nextInt(table.entries.length)],
+        ));
+      }
+    }
+    setState(() {
+      _lastChainResult = results;
+      _lastResult = null;
+      _lastTableName = null;
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -481,4 +568,11 @@ class _ManageTablesDialogState extends State<_ManageTablesDialog> {
       if (idx != -1) _tables[idx] = updated;
     });
   }
+}
+
+class _ChainResult {
+  final String tableName;
+  final String entry;
+
+  const _ChainResult({required this.tableName, required this.entry});
 }

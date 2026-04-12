@@ -28,10 +28,13 @@ class _WorldTabState extends ConsumerState<WorldTab> {
   Widget build(BuildContext context) {
     final loreEntries = ref.watch(loreEntriesProvider(campaignId));
     final regions = ref.watch(regionsProvider(campaignId));
+    final consequences = ref.watch(worldConsequencesProvider(campaignId));
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
+        _buildConsequencesSection(context, consequences),
+        const SizedBox(height: 24),
         _buildLoreSection(context, loreEntries),
         const SizedBox(height: 24),
         _buildRegionsSection(context, regions),
@@ -441,6 +444,128 @@ class _WorldTabState extends ConsumerState<WorldTab> {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Consequências do Mundo
+  // ---------------------------------------------------------------------------
+
+  Widget _buildConsequencesSection(BuildContext context, List<WorldConsequence> consequences) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          context,
+          icon: Icons.bolt,
+          title: 'Consequências do Mundo',
+          onAdd: () => _showConsequenceDialog(context, null),
+        ),
+        if (consequences.isEmpty)
+          _emptyState(context, 'Nenhuma consequência registrada.\nRegistre como o mundo mudou pelas ações dos jogadores.')
+        else
+          ...consequences.map((c) => _ConsequenceCard(
+                consequence: c,
+                onEdit: () => _showConsequenceDialog(context, c),
+                onDelete: () => _confirmDelete(
+                  context,
+                  title: 'Excluir Consequência',
+                  message: 'Tem certeza que deseja excluir "${c.title}"?',
+                  onConfirm: () async {
+                    await ref.read(hiveDatabaseProvider).deleteWorldConsequence(c.id);
+                    ref.invalidate(worldConsequencesProvider(campaignId));
+                    _markUnsynced();
+                  },
+                ),
+              )),
+      ],
+    );
+  }
+
+  void _showConsequenceDialog(BuildContext context, WorldConsequence? existing) {
+    final titleCtrl = TextEditingController(text: existing?.title ?? '');
+    final descCtrl = TextEditingController(text: existing?.description ?? '');
+    final areaCtrl = TextEditingController(text: existing?.affectedArea ?? '');
+    final sessionCtrl = TextEditingController(
+      text: existing?.sessionNumber != null ? existing!.sessionNumber.toString() : '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(existing == null ? 'Nova Consequência' : 'Editar Consequência'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(labelText: 'Título *'),
+                textCapitalization: TextCapitalization.sentences,
+                autofocus: true,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Descrição',
+                  hintText: 'O que mudou? Quais foram os efeitos?',
+                ),
+                maxLines: 3,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: areaCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Área afetada',
+                  hintText: 'ex: Cidade de Vorn, Guilda dos Ladrões...',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: sessionCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Sessão (opcional)'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              final title = titleCtrl.text.trim();
+              if (title.isEmpty) return;
+              final sessionNumber = int.tryParse(sessionCtrl.text.trim());
+              final db = ref.read(hiveDatabaseProvider);
+              if (existing == null) {
+                final c = WorldConsequence.create(
+                  campaignId: campaignId,
+                  title: title,
+                  description: descCtrl.text.trim(),
+                  affectedArea: areaCtrl.text.trim(),
+                  sessionNumber: sessionNumber,
+                );
+                await db.saveWorldConsequence(c);
+              } else {
+                final updated = existing.copyWith(
+                  title: title,
+                  description: descCtrl.text.trim(),
+                  affectedArea: areaCtrl.text.trim(),
+                  sessionNumber: sessionNumber,
+                  clearSessionNumber: sessionNumber == null,
+                );
+                await db.saveWorldConsequence(updated);
+              }
+              ref.invalidate(worldConsequencesProvider(campaignId));
+              _markUnsynced();
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _emptyState(BuildContext context, String message) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -482,6 +607,95 @@ class _WorldTabState extends ConsumerState<WorldTab> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _ConsequenceCard extends StatelessWidget {
+  final WorldConsequence consequence;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ConsequenceCard({required this.consequence, required this.onEdit, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 3,
+              height: 48,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(consequence.title,
+                            style: Theme.of(context).textTheme.titleSmall),
+                      ),
+                      if (consequence.sessionNumber != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceLight.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('S${consequence.sessionNumber}',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.textMuted)),
+                        ),
+                    ],
+                  ),
+                  if (consequence.affectedArea.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.place, size: 12, color: AppTheme.textMuted),
+                        const SizedBox(width: 4),
+                        Text(consequence.affectedArea,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.textMuted)),
+                      ],
+                    ),
+                  ],
+                  if (consequence.description.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(consequence.description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              iconSize: 18,
+              padding: EdgeInsets.zero,
+              onSelected: (v) {
+                if (v == 'edit') onEdit();
+                if (v == 'delete') onDelete();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Editar')])),
+                const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 16, color: AppTheme.error), SizedBox(width: 8), Text('Excluir', style: TextStyle(color: AppTheme.error))])),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

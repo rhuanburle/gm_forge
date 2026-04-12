@@ -7,6 +7,8 @@ class Fact {
   final String content;
   final String? sourceId;
   final bool isSecret;
+  final bool revealed;
+  final DateTime? revealedAt;
   final List<String> tags;
   final DateTime createdAt;
 
@@ -17,6 +19,8 @@ class Fact {
     required this.content,
     this.sourceId,
     this.isSecret = false,
+    this.revealed = false,
+    this.revealedAt,
     this.tags = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -29,6 +33,8 @@ class Fact {
       'content': content,
       'sourceId': sourceId,
       'isSecret': isSecret,
+      'revealed': revealed,
+      'revealedAt': revealedAt?.toIso8601String(),
       'tags': tags,
       'createdAt': createdAt.toIso8601String(),
     };
@@ -42,6 +48,10 @@ class Fact {
       content: json['content'] as String,
       sourceId: json['sourceId'] as String?,
       isSecret: json['isSecret'] as bool? ?? false,
+      revealed: json['revealed'] as bool? ?? false,
+      revealedAt: json['revealedAt'] != null
+          ? DateTime.tryParse(json['revealedAt'] as String)
+          : null,
       tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? [],
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
@@ -69,7 +79,11 @@ class Fact {
   Fact copyWith({
     String? content,
     String? sourceId,
+    bool clearSourceId = false,
     bool? isSecret,
+    bool? revealed,
+    DateTime? revealedAt,
+    bool clearRevealedAt = false,
     List<String>? tags,
   }) {
     return Fact(
@@ -77,8 +91,10 @@ class Fact {
       campaignId: campaignId,
       adventureId: adventureId,
       content: content ?? this.content,
-      sourceId: sourceId ?? this.sourceId,
+      sourceId: clearSourceId ? null : (sourceId ?? this.sourceId),
       isSecret: isSecret ?? this.isSecret,
+      revealed: revealed ?? this.revealed,
+      revealedAt: clearRevealedAt ? null : (revealedAt ?? this.revealedAt),
       tags: tags ?? this.tags,
       createdAt: createdAt,
     );

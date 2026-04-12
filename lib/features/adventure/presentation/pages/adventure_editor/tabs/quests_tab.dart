@@ -1,8 +1,10 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import 'package:uuid/uuid.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../../../core/history/history_service.dart';
+import '../../../../../../core/widgets/import_json_dialog.dart';
 import '../../../../application/adventure_providers.dart';
 import "../../../../domain/domain.dart";
 import '../../../../../../core/widgets/animated_list_item.dart';
@@ -43,6 +45,40 @@ class QuestsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final quests = ref.watch(questsProvider(adventureId));
 
+    void importJson() => showImportJsonDialog(
+      context: context,
+      title: 'Importar Quest / Missão',
+      exampleJson: '''{
+  "name": "A Torre Sombria",
+  "description": "Investigar rumores sobre a torre abandonada",
+  "status": 1,
+  "rewardDescription": "500 PO e a gratidão do prefeito",
+  "objectives": [
+    {"text": "Localizar a torre", "isComplete": true},
+    {"text": "Explorar os três andares", "isComplete": false}
+  ],
+  "tags": ["principal", "exploração"]
+}''',
+      legend: 'status: 0=Não Iniciada  1=Em Andamento  2=Concluída  3=Falhou',
+      onImport: (json) async {
+        final db = ref.read(hiveDatabaseProvider);
+        final adv = db.getAdventure(adventureId);
+        final campaignId = adv?.campaignId ?? adventureId;
+        json['id'] = const Uuid().v4();
+        json['campaignId'] = campaignId;
+        json['adventureId'] = adventureId;
+        try {
+          final quest = Quest.fromJson(json);
+          await db.saveQuest(quest);
+          ref.invalidate(questsProvider(adventureId));
+          ref.read(unsyncedChangesProvider.notifier).state = true;
+          if (context.mounted) AppSnackBar.success(context, '"${quest.name}" importada!');
+        } catch (e) {
+          if (context.mounted) AppSnackBar.error(context, 'Erro ao importar: $e');
+        }
+      },
+    );
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -52,6 +88,12 @@ class QuestsTab extends ConsumerWidget {
             icon: Icons.assignment,
             title: "Missões & Quests",
             subtitle: "Quais desafios aguardam os aventureiros?",
+            trailing: IconButton(
+              icon: const Icon(Icons.upload_file, size: 20),
+              tooltip: 'Importar via JSON',
+              color: AppTheme.textMuted,
+              onPressed: importJson,
+            ),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -92,7 +134,23 @@ class QuestsTab extends ConsumerWidget {
                             child: const Icon(Icons.delete_outline, color: AppTheme.error),
                           ),
                           confirmDismiss: (direction) async {
-                            return true;
+                            return await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Remover Quest?'),
+                                content: const Text('Essa ação não pode ser desfeita.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('Remover', style: TextStyle(color: AppTheme.error)),
+                                  ),
+                                ],
+                              ),
+                            ) ?? false;
                           },
                           onDismissed: (direction) async {
                             final db = ref.read(hiveDatabaseProvider);
@@ -666,6 +724,7 @@ class _QuestListItem extends StatelessWidget {
                       );
 
                       ref.invalidate(questsProvider(adventureId));
+                      ref.read(unsyncedChangesProvider.notifier).state = true;
                     },
                   ),
                 IconButton(

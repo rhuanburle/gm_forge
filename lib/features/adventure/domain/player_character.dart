@@ -13,6 +13,10 @@ class PlayerCharacter {
   final String notes;
   final String? imageUrl;
   final int level;
+  // Campos exclusivos do mestre
+  final String gmNotes;
+  final String personalArc;
+  final String backstoryHooks;
 
   const PlayerCharacter({
     required this.id,
@@ -27,6 +31,9 @@ class PlayerCharacter {
     this.notes = '',
     this.imageUrl,
     this.level = 1,
+    this.gmNotes = '',
+    this.personalArc = '',
+    this.backstoryHooks = '',
   });
 
   factory PlayerCharacter.create({
@@ -41,6 +48,9 @@ class PlayerCharacter {
     String notes = '',
     String? imageUrl,
     int level = 1,
+    String gmNotes = '',
+    String personalArc = '',
+    String backstoryHooks = '',
   }) {
     return PlayerCharacter(
       id: const Uuid().v4(),
@@ -55,6 +65,9 @@ class PlayerCharacter {
       notes: notes,
       imageUrl: imageUrl,
       level: level,
+      gmNotes: gmNotes,
+      personalArc: personalArc,
+      backstoryHooks: backstoryHooks,
     );
   }
 
@@ -71,6 +84,9 @@ class PlayerCharacter {
     'notes': notes,
     'imageUrl': imageUrl,
     'level': level,
+    'gmNotes': gmNotes,
+    'personalArc': personalArc,
+    'backstoryHooks': backstoryHooks,
   };
 
   factory PlayerCharacter.fromJson(Map<String, dynamic> json) =>
@@ -87,6 +103,9 @@ class PlayerCharacter {
         notes: json['notes'] as String? ?? '',
         imageUrl: json['imageUrl'] as String?,
         level: json['level'] as int? ?? 1,
+        gmNotes: json['gmNotes'] as String? ?? '',
+        personalArc: json['personalArc'] as String? ?? '',
+        backstoryHooks: json['backstoryHooks'] as String? ?? '',
       );
 
   PlayerCharacter copyWith({
@@ -101,6 +120,9 @@ class PlayerCharacter {
     String? imageUrl,
     bool clearImageUrl = false,
     int? level,
+    String? gmNotes,
+    String? personalArc,
+    String? backstoryHooks,
   }) {
     return PlayerCharacter(
       id: id,
@@ -115,6 +137,9 @@ class PlayerCharacter {
       notes: notes ?? this.notes,
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
       level: level ?? this.level,
+      gmNotes: gmNotes ?? this.gmNotes,
+      personalArc: personalArc ?? this.personalArc,
+      backstoryHooks: backstoryHooks ?? this.backstoryHooks,
     );
   }
 }

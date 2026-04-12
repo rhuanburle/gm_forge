@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../../../core/ai/ai_prompts.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../../../core/history/history_service.dart';
+import '../../../../../../core/widgets/import_json_dialog.dart';
 import '../../../../application/adventure_providers.dart';
 import '../../../../domain/domain.dart';
 import '../../../widgets/smart_text_field.dart';
@@ -19,6 +21,36 @@ class LegendsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final legends = ref.watch(legendsProvider(adventureId));
 
+    void importJson() => showImportJsonDialog(
+      context: context,
+      title: 'Importar Rumor / Lenda',
+      exampleJson: '''{
+  "text": "Dizem que o prefeito tem conexões com a guilda dos ladrões",
+  "isTrue": false,
+  "source": "Taberneiro bêbado",
+  "diceResult": "2-5"
+}''',
+      legend: 'isTrue: true=verdadeiro  false=falso/exagerado\n'
+          'diceResult: número único ("7") ou intervalo ("2-5")',
+      onImport: (json) async {
+        final db = ref.read(hiveDatabaseProvider);
+        final adv = db.getAdventure(adventureId);
+        final campaignId = adv?.campaignId ?? adventureId;
+        json['id'] = const Uuid().v4();
+        json['campaignId'] = campaignId;
+        json['adventureId'] = adventureId;
+        try {
+          final legend = Legend.fromJson(json);
+          await db.saveLegend(legend);
+          ref.invalidate(legendsProvider(adventureId));
+          ref.read(unsyncedChangesProvider.notifier).state = true;
+          if (context.mounted) AppSnackBar.success(context, 'Rumor importado!');
+        } catch (e) {
+          if (context.mounted) AppSnackBar.error(context, 'Erro ao importar: $e');
+        }
+      },
+    );
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -29,6 +61,12 @@ class LegendsTab extends ConsumerWidget {
             title: 'Tabela de Rumores (2d6)',
             subtitle:
                 '70% de dicas verdadeiras, 30% de rumores falsos/exagerados',
+            trailing: IconButton(
+              icon: const Icon(Icons.upload_file, size: 20),
+              tooltip: 'Importar via JSON',
+              color: AppTheme.textMuted,
+              onPressed: importJson,
+            ),
           ),
           const SizedBox(height: 16),
           Container(
@@ -480,6 +518,7 @@ class _LegendCard extends ConsumerWidget {
                   );
 
                   ref.invalidate(legendsProvider(adventureId));
+                  ref.read(unsyncedChangesProvider.notifier).state = true;
                 },
               ),
             IconButton(icon: const Icon(Icons.edit), onPressed: onEdit),

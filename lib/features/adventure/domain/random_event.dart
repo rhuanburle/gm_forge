@@ -69,10 +69,10 @@ class RandomEvent {
     id: json['id'] as String,
     campaignId: json['campaignId'] as String? ?? json['adventureId'] as String,
     adventureId: json['adventureId'] as String?,
-    diceRange: json['diceRange'] as String,
-    eventType: EventType.values[json['eventType'] as int],
-    description: json['description'] as String,
-    impact: json['impact'] as String,
+    diceRange: json['diceRange'] as String? ?? '',
+    eventType: EventType.values.elementAtOrNull(json['eventType'] as int? ?? 0) ?? EventType.calm,
+    description: json['description'] as String? ?? '',
+    impact: json['impact'] as String? ?? '',
   );
 
   RandomEvent copyWith({

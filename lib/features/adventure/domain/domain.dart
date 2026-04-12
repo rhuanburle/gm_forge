@@ -16,3 +16,5 @@ export 'fact.dart';
 export 'session.dart';
 export 'session_entry.dart';
 export 'quick_rule.dart';
+export 'timeline_entry.dart';
+export 'world_consequence.dart';

@@ -22,6 +22,8 @@ class HiveDatabase {
   static const String _regionsBox = 'regions';
   static const String _settingsBox = 'settings';
   static const String _quickRulesBox = 'quick_rules';
+  static const String _timelineEntriesBox = 'timeline_entries';
+  static const String _worldConsequencesBox = 'world_consequences';
 
   static HiveDatabase? _instance;
 
@@ -56,6 +58,8 @@ class HiveDatabase {
     await Hive.openBox<Map>(_notesBox);
     await Hive.openBox<Map>(_regionsBox);
     await Hive.openBox<Map>(_quickRulesBox);
+    await Hive.openBox<Map>(_timelineEntriesBox);
+    await Hive.openBox<Map>(_worldConsequencesBox);
 
     try {
       final packageInfo = await PackageInfo.fromPlatform();
@@ -998,6 +1002,52 @@ class HiveDatabase {
 
   Future<void> deleteQuickRule(String id) async {
     await _quickRules.delete(id);
+  }
+
+  // ── Timeline Entries ──
+
+  Box<Map> get _timelineEntries => Hive.box<Map>(_timelineEntriesBox);
+
+  List<TimelineEntry> getTimelineEntries(String campaignId) {
+    final items = <TimelineEntry>[];
+    for (final entry in _timelineEntries.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final te = TimelineEntry.fromJson(data);
+      if (te.campaignId == campaignId) items.add(te);
+    }
+    items.sort((a, b) => a.day.compareTo(b.day));
+    return items;
+  }
+
+  Future<void> saveTimelineEntry(TimelineEntry entry) async {
+    await _timelineEntries.put(entry.id, entry.toJson());
+  }
+
+  Future<void> deleteTimelineEntry(String id) async {
+    await _timelineEntries.delete(id);
+  }
+
+  // ── World Consequences ──
+
+  Box<Map> get _worldConsequences => Hive.box<Map>(_worldConsequencesBox);
+
+  List<WorldConsequence> getWorldConsequences(String campaignId) {
+    final items = <WorldConsequence>[];
+    for (final entry in _worldConsequences.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final wc = WorldConsequence.fromJson(data);
+      if (wc.campaignId == campaignId) items.add(wc);
+    }
+    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return items;
+  }
+
+  Future<void> saveWorldConsequence(WorldConsequence consequence) async {
+    await _worldConsequences.put(consequence.id, consequence.toJson());
+  }
+
+  Future<void> deleteWorldConsequence(String id) async {
+    await _worldConsequences.delete(id);
   }
 
   Future<void> _deleteByCampaignId(Box<Map> box, String campaignId) async {

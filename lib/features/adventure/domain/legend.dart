@@ -62,10 +62,10 @@ class Legend {
     id: json['id'] as String,
     campaignId: json['campaignId'] as String? ?? json['adventureId'] as String,
     adventureId: json['adventureId'] as String?,
-    text: json['text'] as String,
-    isTrue: json['isTrue'] as bool,
+    text: json['text'] as String? ?? '',
+    isTrue: json['isTrue'] as bool? ?? false,
     source: json['source'] as String?,
-    diceResult: json['diceResult'] as String,
+    diceResult: json['diceResult'] as String? ?? '',
     relatedCreatureId: json['relatedCreatureId'] as String?,
     relatedLocationId: json['relatedLocationId'] as String?,
   );

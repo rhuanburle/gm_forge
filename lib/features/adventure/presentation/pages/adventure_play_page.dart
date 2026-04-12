@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/responsive_layout.dart';
 import '../../application/adventure_providers.dart';
 import '../../application/active_adventure_state.dart';
+import '../widgets/play_mode/combat_tracker_panel.dart';
 import '../widgets/play_mode/location_navigator.dart';
 import '../../domain/domain.dart';
 import '../widgets/play_mode/scene_viewer.dart';
@@ -36,6 +37,7 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
   void dispose() {
     // Persist state before leaving (don't clear — preserve for next session)
     try {
+      ref.read(combatProvider.notifier).flush();
       ref.read(activeAdventureProvider.notifier).clear();
     } catch (_) {
       // Ignore if provider is already disposed or inaccessible
@@ -104,6 +106,9 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
     // Load persisted state for this adventure
     final notifier = ref.read(activeAdventureProvider.notifier);
     notifier.loadForAdventure(widget.adventureId);
+
+    // Load persisted combat state
+    ref.read(combatProvider.notifier).loadForAdventure(widget.adventureId);
 
     final activeState = ref.read(activeAdventureProvider);
     if (activeState.currentLocationId != null) return;

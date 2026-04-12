@@ -140,10 +140,10 @@ class DashboardController {
                   if (formKey.currentState!.validate()) {
                     if (isEditing) {
                       final updatedAdventure = adventureToEdit.copyWith(
-                        name: nameController.text,
-                        description: descController.text,
-                        conceptWhat: whatController.text,
-                        conceptConflict: conflictController.text,
+                        name: nameController.text.trim(),
+                        description: descController.text.trim(),
+                        conceptWhat: whatController.text.trim(),
+                        conceptConflict: conflictController.text.trim(),
                         campaignId: selectedCampaignId,
                       );
                       await ref
@@ -158,10 +158,10 @@ class DashboardController {
                       final adventure = await ref
                           .read(adventureListProvider.notifier)
                           .create(
-                            name: nameController.text,
-                            description: descController.text,
-                            conceptWhat: whatController.text,
-                            conceptConflict: conflictController.text,
+                            name: nameController.text.trim(),
+                            description: descController.text.trim(),
+                            conceptWhat: whatController.text.trim(),
+                            conceptConflict: conflictController.text.trim(),
                             campaignId: selectedCampaignId,
                           );
                       if (context.mounted) {
@@ -246,8 +246,8 @@ class DashboardController {
               if (formKey.currentState!.validate()) {
                 if (isEditing) {
                   final updatedCampaign = campaignToEdit.copyWith(
-                    name: nameController.text,
-                    description: descController.text,
+                    name: nameController.text.trim(),
+                    description: descController.text.trim(),
                   );
                   await ref
                       .read(campaignListProvider.notifier)
@@ -256,8 +256,8 @@ class DashboardController {
                   await ref
                       .read(campaignListProvider.notifier)
                       .create(
-                        name: nameController.text,
-                        description: descController.text,
+                        name: nameController.text.trim(),
+                        description: descController.text.trim(),
                       );
                 }
 

@@ -10,6 +10,8 @@ import 'campaign_hub/overview_tab.dart';
 import 'campaign_hub/characters_tab.dart';
 import 'campaign_hub/world_tab.dart';
 import 'campaign_hub/notes_tab.dart';
+import 'campaign_hub/plot_threads_tab.dart';
+import 'campaign_hub/timeline_tab.dart';
 
 class CampaignHubPage extends ConsumerStatefulWidget {
   final String campaignId;
@@ -28,7 +30,7 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -63,6 +65,8 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage>
     final regions = ref.watch(regionsProvider(campaignId));
     final notes = ref.watch(notesProvider(campaignId));
     final quickRules = ref.watch(quickRulesProvider(campaignId));
+    final plotThreads = campaign.plotThreads;
+    final timelineEntries = ref.watch(timelineEntriesProvider(campaignId));
 
     return Scaffold(
       appBar: AppBar(
@@ -125,6 +129,28 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage>
               ),
             ),
             Tab(
+              icon: const Icon(Icons.account_tree_outlined, size: 18),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Enredo'),
+                  const SizedBox(width: 4),
+                  _badge(plotThreads.where((t) => t.status == PlotThreadStatus.active).length),
+                ],
+              ),
+            ),
+            Tab(
+              icon: const Icon(Icons.timeline, size: 18),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Linha do Tempo'),
+                  const SizedBox(width: 4),
+                  _badge(timelineEntries.length),
+                ],
+              ),
+            ),
+            Tab(
               icon: const Icon(Icons.note_alt, size: 18),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -144,6 +170,8 @@ class _CampaignHubPageState extends ConsumerState<CampaignHubPage>
           OverviewTab(campaignId: campaignId),
           CharactersTab(campaignId: campaignId),
           WorldTab(campaignId: campaignId),
+          PlotThreadsTab(campaignId: campaignId),
+          TimelineTab(campaignId: campaignId),
           NotesTab(campaignId: campaignId),
         ],
       ),

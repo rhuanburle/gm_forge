@@ -262,7 +262,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         statusColor = AppTheme.success;
       case PlotThreadStatus.resolved:
         statusColor = AppTheme.info;
-      case PlotThreadStatus.abandoned:
+      case PlotThreadStatus.dormant:
         statusColor = AppTheme.textMuted;
     }
 
@@ -410,7 +410,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
         threads[index] = thread.copyWith(status: PlotThreadStatus.resolved);
         _saveCampaign(campaign.copyWith(plotThreads: threads));
       case 'abandon':
-        threads[index] = thread.copyWith(status: PlotThreadStatus.abandoned);
+        threads[index] = thread.copyWith(status: PlotThreadStatus.dormant);
         _saveCampaign(campaign.copyWith(plotThreads: threads));
       case 'reactivate':
         threads[index] = thread.copyWith(status: PlotThreadStatus.active);

@@ -39,6 +39,10 @@ class _FactionCardState extends State<FactionCard> {
               _buildHeader(context),
               const SizedBox(height: 8),
               _buildPowerIndicator(context),
+              if (faction.partyDisposition != 0) ...[
+                const SizedBox(height: 6),
+                _buildDispositionBadge(context),
+              ],
               if (faction.objectives.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 _buildObjectives(context),
@@ -156,6 +160,46 @@ class _FactionCardState extends State<FactionCard> {
       case FactionPower.dominant:
         return AppTheme.error;
     }
+  }
+
+  String _dispositionLabel(int d) {
+    switch (d) {
+      case -3: return 'Inimigo Mortal';
+      case -2: return 'Hostil';
+      case -1: return 'Desconfiado';
+      case 0:  return 'Neutro';
+      case 1:  return 'Amigável';
+      case 2:  return 'Aliado';
+      case 3:  return 'Aliado Fiel';
+      default: return 'Neutro';
+    }
+  }
+
+  Color _dispositionColor(int d) {
+    if (d <= -2) return AppTheme.error;
+    if (d == -1) return AppTheme.warning;
+    if (d == 0)  return AppTheme.textMuted;
+    if (d == 1)  return AppTheme.info;
+    return AppTheme.success;
+  }
+
+  Widget _buildDispositionBadge(BuildContext context) {
+    final d = faction.partyDisposition;
+    final color = _dispositionColor(d);
+    final icon = d < 0 ? Icons.sentiment_very_dissatisfied : Icons.sentiment_satisfied_alt;
+    return Row(
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 4),
+        Text(
+          'Grupo: ${_dispositionLabel(d)}',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildObjectives(BuildContext context) {

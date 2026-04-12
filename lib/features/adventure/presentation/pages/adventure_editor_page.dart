@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../core/widgets/sync_button.dart';
 import '../../../../core/history/history_service.dart';
 import '../../application/adventure_providers.dart';
@@ -14,6 +15,7 @@ import 'adventure_editor/tabs/summary_tab.dart';
 import 'adventure_editor/tabs/factions_tab.dart';
 import 'adventure_editor/tabs/items_tab.dart';
 import 'adventure_editor/tabs/quests_tab.dart';
+import '../widgets/global_search_dialog.dart';
 
 class AdventureEditorPage extends ConsumerStatefulWidget {
   final String adventureId;
@@ -105,6 +107,15 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
               onPressed: () => ref.read(historyProvider.notifier).redo(),
             ),
           IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Buscar na aventura',
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) =>
+                  GlobalSearchDialog(adventureId: widget.adventureId),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.history_edu),
             tooltip: 'Sessões',
             onPressed: () =>
@@ -132,6 +143,7 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
                   .saveAdventure(updatedAdventure);
               ref.read(adventureListProvider.notifier).refresh();
               ref.invalidate(adventureProvider(widget.adventureId));
+              ref.read(unsyncedChangesProvider.notifier).state = true;
             },
           ),
         ],

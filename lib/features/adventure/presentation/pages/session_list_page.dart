@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/sync/unsynced_changes_provider.dart';
 import '../../application/adventure_providers.dart';
 import '../../domain/domain.dart';
 
@@ -37,6 +38,7 @@ class SessionListPage extends ConsumerWidget {
           );
           ref.read(hiveDatabaseProvider).saveSession(newSession);
           ref.invalidate(sessionsProvider(adventureId));
+          ref.read(unsyncedChangesProvider.notifier).state = true;
           context.push('/adventure/$adventureId/session/${newSession.id}');
         },
         icon: const Icon(Icons.add),
@@ -92,6 +94,7 @@ class SessionListPage extends ConsumerWidget {
                     if (confirm == true) {
                       ref.read(hiveDatabaseProvider).deleteSession(session.id);
                       ref.invalidate(sessionsProvider(adventureId));
+                      ref.read(unsyncedChangesProvider.notifier).state = true;
                     }
                   },
                 );

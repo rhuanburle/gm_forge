@@ -5,10 +5,12 @@ import '../../../../core/auth/auth_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../core/widgets/image_upload_field.dart';
+import '../../../../core/widgets/smart_network_image.dart';
 import '../../../../core/history/history_service.dart';
 import '../../application/adventure_providers.dart';
 import '../../application/link_service.dart';
 import '../../domain/domain.dart';
+import '../../../../core/widgets/tags_editor.dart';
 import '../widgets/smart_text_field.dart';
 import 'adventure_editor/widgets/section_header.dart';
 
@@ -33,6 +35,8 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
   String? _imageUrl;
   bool _imageWasCleared = false;
   List<String> _scenicEncounters = [];
+  LocationStatus _status = LocationStatus.intact;
+  List<String> _tags = [];
 
   @override
   void initState() {
@@ -73,6 +77,8 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
       _imageUrl = location.imagePath;
       _imageWasCleared = false;
       _scenicEncounters = List.from(location.scenicEncounters);
+      _status = location.status;
+      _tags = List.from(location.tags);
     }
 
     // Filter POIs for this location
@@ -137,6 +143,33 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                 });
                 _markUnsynced();
               },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<LocationStatus>(
+              initialValue: _status,
+              decoration: const InputDecoration(
+                labelText: 'Status do Local',
+                isDense: true,
+              ),
+              items: LocationStatus.values
+                  .map((s) => DropdownMenuItem(
+                        value: s,
+                        child: Text('${s.icon} ${s.displayName}'),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                setState(() => _status = v ?? LocationStatus.intact);
+                _markUnsynced();
+              },
+            ),
+            const SizedBox(height: 16),
+            TagsEditor(
+              tags: _tags,
+              onChanged: (t) {
+                setState(() => _tags = t);
+                _markUnsynced();
+              },
+              hint: 'ex: vila, floresta, porto',
             ),
             const SizedBox(height: 24),
             // Scenic Encounters
@@ -284,6 +317,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       }
                       ref.invalidate(locationsProvider(widget.adventureId));
                       ref.invalidate(pointsOfInterestProvider(widget.adventureId));
+                      ref.read(unsyncedChangesProvider.notifier).state = true;
                     },
                     onRedo: () async {
                       await db.saveLocation(updatedLocation);
@@ -292,6 +326,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       }
                       ref.invalidate(locationsProvider(widget.adventureId));
                       ref.invalidate(pointsOfInterestProvider(widget.adventureId));
+                      ref.read(unsyncedChangesProvider.notifier).state = true;
                     },
                   ),
                 );
@@ -400,6 +435,19 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              if (poi.imagePath != null &&
+                                  poi.imagePath!.isNotEmpty) ...[
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: SmartNetworkImage(
+                                    imageUrl: poi.imagePath!,
+                                    height: 140,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
                               _InfoRow(
                                 'Primeira Impressão',
                                 poi.firstImpression,
@@ -454,6 +502,8 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
       imagePath: _imageUrl,
       clearImagePath: _imageWasCleared,
       scenicEncounters: _scenicEncounters,
+      status: _status,
+      tags: _tags,
     );
 
     final db = ref.read(hiveDatabaseProvider);
@@ -476,6 +526,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
         );
 
     ref.invalidate(locationsProvider(widget.adventureId));
+    _markUnsynced();
 
     if (mounted) {
       AppSnackBar.success(context, 'Local salvo com sucesso!');
@@ -555,6 +606,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
     }
 
     RoomPurpose selectedPurpose = poiToEdit?.purpose ?? RoomPurpose.narrative;
+    String? poiImageUrl = poiToEdit?.imagePath;
 
     // Creature multi-select
     final allCreatures = ref.read(creaturesProvider(widget.adventureId));
@@ -659,6 +711,17 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                     'poiPurpose': selectedPurpose.displayName,
                   },
                 ),
+                const SizedBox(height: 16),
+                ImageUploadField(
+                  preset: ImageCompressPreset.location,
+                  currentImageUrl: poiImageUrl,
+                  storagePath:
+                      'images/${ref.read(authServiceProvider).currentUser?.uid ?? "guest"}/pois',
+                  label: 'Imagem do POI (Opcional)',
+                  placeholderIcon: Icons.place,
+                  height: 160,
+                  onChanged: (url) => setState(() => poiImageUrl = url),
+                ),
                 if (allCreatures.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   Align(
@@ -720,8 +783,8 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (nameCtrl.text.isNotEmpty && numberCtrl.text.isNotEmpty) {
-                  final number = int.tryParse(numberCtrl.text) ?? 0;
+                if (nameCtrl.text.trim().isNotEmpty && numberCtrl.text.trim().isNotEmpty) {
+                  final number = int.tryParse(numberCtrl.text.trim()) ?? 0;
                   final db = ref.read(hiveDatabaseProvider);
                   final linkService = ref.read(linkServiceProvider);
 
@@ -746,6 +809,8 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       detail: detailCtrl.text,
                       treasure: treasureCtrl.text,
                       creatureIds: selectedCreatureIds.toList(),
+                      imagePath: poiImageUrl,
+                      clearImagePath: poiImageUrl == null,
                     );
                     await db.savePointOfInterest(updatedPoi);
 
@@ -800,6 +865,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       detail: detailCtrl.text,
                       treasure: treasureCtrl.text,
                       creatureIds: selectedCreatureIds.toList(),
+                      imagePath: poiImageUrl,
                     );
                     await db.savePointOfInterest(newPoi);
 

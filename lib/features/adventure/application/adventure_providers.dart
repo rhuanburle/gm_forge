@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/hive_database.dart';
+import '../../../core/sync/unsynced_changes_provider.dart';
 import '../domain/domain.dart';
 
 final hiveDatabaseProvider = Provider<HiveDatabase>((ref) {
@@ -150,6 +151,20 @@ final regionsProvider = Provider.family<List<Region>, String>((
   return db.getRegions(campaignId);
 });
 
+final timelineEntriesProvider = Provider.family<List<TimelineEntry>, String>((
+  ref,
+  campaignId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getTimelineEntries(campaignId);
+});
+
+final worldConsequencesProvider =
+    Provider.family<List<WorldConsequence>, String>((ref, campaignId) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getWorldConsequences(campaignId);
+});
+
 final campaignCreaturesProvider = Provider.family<List<Creature>, String>((
   ref,
   campaignId,
@@ -192,6 +207,7 @@ class AdventureListNotifier extends Notifier<List<Adventure>> {
       campaignId: campaignId,
     );
     await db.saveAdventure(adventure);
+    ref.read(unsyncedChangesProvider.notifier).state = true;
     refresh();
     return adventure;
   }
@@ -199,12 +215,14 @@ class AdventureListNotifier extends Notifier<List<Adventure>> {
   Future<void> update(Adventure adventure) async {
     final db = ref.read(hiveDatabaseProvider);
     await db.saveAdventure(adventure);
+    ref.read(unsyncedChangesProvider.notifier).state = true;
     refresh();
   }
 
   Future<void> delete(String id) async {
     final db = ref.read(hiveDatabaseProvider);
     await db.deleteAdventure(id);
+    ref.read(unsyncedChangesProvider.notifier).state = true;
     refresh();
   }
 }
@@ -231,6 +249,7 @@ class CampaignListNotifier extends Notifier<List<Campaign>> {
     final db = ref.read(hiveDatabaseProvider);
     final campaign = Campaign.create(name: name, description: description);
     await db.saveCampaign(campaign);
+    ref.read(unsyncedChangesProvider.notifier).state = true;
     refresh();
     return campaign;
   }
@@ -238,12 +257,14 @@ class CampaignListNotifier extends Notifier<List<Campaign>> {
   Future<void> update(Campaign campaign) async {
     final db = ref.read(hiveDatabaseProvider);
     await db.saveCampaign(campaign);
+    ref.read(unsyncedChangesProvider.notifier).state = true;
     refresh();
   }
 
   Future<void> delete(String id) async {
     final db = ref.read(hiveDatabaseProvider);
     await db.deleteCampaign(id);
+    ref.read(unsyncedChangesProvider.notifier).state = true;
     refresh();
     ref.read(adventureListProvider.notifier).refresh();
   }

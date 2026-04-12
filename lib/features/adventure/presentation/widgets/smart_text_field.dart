@@ -5,6 +5,7 @@ import '../../application/adventure_providers.dart';
 import '../../domain/domain.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/ai/ai_prompts.dart';
+import '../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../../core/widgets/ai_assist_button.dart';
 
 class SmartTextField extends ConsumerStatefulWidget {
@@ -57,6 +58,7 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
 
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     if (widget.controller == null) _controller.dispose();
     _focusNode.dispose();
     try {
@@ -322,6 +324,7 @@ class _SuggestionList extends ConsumerWidget {
                 );
                 await db.saveCreature(newCreature);
                 ref.invalidate(creaturesProvider(adventureId));
+                ref.read(unsyncedChangesProvider.notifier).state = true;
                 onSelected(
                   newCreature.name,
                   'Creature',
@@ -391,6 +394,7 @@ class _SuggestionList extends ConsumerWidget {
                 );
                 await db.saveLocation(newLocation);
                 ref.invalidate(locationsProvider(adventureId));
+                ref.read(unsyncedChangesProvider.notifier).state = true;
                 onSelected(
                   newLocation.name,
                   'Location',
@@ -460,6 +464,7 @@ class _SuggestionList extends ConsumerWidget {
                   content: query,
                 );
                 await db.saveFact(newFact);
+                ref.read(unsyncedChangesProvider.notifier).state = true;
                 onSelected(newFact.content, 'Fact', newFact.id, startIndex);
               },
             ),

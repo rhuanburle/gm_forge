@@ -1,18 +1,19 @@
 import 'package:uuid/uuid.dart';
 
-enum PlotThreadStatus { active, resolved, abandoned }
+enum PlotThreadStatus { active, dormant, resolved }
 
 extension PlotThreadStatusExtension on PlotThreadStatus {
   String get displayName {
     switch (this) {
       case PlotThreadStatus.active:
         return 'Ativo';
+      case PlotThreadStatus.dormant:
+        return 'Dormente';
       case PlotThreadStatus.resolved:
         return 'Resolvido';
-      case PlotThreadStatus.abandoned:
-        return 'Abandonado';
     }
   }
+
 }
 
 class PlotThread {
@@ -210,6 +211,7 @@ class Campaign {
   final String description;
   final String centralConflict;
   final String currentArc;
+  final int currentDay;
   final List<PlotThread> plotThreads;
   final List<InspirationTable> inspirationTables;
 
@@ -224,6 +226,7 @@ class Campaign {
     required this.description,
     this.centralConflict = '',
     this.currentArc = '',
+    this.currentDay = 1,
     this.plotThreads = const [],
     this.inspirationTables = const [],
     this.adventureIds = const [],
@@ -248,6 +251,7 @@ class Campaign {
     'description': description,
     'centralConflict': centralConflict,
     'currentArc': currentArc,
+    'currentDay': currentDay,
     'plotThreads': plotThreads.map((t) => t.toJson()).toList(),
     'inspirationTables': inspirationTables.map((t) => t.toJson()).toList(),
     'adventureIds': adventureIds,
@@ -261,6 +265,7 @@ class Campaign {
     description: json['description'] as String,
     centralConflict: json['centralConflict'] as String? ?? '',
     currentArc: json['currentArc'] as String? ?? '',
+    currentDay: json['currentDay'] as int? ?? 1,
     plotThreads: (json['plotThreads'] as List<dynamic>?)
             ?.map((t) => PlotThread.fromJson(t as Map<String, dynamic>))
             .toList() ??
@@ -280,6 +285,7 @@ class Campaign {
     String? description,
     String? centralConflict,
     String? currentArc,
+    int? currentDay,
     List<PlotThread>? plotThreads,
     List<InspirationTable>? inspirationTables,
     List<String>? adventureIds,
@@ -290,6 +296,7 @@ class Campaign {
     description: description ?? this.description,
     centralConflict: centralConflict ?? this.centralConflict,
     currentArc: currentArc ?? this.currentArc,
+    currentDay: currentDay ?? this.currentDay,
     plotThreads: plotThreads ?? this.plotThreads,
     inspirationTables: inspirationTables ?? this.inspirationTables,
     adventureIds: adventureIds ?? this.adventureIds,

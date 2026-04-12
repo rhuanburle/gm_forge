@@ -53,6 +53,8 @@ class Quest {
   final List<QuestObjective> objectives;
   final String rewardDescription;
   final List<String> relatedLocationIds;
+  final List<String> tags;
+  final List<String> notes;
 
   const Quest({
     required this.id,
@@ -65,6 +67,8 @@ class Quest {
     this.objectives = const [],
     this.rewardDescription = '',
     this.relatedLocationIds = const [],
+    this.tags = const [],
+    this.notes = const [],
   });
 
   factory Quest.create({
@@ -77,6 +81,8 @@ class Quest {
     List<QuestObjective> objectives = const [],
     String rewardDescription = '',
     List<String> relatedLocationIds = const [],
+    List<String> tags = const [],
+    List<String> notes = const [],
   }) {
     return Quest(
       id: const Uuid().v4(),
@@ -89,6 +95,8 @@ class Quest {
       objectives: objectives,
       rewardDescription: rewardDescription,
       relatedLocationIds: relatedLocationIds,
+      tags: tags,
+      notes: notes,
     );
   }
 
@@ -103,6 +111,8 @@ class Quest {
     'objectives': objectives.map((o) => o.toJson()).toList(),
     'rewardDescription': rewardDescription,
     'relatedLocationIds': relatedLocationIds,
+    'tags': tags,
+    'notes': notes,
   };
 
   factory Quest.fromJson(Map<String, dynamic> json) => Quest(
@@ -121,6 +131,8 @@ class Quest {
     relatedLocationIds:
         (json['relatedLocationIds'] as List<dynamic>?)?.cast<String>() ??
         const [],
+    tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
+    notes: (json['notes'] as List<dynamic>?)?.cast<String>() ?? const [],
   );
 
   Quest copyWith({
@@ -134,6 +146,8 @@ class Quest {
     List<String>? relatedLocationIds,
     String? adventureId,
     bool clearAdventureId = false,
+    List<String>? tags,
+    List<String>? notes,
   }) {
     return Quest(
       id: id,
@@ -148,6 +162,8 @@ class Quest {
       objectives: objectives ?? this.objectives,
       rewardDescription: rewardDescription ?? this.rewardDescription,
       relatedLocationIds: relatedLocationIds ?? this.relatedLocationIds,
+      tags: tags ?? this.tags,
+      notes: notes ?? this.notes,
     );
   }
 }

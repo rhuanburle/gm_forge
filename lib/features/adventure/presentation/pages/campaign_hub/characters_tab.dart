@@ -175,6 +175,9 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
     final notesCtrl = TextEditingController(text: existing?.notes ?? '');
     final levelCtrl =
         TextEditingController(text: (existing?.level ?? 1).toString());
+    final gmNotesCtrl = TextEditingController(text: existing?.gmNotes ?? '');
+    final personalArcCtrl = TextEditingController(text: existing?.personalArc ?? '');
+    final backstoryHooksCtrl = TextEditingController(text: existing?.backstoryHooks ?? '');
     String? pcImageUrl = existing?.imageUrl;
 
     showDialog(
@@ -263,6 +266,50 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
                 decoration: const InputDecoration(labelText: 'Notas'),
                 maxLines: 2,
               ),
+              const SizedBox(height: 16),
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.visibility_off, size: 14, color: AppTheme.textMuted),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Notas do Mestre (privadas)',
+                      style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                        color: AppTheme.textMuted,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextField(
+                controller: personalArcCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Arco pessoal',
+                  hintText: 'O que esse personagem quer resolver?',
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: backstoryHooksCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Ganchos do backstory',
+                  hintText: 'Elementos do passado ainda não explorados...',
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: gmNotesCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Anotações do mestre',
+                  hintText: 'Segredos que o PJ não sabe, padrões de comportamento...',
+                ),
+                maxLines: 3,
+              ),
             ],
           ),
         ),
@@ -292,6 +339,9 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
                   level: level,
                   imageUrl: pcImageUrl,
                   clearImageUrl: pcImageUrl == null,
+                  gmNotes: gmNotesCtrl.text.trim(),
+                  personalArc: personalArcCtrl.text.trim(),
+                  backstoryHooks: backstoryHooksCtrl.text.trim(),
                 );
                 await db.savePlayerCharacter(updated);
               } else {
@@ -307,6 +357,9 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
                   notes: notesCtrl.text.trim(),
                   level: level,
                   imageUrl: pcImageUrl,
+                  gmNotes: gmNotesCtrl.text.trim(),
+                  personalArc: personalArcCtrl.text.trim(),
+                  backstoryHooks: backstoryHooksCtrl.text.trim(),
                 );
                 await db.savePlayerCharacter(pc);
               }
@@ -344,6 +397,7 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
     FactionType selectedType = existing?.type ?? FactionType.faction;
     FactionPower selectedPower =
         existing?.powerLevel ?? FactionPower.moderate;
+    int partyDisposition = existing?.partyDisposition ?? 0;
 
     showDialog(
       context: context,
@@ -408,6 +462,36 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
                       const InputDecoration(labelText: 'Apostas/Stakes'),
                   maxLines: 2,
                 ),
+                const SizedBox(height: 12),
+                Text(
+                  'Disposição com o grupo',
+                  style: Theme.of(ctx).textTheme.labelMedium?.copyWith(color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 4),
+                StatefulBuilder(
+                  builder: (ctx2, setSlider) => Column(
+                    children: [
+                      Slider(
+                        value: partyDisposition.toDouble(),
+                        min: -3,
+                        max: 3,
+                        divisions: 6,
+                        label: _dispositionLabel(partyDisposition),
+                        activeColor: _dispositionColor(partyDisposition),
+                        onChanged: (v) {
+                          setSlider(() => partyDisposition = v.round());
+                        },
+                      ),
+                      Text(
+                        _dispositionLabel(partyDisposition),
+                        style: Theme.of(ctx2).textTheme.labelSmall?.copyWith(
+                          color: _dispositionColor(partyDisposition),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -430,6 +514,7 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
                     type: selectedType,
                     powerLevel: selectedPower,
                     stakes: stakesCtrl.text.trim(),
+                    partyDisposition: partyDisposition,
                   );
                   await db.saveFaction(updated);
                 } else {
@@ -440,6 +525,7 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
                     type: selectedType,
                     powerLevel: selectedPower,
                     stakes: stakesCtrl.text.trim(),
+                    partyDisposition: partyDisposition,
                   );
                   await db.saveFaction(faction);
                 }
@@ -459,6 +545,27 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
+
+  String _dispositionLabel(int d) {
+    switch (d) {
+      case -3: return 'Inimigo Mortal';
+      case -2: return 'Hostil';
+      case -1: return 'Desconfiado';
+      case 0:  return 'Neutro';
+      case 1:  return 'Amigável';
+      case 2:  return 'Aliado';
+      case 3:  return 'Aliado Fiel';
+      default: return 'Neutro';
+    }
+  }
+
+  Color _dispositionColor(int d) {
+    if (d <= -2) return AppTheme.error;
+    if (d == -1) return AppTheme.warning;
+    if (d == 0)  return AppTheme.textMuted;
+    if (d == 1)  return AppTheme.info;
+    return AppTheme.success;
+  }
 
   Widget _sectionHeader(
     BuildContext context, {

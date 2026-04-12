@@ -51,6 +51,8 @@ class Item {
   final String? ownerCreatureId;
   final String? locationId;
   final ItemRarity rarity;
+  final List<String> tags;
+  final List<String> notes;
 
   const Item({
     required this.id,
@@ -63,6 +65,8 @@ class Item {
     this.ownerCreatureId,
     this.locationId,
     this.rarity = ItemRarity.common,
+    this.tags = const [],
+    this.notes = const [],
   });
 
   factory Item.create({
@@ -75,6 +79,8 @@ class Item {
     String? ownerCreatureId,
     String? locationId,
     ItemRarity rarity = ItemRarity.common,
+    List<String> tags = const [],
+    List<String> notes = const [],
   }) {
     return Item(
       id: const Uuid().v4(),
@@ -87,6 +93,8 @@ class Item {
       ownerCreatureId: ownerCreatureId,
       locationId: locationId,
       rarity: rarity,
+      tags: tags,
+      notes: notes,
     );
   }
 
@@ -101,6 +109,8 @@ class Item {
     'ownerCreatureId': ownerCreatureId,
     'locationId': locationId,
     'rarity': rarity.index,
+    'tags': tags,
+    'notes': notes,
   };
 
   factory Item.fromJson(Map<String, dynamic> json) => Item(
@@ -114,6 +124,8 @@ class Item {
     ownerCreatureId: json['ownerCreatureId'] as String?,
     locationId: json['locationId'] as String?,
     rarity: ItemRarity.values[json['rarity'] as int? ?? 0],
+    tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
+    notes: (json['notes'] as List<dynamic>?)?.cast<String>() ?? const [],
   );
 
   Item copyWith({
@@ -129,6 +141,8 @@ class Item {
     String? locationId,
     bool clearLocation = false,
     ItemRarity? rarity,
+    List<String>? tags,
+    List<String>? notes,
   }) {
     return Item(
       id: id,
@@ -142,6 +156,8 @@ class Item {
           clearOwner ? null : (ownerCreatureId ?? this.ownerCreatureId),
       locationId: clearLocation ? null : (locationId ?? this.locationId),
       rarity: rarity ?? this.rarity,
+      tags: tags ?? this.tags,
+      notes: notes ?? this.notes,
     );
   }
 }

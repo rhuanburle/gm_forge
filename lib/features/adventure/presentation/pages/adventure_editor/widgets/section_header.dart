@@ -5,12 +5,14 @@ class SectionHeader extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final Widget? trailing;
 
   const SectionHeader({
     super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.trailing,
   });
 
   @override
@@ -22,13 +24,16 @@ class SectionHeader extends StatelessWidget {
           children: [
             Icon(icon, color: AppTheme.primary, size: 28),
             const SizedBox(width: 8),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppTheme.primary,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
+            ?trailing,
           ],
         ),
         const SizedBox(height: 4),

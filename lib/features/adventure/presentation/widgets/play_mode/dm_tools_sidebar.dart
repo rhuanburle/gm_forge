@@ -9,6 +9,7 @@ import '../../../application/active_adventure_state.dart';
 import '../../../domain/domain.dart';
 import 'session_log_panel.dart';
 import 'name_generator_dialog.dart';
+import 'quick_add_sheet.dart';
 import 'quick_reference_panel.dart';
 import 'campaign_summary_panel.dart';
 import 'dice_roller_panel.dart';
@@ -34,6 +35,21 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _showQuickAdd(BuildContext context, Adventure adventure) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => QuickAddSheet(
+        adventureId: widget.adventureId,
+        campaignId: adventure.campaignId ?? widget.adventureId,
+      ),
+    );
   }
 
   void _rollRandomEvent(BuildContext context, WidgetRef ref) {
@@ -141,6 +157,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                 _tabButton(0, Icons.shield, 'Escudo'),
                 _tabButton(1, Icons.flash_on, 'Combate'),
                 _tabButton(2, Icons.menu_book, 'Log'),
+                _tabButton(3, Icons.table_chart, 'Ref'),
               ],
             ),
           ),
@@ -149,6 +166,13 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
             child: Row(
               children: [
+                _quickActionButton(
+                  icon: Icons.add_circle,
+                  label: 'Novo',
+                  color: AppTheme.success,
+                  onPressed: () => _showQuickAdd(context, adventure),
+                ),
+                const SizedBox(width: 6),
                 _quickActionButton(
                   icon: Icons.person_add,
                   label: 'Nomes',
@@ -199,6 +223,11 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                 CombatTrackerPanel(adventureId: widget.adventureId),
                 // Panel 2: Session Log
                 SessionLogPanel(adventureId: widget.adventureId),
+                // Panel 3: Quick Reference (GM Shield cards)
+                QuickReferencePanel(
+                  campaignId: adventure.campaignId,
+                  expanded: true,
+                ),
               ],
             ),
           ),
@@ -289,9 +318,10 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
           .firstOrNull;
     }
 
-    // Fact tracking
+    // Fact tracking — check both persisted reveal and runtime state
     final totalFacts = facts.length;
-    final revealedCount = facts.where((f) => activeState.revealedFacts.contains(f.id)).length;
+    final revealedCount = facts.where((f) =>
+        f.revealed || activeState.revealedFacts.contains(f.id)).length;
     final secretFacts = facts.where((f) => f.isSecret).length;
 
     return Scrollbar(

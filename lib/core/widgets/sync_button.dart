@@ -15,7 +15,20 @@ class CloudSyncButton extends ConsumerWidget {
     final syncStatus = ref.watch(syncStatusProvider);
     final hasUnsyncedChanges = ref.watch(unsyncedChangesProvider);
 
-    if (user == null || user.isAnonymous) return const SizedBox.shrink();
+    if (user == null || user.isAnonymous) {
+      return IconButton(
+        icon: const Icon(Icons.cloud_off, color: AppTheme.textMuted),
+        tooltip: 'Faça login para sincronizar seus dados',
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Faça login para sincronizar seus dados na nuvem.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        },
+      );
+    }
 
     return IconButton(
       icon: syncStatus == SyncStatus.syncing

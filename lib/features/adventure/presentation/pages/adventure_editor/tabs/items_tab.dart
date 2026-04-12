@@ -1,8 +1,10 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import 'package:uuid/uuid.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../../../core/history/history_service.dart';
+import '../../../../../../core/widgets/import_json_dialog.dart';
 import '../../../../application/adventure_providers.dart';
 import "../../../../domain/domain.dart";
 import '../../../../../../core/widgets/animated_list_item.dart';
@@ -49,6 +51,38 @@ class ItemsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(itemsProvider(adventureId));
 
+    void importJson() => showImportJsonDialog(
+      context: context,
+      title: 'Importar Item / Tesouro',
+      exampleJson: '''{
+  "name": "Espada Longa +1",
+  "description": "Espada com runas antigas gravadas",
+  "type": 0,
+  "rarity": 1,
+  "mechanics": "+1 para ataques e dano",
+  "tags": ["mágico", "arma"]
+}''',
+      legend: 'type: 0=Arma  1=Armadura  2=Poção  3=Pergaminho  4=Artefato  5=Misc\n'
+          'rarity: 0=Comum  1=Incomum  2=Raro  3=Muito Raro  4=Lendário',
+      onImport: (json) async {
+        final db = ref.read(hiveDatabaseProvider);
+        final adv = db.getAdventure(adventureId);
+        final campaignId = adv?.campaignId ?? adventureId;
+        json['id'] = const Uuid().v4();
+        json['campaignId'] = campaignId;
+        json['adventureId'] = adventureId;
+        try {
+          final item = Item.fromJson(json);
+          await db.saveItem(item);
+          ref.invalidate(itemsProvider(adventureId));
+          ref.read(unsyncedChangesProvider.notifier).state = true;
+          if (context.mounted) AppSnackBar.success(context, '"${item.name}" importado!');
+        } catch (e) {
+          if (context.mounted) AppSnackBar.error(context, 'Erro ao importar: $e');
+        }
+      },
+    );
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -58,6 +92,12 @@ class ItemsTab extends ConsumerWidget {
             icon: Icons.inventory,
             title: "Itens & Tesouros",
             subtitle: "O que pode ser encontrado ou conquistado?",
+            trailing: IconButton(
+              icon: const Icon(Icons.upload_file, size: 20),
+              tooltip: 'Importar via JSON',
+              color: AppTheme.textMuted,
+              onPressed: importJson,
+            ),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -98,7 +138,23 @@ class ItemsTab extends ConsumerWidget {
                             child: const Icon(Icons.delete_outline, color: AppTheme.error),
                           ),
                           confirmDismiss: (direction) async {
-                            return true;
+                            return await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Remover Item?'),
+                                content: const Text('Essa ação não pode ser desfeita.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('Remover', style: TextStyle(color: AppTheme.error)),
+                                  ),
+                                ],
+                              ),
+                            ) ?? false;
                           },
                           onDismissed: (direction) async {
                             final db = ref.read(hiveDatabaseProvider);
@@ -566,6 +622,7 @@ class _ItemListItem extends StatelessWidget {
                       );
 
                       ref.invalidate(itemsProvider(adventureId));
+                      ref.read(unsyncedChangesProvider.notifier).state = true;
                     },
                   ),
                 IconButton(

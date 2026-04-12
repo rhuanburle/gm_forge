@@ -1,8 +1,10 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import 'package:uuid/uuid.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../../../core/history/history_service.dart';
+import '../../../../../../core/widgets/import_json_dialog.dart';
 import '../../../../application/adventure_providers.dart';
 import "../../../../domain/domain.dart";
 import '../../../../../../core/widgets/animated_list_item.dart';
@@ -17,6 +19,44 @@ class FactionsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final factions = ref.watch(factionsProvider(adventureId));
 
+    void importJson() => showImportJsonDialog(
+      context: context,
+      title: 'Importar Facção / Frente',
+      exampleJson: '''{
+  "name": "Guilda dos Mercadores",
+  "type": 0,
+  "description": "Controla o comércio da cidade",
+  "powerLevel": 2,
+  "partyDisposition": 1,
+  "objectives": [
+    {"text": "Monopolizar as rotas", "currentProgress": 3, "maxProgress": 5, "trigger": ""}
+  ],
+  "allies": ["Casa Varek"],
+  "enemies": ["Ladrões da Sombra"],
+  "dangers": [],
+  "tags": ["político", "cidade"]
+}''',
+      legend: 'type: 0=Facção  1=Frente\n'
+          'powerLevel: 0=Fraco  1=Moderado  2=Forte  3=Dominante\n'
+          'partyDisposition: -3 a +3 (negativo=hostil, 0=neutro, positivo=amigável)',
+      onImport: (json) async {
+        final db = ref.read(hiveDatabaseProvider);
+        final campaignId = ref.read(adventureProvider(adventureId))?.campaignId ?? '';
+        json['id'] = const Uuid().v4();
+        json['campaignId'] = campaignId.isEmpty ? adventureId : campaignId;
+        json['adventureId'] = adventureId;
+        try {
+          final faction = Faction.fromJson(json);
+          await db.saveFaction(faction);
+          ref.invalidate(factionsProvider(adventureId));
+          ref.read(unsyncedChangesProvider.notifier).state = true;
+          if (context.mounted) AppSnackBar.success(context, '"${faction.name}" importada!');
+        } catch (e) {
+          if (context.mounted) AppSnackBar.error(context, 'Erro ao importar: $e');
+        }
+      },
+    );
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -26,6 +66,12 @@ class FactionsTab extends ConsumerWidget {
             icon: Icons.groups,
             title: "Facções & Frentes",
             subtitle: "Quem move os fios do destino?",
+            trailing: IconButton(
+              icon: const Icon(Icons.upload_file, size: 20),
+              tooltip: 'Importar via JSON',
+              color: AppTheme.textMuted,
+              onPressed: importJson,
+            ),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -66,7 +112,23 @@ class FactionsTab extends ConsumerWidget {
                             child: const Icon(Icons.delete_outline, color: AppTheme.error),
                           ),
                           confirmDismiss: (direction) async {
-                            return true;
+                            return await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Remover Facção?'),
+                                content: const Text('Essa ação não pode ser desfeita.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('Remover', style: TextStyle(color: AppTheme.error)),
+                                  ),
+                                ],
+                              ),
+                            ) ?? false;
                           },
                           onDismissed: (direction) async {
                             final db = ref.read(hiveDatabaseProvider);
@@ -906,6 +968,7 @@ class _FactionListItem extends ConsumerWidget {
                       );
 
                       ref.invalidate(factionsProvider(adventureId));
+                      ref.read(unsyncedChangesProvider.notifier).state = true;
                     },
                   ),
                 IconButton(

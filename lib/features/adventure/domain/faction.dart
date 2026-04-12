@@ -124,6 +124,8 @@ class Faction {
   final FactionType type;
   final int memberCount;
   final FactionPower powerLevel;
+  /// Disposição em relação ao grupo: -3 (inimigo mortal) a +3 (aliado fiel), 0 = neutro
+  final int partyDisposition;
   final String? leaderCreatureId;
   final List<String> memberCreatureIds;
   final List<FactionObjective> objectives;
@@ -142,6 +144,7 @@ class Faction {
     this.type = FactionType.faction,
     this.memberCount = 0,
     this.powerLevel = FactionPower.moderate,
+    this.partyDisposition = 0,
     this.leaderCreatureId,
     this.memberCreatureIds = const [],
     this.objectives = const [],
@@ -160,6 +163,7 @@ class Faction {
     FactionType type = FactionType.faction,
     int memberCount = 0,
     FactionPower powerLevel = FactionPower.moderate,
+    int partyDisposition = 0,
     String? leaderCreatureId,
     List<String> memberCreatureIds = const [],
     List<FactionObjective> objectives = const [],
@@ -178,6 +182,7 @@ class Faction {
       type: type,
       memberCount: memberCount,
       powerLevel: powerLevel,
+      partyDisposition: partyDisposition,
       leaderCreatureId: leaderCreatureId,
       memberCreatureIds: memberCreatureIds,
       objectives: objectives,
@@ -198,6 +203,7 @@ class Faction {
     'type': type.index,
     'memberCount': memberCount,
     'powerLevel': powerLevel.index,
+    'partyDisposition': partyDisposition,
     'leaderCreatureId': leaderCreatureId,
     'memberCreatureIds': memberCreatureIds,
     'objectives': objectives.map((o) => o.toJson()).toList(),
@@ -217,6 +223,7 @@ class Faction {
     type: FactionType.values[json['type'] as int? ?? 0],
     memberCount: json['memberCount'] as int? ?? 0,
     powerLevel: FactionPower.values[json['powerLevel'] as int? ?? 1],
+    partyDisposition: json['partyDisposition'] as int? ?? 0,
     leaderCreatureId: json['leaderCreatureId'] as String?,
     memberCreatureIds:
         (json['memberCreatureIds'] as List<dynamic>?)?.cast<String>() ??
@@ -246,6 +253,7 @@ class Faction {
     FactionType? type,
     int? memberCount,
     FactionPower? powerLevel,
+    int? partyDisposition,
     String? leaderCreatureId,
     List<String>? memberCreatureIds,
     List<FactionObjective>? objectives,
@@ -264,6 +272,7 @@ class Faction {
       type: type ?? this.type,
       memberCount: memberCount ?? this.memberCount,
       powerLevel: powerLevel ?? this.powerLevel,
+      partyDisposition: partyDisposition ?? this.partyDisposition,
       leaderCreatureId: leaderCreatureId ?? this.leaderCreatureId,
       memberCreatureIds: memberCreatureIds ?? this.memberCreatureIds,
       objectives: objectives ?? this.objectives,

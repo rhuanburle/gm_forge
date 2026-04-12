@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../../../core/ai/ai_prompts.dart';
 import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../../../../core/history/history_service.dart';
+import '../../../../../../core/widgets/import_json_dialog.dart';
 import '../../../../application/adventure_providers.dart';
 import '../../../../domain/domain.dart';
 import '../../../widgets/smart_text_field.dart';
@@ -19,6 +21,36 @@ class EventsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final events = ref.watch(randomEventsProvider(adventureId));
 
+    void importJson() => showImportJsonDialog(
+      context: context,
+      title: 'Importar Evento Aleatório',
+      exampleJson: '''{
+  "diceRange": "11-15",
+  "eventType": 0,
+  "description": "Patrulha de guardas se aproxima",
+  "impact": "Combate inevitável se o grupo for detectado"
+}''',
+      legend: 'diceRange: número único ("11") ou intervalo ("11-15")\n'
+          'eventType: 0=Patrulha  1=Ambiente  2=Som  3=Calma',
+      onImport: (json) async {
+        final db = ref.read(hiveDatabaseProvider);
+        final adv = db.getAdventure(adventureId);
+        final campaignId = adv?.campaignId ?? adventureId;
+        json['id'] = const Uuid().v4();
+        json['campaignId'] = campaignId;
+        json['adventureId'] = adventureId;
+        try {
+          final event = RandomEvent.fromJson(json);
+          await db.saveRandomEvent(event);
+          ref.invalidate(randomEventsProvider(adventureId));
+          ref.read(unsyncedChangesProvider.notifier).state = true;
+          if (context.mounted) AppSnackBar.success(context, 'Evento importado!');
+        } catch (e) {
+          if (context.mounted) AppSnackBar.error(context, 'Erro ao importar: $e');
+        }
+      },
+    );
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -28,6 +60,12 @@ class EventsTab extends ConsumerWidget {
             icon: Icons.casino,
             title: 'Tabela de Eventos (d66)',
             subtitle: 'Encontros aleatórios para apimentar a exploração',
+            trailing: IconButton(
+              icon: const Icon(Icons.upload_file, size: 20),
+              tooltip: 'Importar via JSON',
+              color: AppTheme.textMuted,
+              onPressed: importJson,
+            ),
           ),
           const SizedBox(height: 16),
           Container(
@@ -199,6 +237,7 @@ class EventsTab extends ConsumerWidget {
                                     );
 
                                     ref.invalidate(randomEventsProvider(adventureId));
+                                    ref.read(unsyncedChangesProvider.notifier).state = true;
                                   },
                                 ),
                               IconButton(
