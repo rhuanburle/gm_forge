@@ -342,20 +342,15 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
             ),
             const SizedBox(height: 32),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const SectionHeader(
-                  icon: Icons.place,
-                  title: 'Pontos de Interesse (POIs)',
-                  subtitle: 'Salas, enigmas e perigos',
-                ),
-                IconButton(
-                  onPressed: () => _showPoiDialog(context, null),
-                  icon: const Icon(Icons.add_circle, color: AppTheme.primary),
-                  tooltip: 'Adicionar POI',
-                ),
-              ],
+            SectionHeader(
+              icon: Icons.place,
+              title: 'Pontos de Interesse (POIs)',
+              subtitle: 'Salas, enigmas e perigos',
+              trailing: IconButton(
+                onPressed: () => _showPoiDialog(context, null),
+                icon: const Icon(Icons.add_circle, color: AppTheme.primary),
+                tooltip: 'Adicionar POI',
+              ),
             ),
             const SizedBox(height: 16),
 
