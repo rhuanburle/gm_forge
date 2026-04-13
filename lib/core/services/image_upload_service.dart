@@ -1,8 +1,11 @@
+// ignore_for_file: avoid_web_libraries_in_flutter
+import 'dart:async';
+import 'dart:convert';
+import 'dart:html' as html;
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image/image.dart' as img;
 import 'package:uuid/uuid.dart';
 
 /// Controls compression settings per image context.
@@ -52,13 +55,11 @@ class ImageUploadService {
     final rawBytes = file.bytes;
     if (rawBytes == null) return null;
 
-    // Compress / resize before upload
-    final compressed = await _compress(rawBytes, preset);
-
-    // Always store as JPEG after compression (except GIF — keep as-is)
     final ext = file.extension?.toLowerCase() ?? 'jpg';
     final isGif = ext == 'gif';
-    final uploadBytes = isGif ? rawBytes : compressed;
+
+    // Compress / resize before upload (skip for GIFs — keep as-is)
+    final uploadBytes = isGif ? rawBytes : await _compress(rawBytes, preset);
     final contentType = isGif ? 'image/gif' : 'image/jpeg';
     final uploadExt = isGif ? 'gif' : 'jpg';
 
@@ -68,35 +69,66 @@ class ImageUploadService {
     return await ref.getDownloadURL();
   }
 
-  /// Decodes, resizes (if needed) and re-encodes as JPEG.
+  /// Resizes and re-encodes the image as JPEG using the browser Canvas API.
+  /// Falls back to the original bytes on any error.
   static Future<Uint8List> _compress(
     Uint8List bytes,
     ImageCompressPreset preset,
   ) async {
-    // Decode — returns null if format is unsupported
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) return bytes; // fallback: upload original
+    try {
+      // Create a blob URL so the browser can decode any supported format
+      final blob = html.Blob([bytes]);
+      final objectUrl = html.Url.createObjectUrlFromBlob(blob);
 
-    final originalSize = bytes.length;
-
-    // Resize only if either dimension exceeds the limit
-    img.Image resized = decoded;
-    if (decoded.width > preset.maxDimension ||
-        decoded.height > preset.maxDimension) {
-      resized = img.copyResize(
-        decoded,
-        width: decoded.width >= decoded.height ? preset.maxDimension : null,
-        height: decoded.height > decoded.width ? preset.maxDimension : null,
-        interpolation: img.Interpolation.linear,
+      final imgEl = html.ImageElement();
+      final loadCompleter = Completer<void>();
+      imgEl.onLoad.first.then((_) => loadCompleter.complete());
+      imgEl.onError.first.then(
+        (_) => loadCompleter.completeError('Image load failed'),
       );
+      imgEl.src = objectUrl;
+
+      await loadCompleter.future;
+      html.Url.revokeObjectUrl(objectUrl);
+
+      int srcW = imgEl.naturalWidth ?? 0;
+      int srcH = imgEl.naturalHeight ?? 0;
+      if (srcW == 0 || srcH == 0) return bytes;
+
+      // Calculate target dimensions while preserving aspect ratio
+      int dstW = srcW;
+      int dstH = srcH;
+      if (srcW > preset.maxDimension || srcH > preset.maxDimension) {
+        if (srcW >= srcH) {
+          dstW = preset.maxDimension;
+          dstH = (srcH * preset.maxDimension / srcW).round();
+        } else {
+          dstH = preset.maxDimension;
+          dstW = (srcW * preset.maxDimension / srcH).round();
+        }
+      }
+
+      final canvas = html.CanvasElement(width: dstW, height: dstH);
+      canvas.context2D.drawImageScaled(imgEl, 0, 0, dstW, dstH);
+
+      // toDataUrl quality is 0.0–1.0
+      final dataUrl = canvas.toDataUrl(
+        'image/jpeg',
+        preset.quality / 100.0,
+      );
+
+      // Strip the "data:image/jpeg;base64," prefix
+      final base64Part = dataUrl.split(',').last;
+      final compressed = base64Decode(base64Part);
+
+      // Safety: if encoding made it larger, return the original
+      return compressed.length < bytes.length
+          ? Uint8List.fromList(compressed)
+          : bytes;
+    } catch (_) {
+      // Any failure (unsupported format, browser quirk) → upload original
+      return bytes;
     }
-
-    final encoded = Uint8List.fromList(
-      img.encodeJpg(resized, quality: preset.quality),
-    );
-
-    // Safety: if encoding somehow made it larger, return the original
-    return encoded.length < originalSize ? encoded : bytes;
   }
 
   /// Deletes an image from Firebase Storage by its download URL.
