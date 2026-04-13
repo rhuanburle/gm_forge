@@ -922,7 +922,7 @@ class _OrdersPanelState extends ConsumerState<_OrdersPanel> {
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         leading: const Icon(Icons.group, size: 16, color: AppTheme.secondary),
         title: const Text(
-          'Ordem de Marcha / Vigília',
+          'Marcha & Vigília',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,

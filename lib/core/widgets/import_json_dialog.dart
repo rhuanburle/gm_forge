@@ -3,18 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
-/// Shows a dialog that lets the user paste JSON to import an entity.
+/// Shows a dialog that lets the user paste JSON to import one or more entities.
 ///
-/// [title]       — e.g. "Importar NPC / Monstro"
-/// [exampleJson] — a pre-formatted JSON string shown as reference
-/// [legend]      — optional plain text below the example explaining enum values
-/// [onImport]    — called with the parsed Map when the user taps "Importar"
+/// [title]          — e.g. "Importar NPC / Monstro"
+/// [exampleJson]    — a pre-formatted JSON string shown as reference
+/// [legend]         — optional plain text below the example explaining enum values
+/// [onImport]       — called with the parsed Map for a single object `{ }`
+/// [onImportList]   — if provided, a JSON array `[ ]` is also accepted and this
+///                    callback is called with the list of parsed maps; if null,
+///                    arrays are rejected with an error message.
 Future<void> showImportJsonDialog({
   required BuildContext context,
   required String title,
   required String exampleJson,
   String? legend,
   required void Function(Map<String, dynamic> json) onImport,
+  void Function(List<Map<String, dynamic>> items)? onImportList,
 }) {
   return showDialog(
     context: context,
@@ -23,6 +27,7 @@ Future<void> showImportJsonDialog({
       exampleJson: exampleJson,
       legend: legend,
       onImport: onImport,
+      onImportList: onImportList,
     ),
   );
 }
@@ -32,11 +37,13 @@ class _ImportJsonDialog extends StatefulWidget {
   final String exampleJson;
   final String? legend;
   final void Function(Map<String, dynamic>) onImport;
+  final void Function(List<Map<String, dynamic>>)? onImportList;
 
   const _ImportJsonDialog({
     required this.title,
     required this.exampleJson,
     required this.onImport,
+    this.onImportList,
     this.legend,
   });
 
@@ -70,8 +77,25 @@ class _ImportJsonDialogState extends State<_ImportJsonDialog> {
     }
     try {
       final decoded = jsonDecode(text);
+      if (decoded is List) {
+        if (widget.onImportList == null) {
+          setState(() => _error = 'O JSON deve ser um objeto { ... }, não uma lista.');
+          return;
+        }
+        final items = decoded
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        if (items.isEmpty) {
+          setState(() => _error = 'A lista não contém nenhum item válido.');
+          return;
+        }
+        Navigator.pop(context);
+        widget.onImportList!(items);
+        return;
+      }
       if (decoded is! Map<String, dynamic>) {
-        setState(() => _error = 'O JSON deve ser um objeto { ... }, não uma lista.');
+        setState(() => _error = 'O JSON deve ser um objeto { ... } ou uma lista [ ... ].');
         return;
       }
       Navigator.pop(context);
@@ -212,7 +236,9 @@ class _ImportJsonDialogState extends State<_ImportJsonDialog> {
                 minLines: 4,
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
                 decoration: InputDecoration(
-                  hintText: '{ "name": "...", ... }',
+                  hintText: widget.onImportList != null
+                      ? '{ "title": "..." }  ou  [ { "title": "..." }, ... ]'
+                      : '{ "name": "...", ... }',
                   hintStyle: const TextStyle(fontSize: 11),
                   errorText: _error,
                   border: const OutlineInputBorder(),

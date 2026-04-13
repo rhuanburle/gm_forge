@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/ai/ai_prompts.dart';
 import '../../../../core/widgets/ai_assist_button.dart';
+import '../../../../core/widgets/adventure_bundle_import_dialog.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/sync/unsynced_changes_provider.dart';
 import '../../application/adventure_providers.dart';
 import '../../domain/adventure.dart';
@@ -297,6 +299,15 @@ class DashboardController {
             onTap: () {
               Navigator.pop(context);
               showCampaignDialog(context, ref);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.upload_file, color: AppTheme.secondary),
+            title: const Text('Importar Aventura (JSON)'),
+            subtitle: const Text('Carregar aventura completa de um arquivo JSON'),
+            onTap: () {
+              Navigator.pop(context);
+              showAdventureBundleImportDialog(context, ref);
             },
           ),
         ],

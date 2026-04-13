@@ -114,17 +114,12 @@ class SceneViewer extends ConsumerWidget {
                               ),
                         ),
                       ),
+                      if (parentLocation.imagePath?.isNotEmpty == true) ...[
+                        const SizedBox(width: 8),
+                        _InlineThumb(url: parentLocation.imagePath!),
+                      ],
                     ],
                   ),
-                  if (parentLocation.imagePath != null &&
-                      parentLocation.imagePath!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _TappableImage(
-                      url: parentLocation.imagePath!,
-                      height: 72,
-                      borderRadius: 6,
-                    ),
-                  ],
                   if (parentLocation.description.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -143,6 +138,7 @@ class SceneViewer extends ConsumerWidget {
             ),
           ],
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 '#${location.number}',
@@ -171,14 +167,13 @@ class SceneViewer extends ConsumerWidget {
                 labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
+              if (location.imagePath?.isNotEmpty == true) ...[
+                const SizedBox(width: 8),
+                _InlineThumb(url: location.imagePath!),
+              ],
             ],
           ),
           const Divider(height: 32),
-
-          if (location.imagePath != null && location.imagePath!.isNotEmpty) ...[
-            _TappableImage(url: location.imagePath!, height: 90, borderRadius: 8),
-            const SizedBox(height: 16),
-          ],
 
           _SectionTitle(icon: Icons.visibility, title: 'Primeira Impressão'),
           EditableSmartText(
@@ -873,7 +868,7 @@ class _ScenicEncounterRollState extends State<_ScenicEncounterRoll> {
             style: const TextStyle(fontSize: 11),
           ),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             foregroundColor: AppTheme.secondary,
@@ -897,6 +892,31 @@ class _ScenicEncounterRollState extends State<_ScenicEncounterRoll> {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Small square thumbnail that sits inline with a header row.
+/// Tapping opens the fullscreen viewer.
+class _InlineThumb extends StatelessWidget {
+  final String url;
+  final double size;
+
+  const _InlineThumb({required this.url, this.size = 56});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => showImageFullscreen(context, url),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SmartNetworkImage(
+          imageUrl: url,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 }

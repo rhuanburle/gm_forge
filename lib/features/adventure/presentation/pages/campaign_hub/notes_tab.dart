@@ -523,28 +523,56 @@ class _NotesTabState extends ConsumerState<NotesTab> {
   }
 
   void _showImportRuleDialog(BuildContext context) {
+    Future<void> saveRule(Map<String, dynamic> json) async {
+      json['id'] = const Uuid().v4();
+      json['campaignId'] = campaignId;
+      json['order'] = json['order'] ?? 0;
+      final rule = QuickRule.fromJson(json);
+      await ref.read(hiveDatabaseProvider).saveQuickRule(rule);
+    }
+
     showImportJsonDialog(
       context: context,
-      title: 'Importar Card do Escudo',
-      exampleJson: '''{
-  "title": "Teste de Atributo",
-  "content": "Role 1d20 + mod\\n>= CD: sucesso\\n< CD: falha",
-  "category": "Regras Básicas"
-}''',
-      legend: 'category: agrupa os cards (ex: "Combate", "Magia", "Geral")\n'
+      title: 'Importar Cards do Escudo',
+      exampleJson: '''[
+  {
+    "title": "Ações em Combate",
+    "category": "Combate",
+    "content": "Atacar, Conjurar, Dash (2x mov)\\nDesviar, Ajudar, Esconder, Item"
+  },
+  {
+    "title": "Condições",
+    "category": "Combate",
+    "content": "Agarrado: vel 0\\nCego: ataque com desv\\nAtordoado: não age"
+  }
+]''',
+      legend: 'Aceita um único objeto { } ou uma lista [ ] com vários cards.\n'
+          'category: agrupa os cards (ex: "Combate", "Magia", "Geral")\n'
           'content: use \\n para quebras de linha',
       onImport: (json) async {
-        json['id'] = const Uuid().v4();
-        json['campaignId'] = campaignId;
-        json['order'] = json['order'] ?? 0;
         try {
-          final rule = QuickRule.fromJson(json);
-          await ref.read(hiveDatabaseProvider).saveQuickRule(rule);
+          await saveRule(json);
           ref.invalidate(quickRulesProvider(campaignId));
           _markUnsynced();
-          if (context.mounted) AppSnackBar.success(context, '"${rule.title}" importado!');
+          if (context.mounted) {
+            AppSnackBar.success(context, '"${json['title'] ?? 'Card'}" importado!');
+          }
         } catch (e) {
           if (context.mounted) AppSnackBar.error(context, 'Erro ao importar: $e');
+        }
+      },
+      onImportList: (items) async {
+        int count = 0;
+        for (final json in items) {
+          try {
+            await saveRule(json);
+            count++;
+          } catch (_) {}
+        }
+        ref.invalidate(quickRulesProvider(campaignId));
+        _markUnsynced();
+        if (context.mounted) {
+          AppSnackBar.success(context, '$count card(s) importado(s)!');
         }
       },
     );

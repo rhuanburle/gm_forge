@@ -71,6 +71,22 @@ class CreatureDetailDialog extends ConsumerWidget {
           Expanded(
             child: Text(creature.name, overflow: TextOverflow.ellipsis),
           ),
+          // Inline image thumbnail (tappable for fullscreen)
+          if (creature.imagePath != null && creature.imagePath!.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => showImageFullscreen(context, creature.imagePath!),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SmartNetworkImage(
+                  imageUrl: creature.imagePath!,
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ],
           // Add to combat button
           if (!alreadyInCombat)
             IconButton(
@@ -107,22 +123,6 @@ class CreatureDetailDialog extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Creature image — tap to view fullscreen
-              if (creature.imagePath != null && creature.imagePath!.isNotEmpty) ...[
-                GestureDetector(
-                  onTap: () => showImageFullscreen(context, creature.imagePath!),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SmartNetworkImage(
-                      imageUrl: creature.imagePath!,
-                      height: 110,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
               // Description
               if (creature.description.isNotEmpty) ...[
                 Text(

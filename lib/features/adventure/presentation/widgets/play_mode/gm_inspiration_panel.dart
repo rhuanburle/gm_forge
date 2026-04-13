@@ -77,9 +77,9 @@ class _GmInspirationPanelState extends ConsumerState<GmInspirationPanel> {
                 OutlinedButton.icon(
                   onPressed: () => _rollChain(tables),
                   icon: const Icon(Icons.link, size: 14),
-                  label: const Text('Cadeia', style: TextStyle(fontSize: 10)),
+                  label: const Text('Cadeia', style: TextStyle(fontSize: 11)),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     foregroundColor: AppTheme.secondary,
@@ -192,9 +192,9 @@ class _GmInspirationPanelState extends ConsumerState<GmInspirationPanel> {
               });
             },
       icon: const Icon(Icons.casino, size: 14),
-      label: Text(table.name, style: const TextStyle(fontSize: 10)),
+      label: Text(table.name, style: const TextStyle(fontSize: 11)),
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         foregroundColor: AppTheme.warning,
