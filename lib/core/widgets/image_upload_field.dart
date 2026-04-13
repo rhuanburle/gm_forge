@@ -45,14 +45,20 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
   String? get _effectiveUrl => _localUrl ?? widget.currentImageUrl;
 
   Future<void> _pickAndUpload() async {
+    // Step 1: open file picker — no loading indicator while user browses
+    final bytes = await ImageUploadService.pickImageBytes();
+    if (bytes == null || !mounted) return;
+
+    // Step 2: compress + upload — show spinner only during network work
     final oldUrl = _effectiveUrl;
     setState(() => _isUploading = true);
     try {
-      final url = await ImageUploadService.pickAndUpload(
+      final url = await ImageUploadService.uploadBytes(
+        bytes,
         widget.storagePath,
         preset: widget.preset,
       );
-      if (url != null && mounted) {
+      if (mounted) {
         setState(() => _localUrl = url);
         widget.onChanged(url);
         if (oldUrl != null && oldUrl.isNotEmpty) {

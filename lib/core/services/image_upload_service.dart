@@ -35,24 +35,55 @@ enum ImageCompressPreset {
 class ImageUploadService {
   static final _storage = FirebaseStorage.instance;
 
-  /// Opens a file picker, compresses the image, and uploads to Firebase Storage
-  /// under [basePath].
-  ///
-  /// Returns the public download URL, or null if the user cancelled.
-  static Future<String?> pickAndUpload(
+  /// Opens a file picker and returns the raw image bytes, or null if cancelled.
+  /// Does NOT upload — call [uploadBytes] afterwards to compress and store.
+  static Future<Uint8List?> pickImageBytes() async {
+    final completer = Completer<Uint8List?>();
+
+    final input = html.FileUploadInputElement()..accept = 'image/*';
+    // Must be in DOM for all browsers to fire the change event
+    input.style.display = 'none';
+    html.document.body!.append(input);
+
+    input.onChange.first.then((_) {
+      final files = input.files;
+      if (files == null || files.isEmpty) {
+        _cleanup(input, completer, null);
+        return;
+      }
+      final reader = html.FileReader();
+      reader.onLoadEnd.first.then((_) {
+        final result = reader.result;
+        _cleanup(input, completer, result is Uint8List ? result : null);
+      });
+      reader.onError.first.then((_) => _cleanup(input, completer, null));
+      reader.readAsArrayBuffer(files[0]);
+    });
+
+    input.click();
+    return completer.future;
+  }
+
+  static void _cleanup(
+    html.FileUploadInputElement input,
+    Completer<Uint8List?> completer,
+    Uint8List? result,
+  ) {
+    try { input.remove(); } catch (_) {}
+    if (!completer.isCompleted) completer.complete(result);
+  }
+
+  /// Compresses [bytes] and uploads to Firebase Storage under [basePath].
+  /// Returns the public download URL.
+  static Future<String> uploadBytes(
+    Uint8List bytes,
     String basePath, {
     ImageCompressPreset preset = ImageCompressPreset.location,
   }) async {
-    // Use dart:html directly — avoids file_picker late-field issues in release
-    final rawBytes = await _pickImageBytes();
-    if (rawBytes == null) return null;
-
-    // Detect format from magic bytes
-    final ext = _detectExtension(rawBytes);
+    final ext = _detectExtension(bytes);
     final isGif = ext == 'gif';
 
-    // Compress / resize before upload (skip for GIFs — keep as-is)
-    final uploadBytes = isGif ? rawBytes : await _compress(rawBytes, preset);
+    final uploadBytes = isGif ? bytes : await _compress(bytes, preset);
     final contentType = isGif ? 'image/gif' : 'image/jpeg';
     final uploadExt = isGif ? 'gif' : 'jpg';
 
@@ -62,71 +93,19 @@ class ImageUploadService {
     return await ref.getDownloadURL();
   }
 
-  /// Opens a native file-input dialog and returns the raw bytes of the selected
-  /// image, or null if the user cancelled.
-  static Future<Uint8List?> _pickImageBytes() async {
-    final completer = Completer<Uint8List?>();
-
-    final input = html.FileUploadInputElement()..accept = 'image/*';
-
-    // Append hidden to body so it works in all browsers
-    html.document.body!.append(input);
-
-    input.onChange.first.then((_) {
-      input.remove();
-      final files = input.files;
-      if (files == null || files.isEmpty) {
-        if (!completer.isCompleted) completer.complete(null);
-        return;
-      }
-      final reader = html.FileReader();
-      reader.onLoadEnd.first.then((_) {
-        final result = reader.result;
-        if (!completer.isCompleted) {
-          completer.complete(result is Uint8List ? result : null);
-        }
-      });
-      reader.readAsArrayBuffer(files[0]);
-    });
-
-    // Detect cancel: window regains focus but input didn't fire change
-    late html.EventListener focusListener;
-    focusListener = (_) async {
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-      if (!completer.isCompleted) {
-        input.remove();
-        completer.complete(null);
-      }
-      html.window.removeEventListener('focus', focusListener);
-    };
-    html.window.addEventListener('focus', focusListener);
-
-    input.click();
-    return completer.future;
-  }
-
-  /// Detects the image format from the first bytes (magic numbers).
+  /// Detects image format from magic bytes.
   static String _detectExtension(Uint8List bytes) {
-    if (bytes.length >= 6) {
-      // GIF87a / GIF89a
-      if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46) {
-        return 'gif';
-      }
-      // PNG
-      if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E) {
-        return 'png';
-      }
-      // JPEG
+    if (bytes.length >= 10) {
+      if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46) return 'gif';
+      if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E) return 'png';
       if (bytes[0] == 0xFF && bytes[1] == 0xD8) return 'jpg';
-      // WebP
       if (bytes[0] == 0x52 && bytes[1] == 0x49 &&
           bytes[8] == 0x57 && bytes[9] == 0x45) return 'webp';
     }
     return 'jpg';
   }
 
-  /// Resizes and re-encodes the image as JPEG using the browser Canvas API.
-  /// Falls back to the original bytes on any error.
+  /// Resizes and re-encodes as JPEG using the browser Canvas API.
   static Future<Uint8List> _compress(
     Uint8List bytes,
     ImageCompressPreset preset,
@@ -138,9 +117,7 @@ class ImageUploadService {
       final imgEl = html.ImageElement();
       final loadCompleter = Completer<void>();
       imgEl.onLoad.first.then((_) => loadCompleter.complete());
-      imgEl.onError.first.then(
-        (_) => loadCompleter.completeError('Image load failed'),
-      );
+      imgEl.onError.first.then((_) => loadCompleter.completeError('load failed'));
       imgEl.src = objectUrl;
 
       await loadCompleter.future;
@@ -166,8 +143,7 @@ class ImageUploadService {
       canvas.context2D.drawImageScaled(imgEl, 0, 0, dstW, dstH);
 
       final dataUrl = canvas.toDataUrl('image/jpeg', preset.quality / 100.0);
-      final base64Part = dataUrl.split(',').last;
-      final compressed = base64Decode(base64Part);
+      final compressed = base64Decode(dataUrl.split(',').last);
 
       return compressed.length < bytes.length
           ? Uint8List.fromList(compressed)
@@ -178,7 +154,6 @@ class ImageUploadService {
   }
 
   /// Deletes an image from Firebase Storage by its download URL.
-  /// Silently ignores errors (file may already be deleted).
   static Future<void> deleteByUrl(String url) async {
     try {
       final ref = _storage.refFromURL(url);
