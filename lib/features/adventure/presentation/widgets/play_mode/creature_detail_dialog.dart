@@ -115,7 +115,7 @@ class CreatureDetailDialog extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                     child: SmartNetworkImage(
                       imageUrl: creature.imagePath!,
-                      height: 160,
+                      height: 110,
                       width: double.infinity,
                       fit: BoxFit.cover,
                     ),

@@ -118,11 +118,11 @@ class SceneViewer extends ConsumerWidget {
                   ),
                   if (parentLocation.imagePath != null &&
                       parentLocation.imagePath!.isNotEmpty) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _TappableImage(
                       url: parentLocation.imagePath!,
-                      height: 160,
-                      borderRadius: 8,
+                      height: 72,
+                      borderRadius: 6,
                     ),
                   ],
                   if (parentLocation.description.isNotEmpty) ...[
@@ -176,8 +176,8 @@ class SceneViewer extends ConsumerWidget {
           const Divider(height: 32),
 
           if (location.imagePath != null && location.imagePath!.isNotEmpty) ...[
-            _TappableImage(url: location.imagePath!, height: 300, borderRadius: 12),
-            const SizedBox(height: 24),
+            _TappableImage(url: location.imagePath!, height: 90, borderRadius: 8),
+            const SizedBox(height: 16),
           ],
 
           _SectionTitle(icon: Icons.visibility, title: 'Primeira Impressão'),
