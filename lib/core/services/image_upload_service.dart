@@ -35,28 +35,28 @@ enum ImageCompressPreset {
 class ImageUploadService {
   static final _storage = FirebaseStorage.instance;
 
-  /// Opens a file picker and returns the raw image bytes, or null if cancelled.
-  /// Does NOT upload — call [uploadBytes] afterwards to compress and store.
+  /// Opens a native file picker and returns the raw image bytes.
+  /// Returns null if the user cancels without selecting a file.
   static Future<Uint8List?> pickImageBytes() async {
     final completer = Completer<Uint8List?>();
 
-    final input = html.FileUploadInputElement()..accept = 'image/*';
-    // Must be in DOM for all browsers to fire the change event
-    input.style.display = 'none';
+    final input = html.FileUploadInputElement()
+      ..accept = 'image/*'
+      ..style.display = 'none';
     html.document.body!.append(input);
 
     input.onChange.first.then((_) {
       final files = input.files;
       if (files == null || files.isEmpty) {
-        _cleanup(input, completer, null);
+        _done(input, completer, null);
         return;
       }
       final reader = html.FileReader();
       reader.onLoadEnd.first.then((_) {
         final result = reader.result;
-        _cleanup(input, completer, result is Uint8List ? result : null);
+        _done(input, completer, result is Uint8List ? result : null);
       });
-      reader.onError.first.then((_) => _cleanup(input, completer, null));
+      reader.onError.first.then((_) => _done(input, completer, null));
       reader.readAsArrayBuffer(files[0]);
     });
 
@@ -64,7 +64,7 @@ class ImageUploadService {
     return completer.future;
   }
 
-  static void _cleanup(
+  static void _done(
     html.FileUploadInputElement input,
     Completer<Uint8List?> completer,
     Uint8List? result,
@@ -83,45 +83,64 @@ class ImageUploadService {
     final ext = _detectExtension(bytes);
     final isGif = ext == 'gif';
 
-    final uploadBytes = isGif ? bytes : await _compress(bytes, preset);
+    final toUpload = isGif ? bytes : await _compress(bytes, preset);
     final contentType = isGif ? 'image/gif' : 'image/jpeg';
     final uploadExt = isGif ? 'gif' : 'jpg';
 
     final uniqueId = const Uuid().v4();
     final ref = _storage.ref('$basePath/$uniqueId.$uploadExt');
-    await ref.putData(uploadBytes, SettableMetadata(contentType: contentType));
+    await ref.putData(toUpload, SettableMetadata(contentType: contentType));
     return await ref.getDownloadURL();
   }
 
   /// Detects image format from magic bytes.
   static String _detectExtension(Uint8List bytes) {
-    if (bytes.length >= 10) {
+    if (bytes.length >= 3) {
       if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46) return 'gif';
       if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E) return 'png';
-      if (bytes[0] == 0xFF && bytes[1] == 0xD8) return 'jpg';
-      if (bytes[0] == 0x52 && bytes[1] == 0x49 &&
-          bytes[8] == 0x57 && bytes[9] == 0x45) return 'webp';
     }
+    if (bytes.length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8) return 'jpg';
     return 'jpg';
   }
 
+  /// MIME type string for a data URL.
+  static String _detectMimeType(Uint8List bytes) {
+    final ext = _detectExtension(bytes);
+    switch (ext) {
+      case 'gif': return 'image/gif';
+      case 'png': return 'image/png';
+      default:    return 'image/jpeg';
+    }
+  }
+
   /// Resizes and re-encodes as JPEG using the browser Canvas API.
+  /// Uses a data: URL as src to avoid Blob/ObjectURL reliability issues.
+  /// Falls back to the original bytes on any error or timeout.
   static Future<Uint8List> _compress(
     Uint8List bytes,
     ImageCompressPreset preset,
   ) async {
     try {
-      final blob = html.Blob([bytes]);
-      final objectUrl = html.Url.createObjectUrlFromBlob(blob);
+      // Encode bytes as a data URL — more reliable than Blob + createObjectURL
+      final mime = _detectMimeType(bytes);
+      final srcDataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
 
       final imgEl = html.ImageElement();
       final loadCompleter = Completer<void>();
-      imgEl.onLoad.first.then((_) => loadCompleter.complete());
-      imgEl.onError.first.then((_) => loadCompleter.completeError('load failed'));
-      imgEl.src = objectUrl;
 
-      await loadCompleter.future;
-      html.Url.revokeObjectUrl(objectUrl);
+      imgEl.onLoad.first.then((_) {
+        if (!loadCompleter.isCompleted) loadCompleter.complete();
+      });
+      imgEl.onError.first.then((_) {
+        if (!loadCompleter.isCompleted) {
+          loadCompleter.completeError('Image decode failed');
+        }
+      });
+
+      imgEl.src = srcDataUrl;
+
+      // Give the browser up to 10 s to decode; if it doesn't, upload as-is
+      await loadCompleter.future.timeout(const Duration(seconds: 10));
 
       int srcW = imgEl.naturalWidth ?? 0;
       int srcH = imgEl.naturalHeight ?? 0;
@@ -142,8 +161,8 @@ class ImageUploadService {
       final canvas = html.CanvasElement(width: dstW, height: dstH);
       canvas.context2D.drawImageScaled(imgEl, 0, 0, dstW, dstH);
 
-      final dataUrl = canvas.toDataUrl('image/jpeg', preset.quality / 100.0);
-      final compressed = base64Decode(dataUrl.split(',').last);
+      final outDataUrl = canvas.toDataUrl('image/jpeg', preset.quality / 100.0);
+      final compressed = base64Decode(outDataUrl.split(',').last);
 
       return compressed.length < bytes.length
           ? Uint8List.fromList(compressed)
