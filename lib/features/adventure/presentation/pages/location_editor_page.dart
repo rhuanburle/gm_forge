@@ -4,6 +4,7 @@ import '../../../../core/ai/ai_prompts.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../core/services/image_upload_service.dart';
 import '../../../../core/widgets/image_upload_field.dart';
 import '../../../../core/widgets/smart_network_image.dart';
 import '../../../../core/history/history_service.dart';
@@ -555,6 +556,9 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
     if (confirm == true) {
       final db = ref.read(hiveDatabaseProvider);
       await db.deletePointOfInterest(poi.id);
+      if (poi.imagePath?.isNotEmpty == true) {
+        ImageUploadService.deleteByUrl(poi.imagePath!);
+      }
 
       ref
           .read(historyProvider.notifier)

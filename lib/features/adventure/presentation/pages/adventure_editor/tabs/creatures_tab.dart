@@ -16,6 +16,7 @@ import "../../../../domain/domain.dart";
 import "../../../widgets/npc_knowledge_dialog.dart";
 import "../../../widgets/smart_text_field.dart";
 import '../../../../../../core/widgets/animated_list_item.dart';
+import '../../../../../../core/services/image_upload_service.dart';
 import '../../../../../../core/widgets/smart_network_image.dart';
 import "../widgets/section_header.dart";
 
@@ -261,6 +262,9 @@ class _CreaturesTabState extends ConsumerState<CreaturesTab> {
     final adventureId = widget.adventureId;
     final db = ref.read(hiveDatabaseProvider);
     await db.deleteCreature(creature.id);
+    if (creature.imagePath?.isNotEmpty == true) {
+      ImageUploadService.deleteByUrl(creature.imagePath!);
+    }
 
     ref
         .read(historyProvider.notifier)

@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://quest-script.web.app", "https://quest-script.firebaseapp.com", "http://localhost:*"],
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length", "Authorization", "x-goog-*"],
+    "maxAgeSeconds": 3600
+  }
+]

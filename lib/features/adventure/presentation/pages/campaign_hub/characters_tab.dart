@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/auth/auth_service.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/services/image_upload_service.dart';
 import '../../../../../core/widgets/image_upload_field.dart';
 import '../../../../../core/widgets/responsive_layout.dart';
 import '../../../../../core/sync/unsynced_changes_provider.dart';
@@ -82,6 +83,9 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
                     await ref
                         .read(hiveDatabaseProvider)
                         .deletePlayerCharacter(pc.id);
+                    if (pc.imageUrl?.isNotEmpty == true) {
+                      ImageUploadService.deleteByUrl(pc.imageUrl!);
+                    }
                     ref.invalidate(playerCharactersProvider(campaignId));
                     _markUnsynced();
                   },

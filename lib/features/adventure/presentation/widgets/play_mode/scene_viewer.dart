@@ -8,6 +8,7 @@ import 'editable_smart_text.dart';
 import 'dart:math';
 import 'creature_detail_dialog.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
+import '../../../../../core/widgets/image_fullscreen.dart';
 import '../../../../../../core/sync/unsynced_changes_provider.dart';
 
 class SceneViewer extends ConsumerWidget {
@@ -118,14 +119,10 @@ class SceneViewer extends ConsumerWidget {
                   if (parentLocation.imagePath != null &&
                       parentLocation.imagePath!.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: SmartNetworkImage(
-                        imageUrl: parentLocation.imagePath!,
-                        height: 160,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
+                    _TappableImage(
+                      url: parentLocation.imagePath!,
+                      height: 160,
+                      borderRadius: 8,
                     ),
                   ],
                   if (parentLocation.description.isNotEmpty) ...[
@@ -179,15 +176,7 @@ class SceneViewer extends ConsumerWidget {
           const Divider(height: 32),
 
           if (location.imagePath != null && location.imagePath!.isNotEmpty) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SmartNetworkImage(
-                imageUrl: location.imagePath!,
-                height: 300,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
+            _TappableImage(url: location.imagePath!, height: 300, borderRadius: 12),
             const SizedBox(height: 24),
           ],
 
@@ -908,6 +897,51 @@ class _ScenicEncounterRollState extends State<_ScenicEncounterRoll> {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Image that opens a fullscreen viewer on tap, with a subtle expand icon hint.
+class _TappableImage extends StatelessWidget {
+  final String url;
+  final double height;
+  final double borderRadius;
+
+  const _TappableImage({
+    required this.url,
+    required this.height,
+    this.borderRadius = 8,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => showImageFullscreen(context, url),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: SmartNetworkImage(
+              imageUrl: url,
+              height: height,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned(
+            top: 6,
+            right: 6,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.black45,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(Icons.fullscreen, color: Colors.white, size: 16),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

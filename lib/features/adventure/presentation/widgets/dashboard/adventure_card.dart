@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
+import '../../../../../core/services/image_upload_service.dart';
+import '../../../../../core/database/hive_database.dart';
 import '../../../../../core/sync/sync_service.dart';
 import '../../../../../core/sync/unsynced_changes_provider.dart';
 import '../../../application/adventure_providers.dart';
@@ -117,12 +119,31 @@ class AdventureCard extends ConsumerWidget {
                           } else if (value == 'editor') {
                             context.push('/adventure/${adventure.id}');
                           } else if (value == 'delete') {
+                            // Collect all image URLs before deletion (cascade)
+                            final db = ref.read(hiveDatabaseProvider);
+                            final imageUrls = <String>[
+                              if (adventure.dungeonMapPath?.isNotEmpty == true)
+                                adventure.dungeonMapPath!,
+                              ...db.getLocations(adventure.id)
+                                  .map((l) => l.imagePath ?? '')
+                                  .where((s) => s.isNotEmpty),
+                              ...db.getCreatures(adventure.id)
+                                  .map((c) => c.imagePath ?? '')
+                                  .where((s) => s.isNotEmpty),
+                              ...db.getPointsOfInterest(adventure.id)
+                                  .map((p) => p.imagePath ?? '')
+                                  .where((s) => s.isNotEmpty),
+                            ];
                             await ref
                                 .read(adventureListProvider.notifier)
                                 .delete(adventure.id);
                             await ref
                                 .read(syncServiceProvider)
                                 .deleteAdventure(adventure.id);
+                            // Fire-and-forget image cleanup
+                            for (final url in imageUrls) {
+                              ImageUploadService.deleteByUrl(url);
+                            }
                           } else if (value == 'duplicate') {
                             await ref
                                 .read(adventureCloneServiceProvider)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/image_upload_service.dart';
 import '../theme/app_theme.dart';
+import 'image_fullscreen.dart';
 import 'smart_network_image.dart';
 
 export '../services/image_upload_service.dart' show ImageCompressPreset;
@@ -79,39 +80,8 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
     }
   }
 
-  void _openFullscreen(BuildContext context) {
-    final url = _effectiveUrl!;
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (_) => Dialog.fullscreen(
-        backgroundColor: Colors.black,
-        child: Stack(
-          children: [
-            Center(
-              child: InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 8,
-                child: SmartNetworkImage(imageUrl: url, fit: BoxFit.contain),
-              ),
-            ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.black54,
-                  shape: const CircleBorder(),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  void _openFullscreen(BuildContext context) =>
+      showImageFullscreen(context, _effectiveUrl!);
 
   void _removeImage() {
     final old = _effectiveUrl;

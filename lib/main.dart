@@ -17,6 +17,9 @@ void main() async {
 
   await HiveDatabase.init();
 
+  // Increase Flutter's in-memory image cache to 150 MB to reduce re-downloads
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 150 * 1024 * 1024;
+
   runApp(const ProviderScope(child: QuestScriptApp()));
 }
 

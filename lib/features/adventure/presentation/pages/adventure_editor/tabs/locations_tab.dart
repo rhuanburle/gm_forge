@@ -8,6 +8,7 @@ import '../../../../../../core/history/history_service.dart';
 import '../../../../../../core/widgets/entity_filter_bar.dart';
 import '../../../../../../core/widgets/import_json_dialog.dart';
 import '../../../../../../core/widgets/tags_editor.dart';
+import '../../../../../../core/services/image_upload_service.dart';
 import '../../../../application/adventure_providers.dart';
 import '../../../../domain/domain.dart';
 import '../widgets/section_header.dart';
@@ -414,7 +415,16 @@ class _LocationsTabState extends ConsumerState<LocationsTab> {
 
     if (confirm == true) {
       final db = ref.read(hiveDatabaseProvider);
+      // Collect images from location + its POIs before deletion
+      final imageUrls = <String>[
+        if (location.imagePath?.isNotEmpty == true) location.imagePath!,
+        ...db.getPointsOfInterest(widget.adventureId)
+            .where((p) => p.locationId == location.id)
+            .map((p) => p.imagePath ?? '')
+            .where((s) => s.isNotEmpty),
+      ];
       await db.deleteLocation(location.id);
+      for (final url in imageUrls) ImageUploadService.deleteByUrl(url);
 
       ref.read(historyProvider.notifier).recordAction(
             HistoryAction(

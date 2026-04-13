@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/smart_network_image.dart';
+import '../../../../../core/widgets/image_fullscreen.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../domain/domain.dart';
 import 'combat_tracker_panel.dart';
@@ -106,9 +107,10 @@ class CreatureDetailDialog extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Creature image
+              // Creature image — tap to view fullscreen
               if (creature.imagePath != null && creature.imagePath!.isNotEmpty) ...[
-                Center(
+                GestureDetector(
+                  onTap: () => showImageFullscreen(context, creature.imagePath!),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: SmartNetworkImage(
