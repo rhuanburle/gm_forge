@@ -528,7 +528,7 @@ class _NotesTabState extends ConsumerState<NotesTab> {
       title: 'Importar Card do Escudo',
       exampleJson: '''{
   "title": "Teste de Atributo",
-  "content": "Role 1d20 + mod\\n≥ CD: sucesso\\n< CD: falha",
+  "content": "Role 1d20 + mod\\n>= CD: sucesso\\n< CD: falha",
   "category": "Regras Básicas"
 }''',
       legend: 'category: agrupa os cards (ex: "Combate", "Magia", "Geral")\n'

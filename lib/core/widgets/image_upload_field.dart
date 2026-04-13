@@ -45,6 +45,7 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
   String? get _effectiveUrl => _localUrl ?? widget.currentImageUrl;
 
   Future<void> _pickAndUpload() async {
+    final oldUrl = _effectiveUrl;
     setState(() => _isUploading = true);
     try {
       final url = await ImageUploadService.pickAndUpload(
@@ -54,6 +55,9 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
       if (url != null && mounted) {
         setState(() => _localUrl = url);
         widget.onChanged(url);
+        if (oldUrl != null && oldUrl.isNotEmpty) {
+          ImageUploadService.deleteByUrl(oldUrl);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -70,8 +74,12 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
   }
 
   void _removeImage() {
+    final old = _effectiveUrl;
     setState(() => _localUrl = null);
     widget.onChanged(null);
+    if (old != null && old.isNotEmpty) {
+      ImageUploadService.deleteByUrl(old);
+    }
   }
 
   // ─── Rectangular (maps / locations) ─────────────────────────────────────
