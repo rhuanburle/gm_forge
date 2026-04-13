@@ -79,6 +79,40 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
     }
   }
 
+  void _openFullscreen(BuildContext context) {
+    final url = _effectiveUrl!;
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 8,
+                child: SmartNetworkImage(imageUrl: url, fit: BoxFit.contain),
+              ),
+            ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black54,
+                  shape: const CircleBorder(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _removeImage() {
     final old = _effectiveUrl;
     setState(() => _localUrl = null);
@@ -109,7 +143,11 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
         ),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: _isUploading ? null : _pickAndUpload,
+          onTap: _isUploading
+              ? null
+              : (_effectiveUrl ?? '').isNotEmpty
+                  ? () => _openFullscreen(context)
+                  : _pickAndUpload,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             height: widget.height,
