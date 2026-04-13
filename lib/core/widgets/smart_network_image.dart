@@ -43,9 +43,9 @@ class SmartNetworkImage extends StatelessWidget {
       fit: fit,
       placeholder: (context, url) => _buildLoading(),
       errorWidget: (context, url, error) => _buildErrorWidget(context),
-      // Limit decoded size to save memory on large images
-      memCacheWidth: width?.toInt(),
-      memCacheHeight: height?.toInt(),
+      // Limit decoded size to save memory — guard against double.infinity
+      memCacheWidth: (width != null && width!.isFinite) ? width!.toInt() : null,
+      memCacheHeight: (height != null && height!.isFinite) ? height!.toInt() : null,
     );
   }
 
