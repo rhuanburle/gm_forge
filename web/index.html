@@ -45,37 +45,112 @@
 
   <title>Quest Script</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    #version-update-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-family: sans-serif;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 9999;
+    }
+    #version-update-screen.visible { display: flex; }
+    #version-update-screen p { margin: 0; font-size: 15px; opacity: 0.8; }
+    #version-update-screen .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,0.15);
+      border-top-color: #7c6af7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
+
+  <!-- Shown only during cache-clear on version update -->
+  <div id="version-update-screen">
+    <div class="spinner"></div>
+    <p>Atualizando Quest Script...</p>
+  </div>
+
   <script>
-    // Force update: when a new service worker activates, reload the page
+    // ─── Service Worker: reload page when new SW takes control ───────────────
     if ('serviceWorker' in navigator) {
       var refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', function() {
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
         if (refreshing) return;
         refreshing = true;
         window.location.reload();
       });
-      navigator.serviceWorker.getRegistration().then(function(reg) {
-        if (!reg) return;
-        // When a new SW is found, tell it to skip waiting immediately
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', function() {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New content available — skip waiting to activate it
-              newWorker.postMessage('skipWaiting');
-            }
-          });
-        });
-        // If a waiting worker already exists (user had tab open), activate it now
-        if (reg.waiting) {
-          reg.waiting.postMessage('skipWaiting');
-        }
-      });
     }
+
+    // ─── Version-aware cache busting ─────────────────────────────────────────
+    // Before loading Flutter, fetch version.json from the server (bypassing
+    // both the browser HTTP cache and the SW cache via a unique query param).
+    // If the stored version differs from the server version, wipe all caches,
+    // unregister the SW and hard-reload so Flutter always loads fresh assets.
+    (function () {
+      var VERSION_KEY = 'qs_app_version';
+
+      function loadFlutter() {
+        var s = document.createElement('script');
+        s.src = 'flutter_bootstrap.js';
+        s.async = true;
+        document.head.appendChild(s);
+      }
+
+      async function run() {
+        var serverVersion = null;
+        try {
+          // ?t= makes the URL unknown to the SW RESOURCES map → network fetch
+          var res = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+          var data = await res.json();
+          serverVersion = data.version + '+' + data.build_number;
+        } catch (e) {
+          // Network unavailable or version.json missing — load Flutter as-is
+          console.warn('[qs] version check failed, loading normally:', e);
+          loadFlutter();
+          return;
+        }
+
+        var stored = localStorage.getItem(VERSION_KEY);
+
+        if (stored !== null && stored !== serverVersion) {
+          // New version detected — show update screen and clear everything
+          document.getElementById('version-update-screen').classList.add('visible');
+
+          try {
+            if ('caches' in window) {
+              var keys = await caches.keys();
+              await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+            }
+            if ('serviceWorker' in navigator) {
+              var regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map(function (r) { return r.unregister(); }));
+            }
+          } catch (e) {
+            console.warn('[qs] cache clear error:', e);
+          }
+
+          localStorage.setItem(VERSION_KEY, serverVersion);
+          window.location.reload(true);
+          return;
+        }
+
+        // First load or same version
+        localStorage.setItem(VERSION_KEY, serverVersion);
+        loadFlutter();
+      }
+
+      run();
+    })();
   </script>
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
