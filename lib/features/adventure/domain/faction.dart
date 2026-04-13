@@ -229,7 +229,7 @@ class Faction {
         (json['memberCreatureIds'] as List<dynamic>?)?.cast<String>() ??
         const [],
     objectives: (json['objectives'] as List<dynamic>?)
-            ?.map((o) => FactionObjective.fromJson(o as Map<String, dynamic>))
+            ?.map((o) => FactionObjective.fromJson((o as Map).cast<String, dynamic>()))
             .toList() ??
         const [],
     allies:
@@ -239,7 +239,7 @@ class Faction {
     cast: (json['cast'] as List<dynamic>?)?.cast<String>() ?? const [],
     stakes: json['stakes'] as String? ?? '',
     dangers: (json['dangers'] as List<dynamic>?)
-            ?.map((d) => FactionDanger.fromJson(d as Map<String, dynamic>))
+            ?.map((d) => FactionDanger.fromJson((d as Map).cast<String, dynamic>()))
             .toList() ??
         const [],
   );

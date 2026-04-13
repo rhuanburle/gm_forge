@@ -101,7 +101,7 @@ class Region {
         (json['locationIds'] as List<dynamic>?)?.cast<String>() ?? const [],
     encounterTable: json['encounterTable'] as String? ?? '',
     subhexes: (json['subhexes'] as List<dynamic>?)
-            ?.map((s) => Subhex.fromJson(s as Map<String, dynamic>))
+            ?.map((s) => Subhex.fromJson((s as Map).cast<String, dynamic>()))
             .toList() ??
         const [],
   );

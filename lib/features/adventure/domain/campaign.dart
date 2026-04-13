@@ -267,11 +267,11 @@ class Campaign {
     currentArc: json['currentArc'] as String? ?? '',
     currentDay: json['currentDay'] as int? ?? 1,
     plotThreads: (json['plotThreads'] as List<dynamic>?)
-            ?.map((t) => PlotThread.fromJson(t as Map<String, dynamic>))
+            ?.map((t) => PlotThread.fromJson((t as Map).cast<String, dynamic>()))
             .toList() ??
         const [],
     inspirationTables: (json['inspirationTables'] as List<dynamic>?)
-            ?.map((t) => InspirationTable.fromJson(t as Map<String, dynamic>))
+            ?.map((t) => InspirationTable.fromJson((t as Map).cast<String, dynamic>()))
             .toList() ??
         const [],
     adventureIds:

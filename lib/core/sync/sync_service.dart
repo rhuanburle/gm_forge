@@ -6,6 +6,15 @@ import '../database/hive_database.dart';
 import '../../features/adventure/application/adventure_providers.dart';
 import '../../features/adventure/domain/domain.dart';
 
+/// Safely casts a Firestore/Hive dynamic map to Map<String, dynamic>.
+/// Firestore returns nested maps as Map<dynamic, dynamic>, so a direct
+/// `as Map<String, dynamic>` cast throws at runtime.
+Map<String, dynamic> _m(dynamic raw) {
+  if (raw is Map<String, dynamic>) return raw;
+  if (raw is Map) return raw.cast<String, dynamic>();
+  throw TypeError();
+}
+
 class SyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final HiveDatabase _hiveDb;
@@ -182,7 +191,7 @@ class SyncService {
           ? cloudUpdatedAtRaw.toDate()
           : DateTime.now();
 
-      final adventureJson = data['adventure'] as Map<String, dynamic>?;
+      final adventureJson = data['adventure'] == null ? null : _m(data['adventure']);
       if (adventureJson == null || adventureJson['id'] == null) return false;
       final adventureId = adventureJson['id'] as String;
 
@@ -234,7 +243,7 @@ class SyncService {
     final list = rawList as List<dynamic>? ?? [];
     for (final item in list) {
       try {
-        final entity = fromJson(item as Map<String, dynamic>);
+        final entity = fromJson(_m(item));
         await save(entity);
       } catch (e) {
         // Skip malformed entries rather than aborting the whole import
@@ -251,7 +260,7 @@ class SyncService {
 
     for (final doc in snapshot.docs) {
       final data = doc.data();
-      final campaignJson = data['campaign'] as Map<String, dynamic>;
+      final campaignJson = _m(data['campaign']);
       final campaign = Campaign.fromJson(campaignJson);
 
       // Check if local version is newer — skip import if so
@@ -269,49 +278,49 @@ class SyncService {
 
       final pcsJson = data['playerCharacters'] as List<dynamic>? ?? [];
       for (final pcJson in pcsJson) {
-        final pc = PlayerCharacter.fromJson(pcJson as Map<String, dynamic>);
+        final pc = PlayerCharacter.fromJson(_m(pcJson));
         await _hiveDb.savePlayerCharacter(pc);
       }
 
       final loreJson = data['loreEntries'] as List<dynamic>? ?? [];
       for (final lJson in loreJson) {
-        final lore = LoreEntry.fromJson(lJson as Map<String, dynamic>);
+        final lore = LoreEntry.fromJson(_m(lJson));
         await _hiveDb.saveLoreEntry(lore);
       }
 
       final notesJson = data['notes'] as List<dynamic>? ?? [];
       for (final nJson in notesJson) {
-        final note = Note.fromJson(nJson as Map<String, dynamic>);
+        final note = Note.fromJson(_m(nJson));
         await _hiveDb.saveNote(note);
       }
 
       final regionsJson = data['regions'] as List<dynamic>? ?? [];
       for (final rJson in regionsJson) {
-        final region = Region.fromJson(rJson as Map<String, dynamic>);
+        final region = Region.fromJson(_m(rJson));
         await _hiveDb.saveRegion(region);
       }
 
       final factionsJson = data['factions'] as List<dynamic>? ?? [];
       for (final fJson in factionsJson) {
-        final faction = Faction.fromJson(fJson as Map<String, dynamic>);
+        final faction = Faction.fromJson(_m(fJson));
         await _hiveDb.saveFaction(faction);
       }
 
       final quickRulesJson = data['quickRules'] as List<dynamic>? ?? [];
       for (final qrJson in quickRulesJson) {
-        final quickRule = QuickRule.fromJson(qrJson as Map<String, dynamic>);
+        final quickRule = QuickRule.fromJson(_m(qrJson));
         await _hiveDb.saveQuickRule(quickRule);
       }
 
       final itemsJson = data['items'] as List<dynamic>? ?? [];
       for (final iJson in itemsJson) {
-        final item = Item.fromJson(iJson as Map<String, dynamic>);
+        final item = Item.fromJson(_m(iJson));
         await _hiveDb.saveItem(item);
       }
 
       final creaturesJson = data['creatures'] as List<dynamic>? ?? [];
       for (final cJson in creaturesJson) {
-        final creature = Creature.fromJson(cJson as Map<String, dynamic>);
+        final creature = Creature.fromJson(_m(cJson));
         await _hiveDb.saveCreature(creature);
       }
     }

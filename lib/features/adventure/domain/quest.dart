@@ -124,7 +124,7 @@ class Quest {
     status: QuestStatus.values[json['status'] as int? ?? 0],
     giverCreatureId: json['giverCreatureId'] as String?,
     objectives: (json['objectives'] as List<dynamic>?)
-            ?.map((o) => QuestObjective.fromJson(o as Map<String, dynamic>))
+            ?.map((o) => QuestObjective.fromJson((o as Map).cast<String, dynamic>()))
             .toList() ??
         const [],
     rewardDescription: json['rewardDescription'] as String? ?? '',
