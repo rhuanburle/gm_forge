@@ -288,6 +288,7 @@ class HiveDatabase {
         }
       }
     }
+    await _addTombstone(deletedCampaignIdsKey, id);
     await _campaigns.delete(id);
     await _deleteByCampaignId(_playerCharacters, id);
     await _deleteByCampaignId(_loreEntries, id);
@@ -348,6 +349,45 @@ class HiveDatabase {
     await _adventures.put(updatedAdventure.id, updatedAdventure.toJson());
   }
 
+  // ── Tombstones ────────────────────────────────────────────────────────────
+  // Track IDs deleted locally so the sync pull doesn't re-import them before
+  // the Firestore delete is confirmed.
+
+  static const deletedAdventureIdsKey = 'deleted_adventure_ids';
+  static const deletedCampaignIdsKey = 'deleted_campaign_ids';
+
+  Set<String> getDeletedAdventureIds() =>
+      (_settings.get(deletedAdventureIdsKey) as List?)
+          ?.map((e) => e.toString())
+          .toSet() ??
+      {};
+
+  Set<String> getDeletedCampaignIds() =>
+      (_settings.get(deletedCampaignIdsKey) as List?)
+          ?.map((e) => e.toString())
+          .toSet() ??
+      {};
+
+  Future<void> _addTombstone(String key, String id) async {
+    final existing = (_settings.get(key) as List?)
+            ?.map((e) => e.toString())
+            .toSet() ??
+        <String>{};
+    existing.add(id);
+    await _settings.put(key, existing.toList());
+  }
+
+  Future<void> removeTombstone(String key, String id) async {
+    final existing = (_settings.get(key) as List?)
+            ?.map((e) => e.toString())
+            .toSet() ??
+        <String>{};
+    existing.remove(id);
+    await _settings.put(key, existing.toList());
+  }
+
+  // ── Delete Adventure ───────────────────────────────────────────────────────
+
   Future<void> deleteAdventure(String id) async {
     final adventure = getAdventure(id);
     if (adventure != null && adventure.campaignId != null) {
@@ -359,6 +399,7 @@ class HiveDatabase {
       }
     }
 
+    await _addTombstone(deletedAdventureIdsKey, id);
     await _adventures.delete(id);
     await _deleteByAdventureId(_legends, id);
     await _deleteByAdventureId(_pois, id);

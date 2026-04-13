@@ -195,6 +195,9 @@ class SyncService {
       if (adventureJson == null || adventureJson['id'] == null) return false;
       final adventureId = adventureJson['id'] as String;
 
+      // Skip re-importing adventures that were deleted locally
+      if (_hiveDb.getDeletedAdventureIds().contains(adventureId)) return false;
+
       final localAdventure = _hiveDb.getAdventure(adventureId);
       if (localAdventure != null &&
           localAdventure.updatedAt.isAfter(cloudUpdatedAt)) {
@@ -257,8 +260,12 @@ class SyncService {
     if (!_isAuthenticated) return;
 
     final snapshot = await _campaignsRef.get();
+    final deletedCampaignIds = _hiveDb.getDeletedCampaignIds();
 
     for (final doc in snapshot.docs) {
+      // Skip re-importing campaigns that were deleted locally
+      if (deletedCampaignIds.contains(doc.id)) continue;
+
       final data = doc.data();
       final campaignJson = _m(data['campaign']);
       final campaign = Campaign.fromJson(campaignJson);
@@ -356,13 +363,18 @@ class SyncService {
   }
 
   Future<void> deleteAdventure(String adventureId) async {
-    if (!_isAuthenticated) return;
-    await _adventuresRef.doc(adventureId).delete();
+    if (_isAuthenticated) {
+      await _adventuresRef.doc(adventureId).delete();
+    }
+    // Clear tombstone whether or not Firestore delete ran (local delete already happened)
+    await _hiveDb.removeTombstone(HiveDatabase.deletedAdventureIdsKey, adventureId);
   }
 
   Future<void> deleteCampaign(String campaignId) async {
-    if (!_isAuthenticated) return;
-    await _campaignsRef.doc(campaignId).delete();
+    if (_isAuthenticated) {
+      await _campaignsRef.doc(campaignId).delete();
+    }
+    await _hiveDb.removeTombstone(HiveDatabase.deletedCampaignIdsKey, campaignId);
   }
 }
 

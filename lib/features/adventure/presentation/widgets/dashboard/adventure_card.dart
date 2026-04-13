@@ -120,7 +120,7 @@ class AdventureCard extends ConsumerWidget {
                             await ref
                                 .read(adventureListProvider.notifier)
                                 .delete(adventure.id);
-                            ref
+                            await ref
                                 .read(syncServiceProvider)
                                 .deleteAdventure(adventure.id);
                           } else if (value == 'duplicate') {

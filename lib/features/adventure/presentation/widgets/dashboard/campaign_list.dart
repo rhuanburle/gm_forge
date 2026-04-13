@@ -80,7 +80,7 @@ class CampaignList extends ConsumerWidget {
                           .read(campaignListProvider.notifier)
                           .delete(campaign.id);
 
-                      ref.read(syncServiceProvider).deleteCampaign(campaign.id);
+                      await ref.read(syncServiceProvider).deleteCampaign(campaign.id);
                     }
                   },
                   itemBuilder: (context) => [
