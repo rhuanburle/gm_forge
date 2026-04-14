@@ -27,7 +27,7 @@ class SessionEntry {
   final DateTime timestamp;
   final String? turnLabel;
   final DateTime createdAt;
-  final String? sessionId;
+  final String sessionId;
 
   const SessionEntry({
     required this.id,
@@ -37,15 +37,15 @@ class SessionEntry {
     required this.timestamp,
     this.turnLabel,
     required this.createdAt,
-    this.sessionId,
+    required this.sessionId,
   });
 
   factory SessionEntry.create({
     required String adventureId,
     required String text,
     required SessionEntryType entryType,
+    required String sessionId,
     String? turnLabel,
-    String? sessionId,
   }) {
     final now = DateTime.now();
     return SessionEntry(
@@ -110,7 +110,7 @@ class SessionEntry {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
-      sessionId: json['sessionId'] as String?,
+      sessionId: json['sessionId'] as String? ?? '',
     );
   }
 }

@@ -11,6 +11,7 @@ import '../widgets/play_mode/location_navigator.dart';
 import '../../domain/domain.dart';
 import '../widgets/play_mode/scene_viewer.dart';
 import '../widgets/play_mode/dm_tools_sidebar.dart';
+import '../widgets/play_mode/session_end_dialog.dart';
 
 class AdventurePlayPage extends ConsumerStatefulWidget {
   final String adventureId;
@@ -55,50 +56,114 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
     final sorted = List<Session>.from(sessions)
       ..sort((a, b) => b.number.compareTo(a.number));
 
-    return PopupMenuButton<String?>(
-      tooltip: 'Sessão ativa',
-      icon: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.history_edu,
-            color: activeSessionId != null
-                ? AppTheme.success
-                : AppTheme.textMuted,
-            size: 20,
-          ),
-          if (activeSessionId != null) ...[
+    final activeSession = activeSessionId != null
+        ? sorted.where((s) => s.id == activeSessionId).firstOrNull
+        : null;
+
+    if (activeSession != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          color: AppTheme.success.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.history_edu, color: AppTheme.success, size: 16),
             const SizedBox(width: 4),
             Text(
-              '#${sorted.firstWhere((s) => s.id == activeSessionId, orElse: () => sorted.first).number}',
-              style: const TextStyle(fontSize: 12, color: AppTheme.success),
+              '#${activeSession.number}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.success,
+              ),
             ),
           ],
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: () => _showSessionSelectorDialog(context, sorted),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          color: AppTheme.warning.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.warning_amber, color: AppTheme.warning, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              'Selecionar',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.warning,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSessionSelectorDialog(
+    BuildContext context,
+    List<Session> sessions,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Selecionar Sessão'),
+        content: SizedBox(
+          width: 300,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: sessions.length,
+            itemBuilder: (context, index) {
+              final session = sessions[index];
+              return ListTile(
+                leading: CircleAvatar(
+                  radius: 12,
+                  backgroundColor: AppTheme.secondary.withValues(alpha: 0.2),
+                  child: Text(
+                    '#${session.number}',
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ),
+                title: Text(session.name),
+                subtitle: session.strongStart.isNotEmpty
+                    ? Text(
+                        session.strongStart,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11),
+                      )
+                    : null,
+                onTap: () {
+                  ref
+                      .read(activeAdventureProvider.notifier)
+                      .setActiveSession(session.id);
+                  Navigator.pop(ctx);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
         ],
       ),
-      onSelected: (sessionId) {
-        ref.read(activeAdventureProvider.notifier).setActiveSession(sessionId);
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem<String?>(
-          value: null,
-          child: Text('Nenhuma sessão', style: TextStyle(fontStyle: FontStyle.italic)),
-        ),
-        const PopupMenuDivider(),
-        ...sorted.map((s) => PopupMenuItem<String?>(
-          value: s.id,
-          child: Row(
-            children: [
-              if (s.id == activeSessionId)
-                const Icon(Icons.check, size: 16, color: AppTheme.success)
-              else
-                const SizedBox(width: 16),
-              const SizedBox(width: 8),
-              Text('Sessão #${s.number}: ${s.name}'),
-            ],
-          ),
-        )),
-      ],
     );
   }
 
@@ -125,13 +190,62 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch to ensure we have data, but selection logic is one-off in initState/callback
-    final adventure = ref.watch(adventureProvider(widget.adventureId));
+    return Scaffold(
+      key: _scaffoldKey,
+      body: Column(
+        children: [
+          _buildSessionWarning(),
+          Expanded(child: _buildMainContent()),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildSessionWarning() {
+    final activeState = ref.watch(activeAdventureProvider);
+    final activeSessionId = activeState.activeSessionId;
+
+    if (activeSessionId != null) return const SizedBox.shrink();
+
+    final sessions = ref.watch(sessionsProvider(widget.adventureId));
+    if (sessions.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: AppTheme.warning.withValues(alpha: 0.15),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber, size: 18, color: AppTheme.warning),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Nenhuma sessão selecionada',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.warning,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.warning,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            child: const Text('Selecionar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainContent() {
+    final adventure = ref.watch(adventureProvider(widget.adventureId));
     final size = screenSizeOf(context);
 
     return Scaffold(
-      key: _scaffoldKey,
       appBar: AppBar(
         title: Hero(
           tag: 'adventure_title_${widget.adventureId}',
@@ -145,6 +259,17 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
         ),
         actions: [
           _buildSessionSelector(),
+          IconButton(
+            icon: const Icon(Icons.flag),
+            tooltip: 'Encerrar Sessão',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) =>
+                    SessionEndDialog(adventureId: widget.adventureId),
+              );
+            },
+          ),
           if (size == ScreenSize.medium)
             IconButton(
               icon: const Icon(Icons.menu_open),
@@ -175,8 +300,14 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
               selectedItemColor: AppTheme.secondary,
               items: const [
                 BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'),
-                BottomNavigationBarItem(icon: Icon(Icons.visibility), label: 'Cena'),
-                BottomNavigationBarItem(icon: Icon(Icons.shield), label: 'Escudo'),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.visibility),
+                  label: 'Cena',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.shield),
+                  label: 'Escudo',
+                ),
               ],
             )
           : null,
@@ -188,7 +319,9 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border(
-                    right: BorderSide(color: AppTheme.textMuted.withValues(alpha: 0.2)),
+                    right: BorderSide(
+                      color: AppTheme.textMuted.withValues(alpha: 0.2),
+                    ),
                   ),
                 ),
                 child: LocationNavigator(adventureId: widget.adventureId),
@@ -208,7 +341,9 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border(
-                    right: BorderSide(color: AppTheme.textMuted.withValues(alpha: 0.2)),
+                    right: BorderSide(
+                      color: AppTheme.textMuted.withValues(alpha: 0.2),
+                    ),
                   ),
                 ),
                 child: LocationNavigator(adventureId: widget.adventureId),

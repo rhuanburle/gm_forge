@@ -259,13 +259,9 @@ class AdventureCloneService {
           status: session.status,
           number: session.number,
           strongStart: replaceSmartText(session.strongStart),
-          scenes: session.scenes.map(replaceSmartText).toList(),
-          secrets: session.secrets.map(replaceSmartText).toList(),
-          fantasticLocations: session.fantasticLocations.map(replaceSmartText).toList(),
-          npcs: session.npcs.map(replaceSmartText).toList(),
-          monsters: session.monsters.map(replaceSmartText).toList(),
-          treasures: session.treasures.map(replaceSmartText).toList(),
           recap: replaceSmartText(session.recap),
+          stars: session.stars.map(replaceSmartText).toList(),
+          wishes: session.wishes.map(replaceSmartText).toList(),
         ),
       );
     }

@@ -12,11 +12,7 @@ class SessionPrepPage extends ConsumerStatefulWidget {
   final String adventureId;
   final String? sessionId;
 
-  const SessionPrepPage({
-    super.key,
-    required this.adventureId,
-    this.sessionId,
-  });
+  const SessionPrepPage({super.key, required this.adventureId, this.sessionId});
 
   @override
   ConsumerState<SessionPrepPage> createState() => _SessionPrepPageState();
@@ -31,12 +27,6 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
   DateTime _selectedDate = DateTime.now();
   SessionStatus _status = SessionStatus.prep;
 
-  List<TextEditingController> _scenesControllers = [];
-  List<TextEditingController> _secretsControllers = [];
-  List<TextEditingController> _locationsControllers = [];
-  List<TextEditingController> _npcsControllers = [];
-  List<TextEditingController> _monstersControllers = [];
-  List<TextEditingController> _treasuresControllers = [];
   List<TextEditingController> _starsControllers = [];
   List<TextEditingController> _wishesControllers = [];
 
@@ -51,8 +41,12 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
 
   void _loadSession() {
     if (widget.sessionId != null) {
-      final sessions = ref.read(hiveDatabaseProvider).getSessions(widget.adventureId);
-      final session = sessions.where((s) => s.id == widget.sessionId).firstOrNull;
+      final sessions = ref
+          .read(hiveDatabaseProvider)
+          .getSessions(widget.adventureId);
+      final session = sessions
+          .where((s) => s.id == widget.sessionId)
+          .firstOrNull;
       if (session != null) {
         _existingSessionId = session.id;
         _nameController.text = session.name;
@@ -62,24 +56,6 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
         _selectedDate = session.date;
         _status = session.status;
 
-        _scenesControllers = session.scenes
-            .map((s) => TextEditingController(text: s))
-            .toList();
-        _secretsControllers = session.secrets
-            .map((s) => TextEditingController(text: s))
-            .toList();
-        _locationsControllers = session.fantasticLocations
-            .map((s) => TextEditingController(text: s))
-            .toList();
-        _npcsControllers = session.npcs
-            .map((s) => TextEditingController(text: s))
-            .toList();
-        _monstersControllers = session.monsters
-            .map((s) => TextEditingController(text: s))
-            .toList();
-        _treasuresControllers = session.treasures
-            .map((s) => TextEditingController(text: s))
-            .toList();
         _starsControllers = session.stars
             .map((s) => TextEditingController(text: s))
             .toList();
@@ -100,24 +76,6 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
     _strongStartController.dispose();
     _recapController.dispose();
     _numberController.dispose();
-    for (final c in _scenesControllers) {
-      c.dispose();
-    }
-    for (final c in _secretsControllers) {
-      c.dispose();
-    }
-    for (final c in _locationsControllers) {
-      c.dispose();
-    }
-    for (final c in _npcsControllers) {
-      c.dispose();
-    }
-    for (final c in _monstersControllers) {
-      c.dispose();
-    }
-    for (final c in _treasuresControllers) {
-      c.dispose();
-    }
     for (final c in _starsControllers) {
       c.dispose();
     }
@@ -138,15 +96,15 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
         status: _status,
         number: number,
         strongStart: _strongStartController.text.trim(),
-        scenes: _scenesControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-        secrets: _secretsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-        fantasticLocations: _locationsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-        npcs: _npcsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-        monsters: _monstersControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-        treasures: _treasuresControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
         recap: _recapController.text.trim(),
-        stars: _starsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-        wishes: _wishesControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
+        stars: _starsControllers
+            .map((c) => c.text.trim())
+            .where((t) => t.isNotEmpty)
+            .toList(),
+        wishes: _wishesControllers
+            .map((c) => c.text.trim())
+            .where((t) => t.isNotEmpty)
+            .toList(),
       );
     }
     return Session.create(
@@ -156,15 +114,15 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
       status: _status,
       number: number,
       strongStart: _strongStartController.text.trim(),
-      scenes: _scenesControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-      secrets: _secretsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-      fantasticLocations: _locationsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-      npcs: _npcsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-      monsters: _monstersControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-      treasures: _treasuresControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
       recap: _recapController.text.trim(),
-      stars: _starsControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
-      wishes: _wishesControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList(),
+      stars: _starsControllers
+          .map((c) => c.text.trim())
+          .where((t) => t.isNotEmpty)
+          .toList(),
+      wishes: _wishesControllers
+          .map((c) => c.text.trim())
+          .where((t) => t.isNotEmpty)
+          .toList(),
     );
   }
 
@@ -210,12 +168,12 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
   @override
   Widget build(BuildContext context) {
     if (!_isLoaded) {
-      return const Scaffold(
-        body: SkeletonList(itemCount: 5, itemHeight: 72),
-      );
+      return const Scaffold(body: SkeletonList(itemCount: 5, itemHeight: 72));
     }
 
-    final sessionEntries = ref.watch(sessionEntriesProvider(widget.adventureId));
+    final sessionEntries = ref.watch(
+      sessionEntriesProvider(widget.adventureId),
+    );
     final filteredEntries = widget.sessionId != null
         ? sessionEntries.where((e) => e.sessionId == widget.sessionId).toList()
         : sessionEntries;
@@ -243,16 +201,10 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Left column: Lazy DM worksheet form
-                Expanded(
-                  flex: 3,
-                  child: _buildWorksheetForm(),
-                ),
+                Expanded(flex: 3, child: _buildWorksheetForm()),
                 const VerticalDivider(width: 1),
                 // Right column: Session log entries
-                Expanded(
-                  flex: 2,
-                  child: _buildSessionLog(filteredEntries),
-                ),
+                Expanded(flex: 2, child: _buildSessionLog(filteredEntries)),
               ],
             ),
     );
@@ -271,10 +223,7 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
             leading: const Icon(Icons.history),
             initiallyExpanded: false,
             children: [
-              SizedBox(
-                height: 400,
-                child: _buildSessionLogContent(entries),
-              ),
+              SizedBox(height: 400, child: _buildSessionLogContent(entries)),
             ],
           ),
         ],
@@ -344,10 +293,7 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
             prefixIcon: Icon(Icons.flag),
           ),
           items: SessionStatus.values.map((s) {
-            return DropdownMenuItem(
-              value: s,
-              child: Text(s.displayName),
-            );
+            return DropdownMenuItem(value: s, child: Text(s.displayName));
           }).toList(),
           onChanged: (value) {
             if (value != null) setState(() => _status = value);
@@ -368,84 +314,6 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
         ),
         const SizedBox(height: 24),
 
-        // Scenes
-        _buildDynamicListSection(
-          title: 'Cenas',
-          icon: Icons.movie,
-          controllers: _scenesControllers,
-          hintText: 'Descreva a cena...',
-          onAdd: () => setState(() => _scenesControllers.add(TextEditingController())),
-          onRemove: (index) => setState(() {
-            _scenesControllers[index].dispose();
-            _scenesControllers.removeAt(index);
-          }),
-        ),
-
-        // Secrets & Clues
-        _buildDynamicListSection(
-          title: 'Segredos & Pistas',
-          icon: Icons.vpn_key,
-          controllers: _secretsControllers,
-          hintText: 'Descreva o segredo ou pista...',
-          onAdd: () => setState(() => _secretsControllers.add(TextEditingController())),
-          onRemove: (index) => setState(() {
-            _secretsControllers[index].dispose();
-            _secretsControllers.removeAt(index);
-          }),
-        ),
-
-        // Fantastic Locations
-        _buildDynamicListSection(
-          title: 'Locais Fantásticos',
-          icon: Icons.castle,
-          controllers: _locationsControllers,
-          hintText: 'Descreva o local fantástico...',
-          onAdd: () => setState(() => _locationsControllers.add(TextEditingController())),
-          onRemove: (index) => setState(() {
-            _locationsControllers[index].dispose();
-            _locationsControllers.removeAt(index);
-          }),
-        ),
-
-        // NPCs
-        _buildDynamicListSection(
-          title: 'NPCs',
-          icon: Icons.person,
-          controllers: _npcsControllers,
-          hintText: 'Nome e detalhes do NPC...',
-          onAdd: () => setState(() => _npcsControllers.add(TextEditingController())),
-          onRemove: (index) => setState(() {
-            _npcsControllers[index].dispose();
-            _npcsControllers.removeAt(index);
-          }),
-        ),
-
-        // Monsters
-        _buildDynamicListSection(
-          title: 'Monstros',
-          icon: Icons.pets,
-          controllers: _monstersControllers,
-          hintText: 'Nome e detalhes do monstro...',
-          onAdd: () => setState(() => _monstersControllers.add(TextEditingController())),
-          onRemove: (index) => setState(() {
-            _monstersControllers[index].dispose();
-            _monstersControllers.removeAt(index);
-          }),
-        ),
-
-        // Treasures
-        _buildDynamicListSection(
-          title: 'Tesouros',
-          icon: Icons.diamond,
-          controllers: _treasuresControllers,
-          hintText: 'Descreva o tesouro...',
-          onAdd: () => setState(() => _treasuresControllers.add(TextEditingController())),
-          onRemove: (index) => setState(() {
-            _treasuresControllers[index].dispose();
-            _treasuresControllers.removeAt(index);
-          }),
-        ),
-
         // Recap
         _buildSectionHeader('Recapitulação', Icons.summarize),
         const SizedBox(height: 8),
@@ -465,7 +333,8 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
           icon: Icons.star,
           controllers: _starsControllers,
           hintText: 'O que os jogadores gostaram...',
-          onAdd: () => setState(() => _starsControllers.add(TextEditingController())),
+          onAdd: () =>
+              setState(() => _starsControllers.add(TextEditingController())),
           onRemove: (index) => setState(() {
             _starsControllers[index].dispose();
             _starsControllers.removeAt(index);
@@ -478,7 +347,8 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
           icon: Icons.auto_awesome,
           controllers: _wishesControllers,
           hintText: 'O que os jogadores querem mais...',
-          onAdd: () => setState(() => _wishesControllers.add(TextEditingController())),
+          onAdd: () =>
+              setState(() => _wishesControllers.add(TextEditingController())),
           onRemove: (index) => setState(() {
             _wishesControllers[index].dispose();
             _wishesControllers.removeAt(index);
@@ -506,9 +376,9 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
         const SizedBox(width: 8),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppTheme.secondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(color: AppTheme.secondary),
         ),
       ],
     );
@@ -543,7 +413,10 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.remove_circle_outline, color: AppTheme.error),
+                  icon: const Icon(
+                    Icons.remove_circle_outline,
+                    color: AppTheme.error,
+                  ),
                   onPressed: () => onRemove(index),
                   tooltip: 'Remover',
                 ),
@@ -572,15 +445,13 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
           padding: const EdgeInsets.all(12),
           child: Text(
             'Registro da Sessão',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.secondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: AppTheme.secondary),
           ),
         ),
         const Divider(height: 1),
-        Expanded(
-          child: _buildSessionLogContent(entries),
-        ),
+        Expanded(child: _buildSessionLogContent(entries)),
       ],
     );
   }
@@ -602,17 +473,10 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
         return ListTile(
           dense: true,
           leading: _entryTypeIcon(entry.entryType),
-          title: Text(
-            entry.text,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
+          title: Text(entry.text, maxLines: 2, overflow: TextOverflow.ellipsis),
           subtitle: Text(
             '${entry.timestamp.hour.toString().padLeft(2, '0')}:${entry.timestamp.minute.toString().padLeft(2, '0')} - ${entry.entryType.displayName}',
-            style: TextStyle(
-              fontSize: 11,
-              color: AppTheme.textMuted,
-            ),
+            style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
           ),
         );
       },
@@ -622,11 +486,19 @@ class _SessionPrepPageState extends ConsumerState<SessionPrepPage> {
   Widget _entryTypeIcon(SessionEntryType type) {
     switch (type) {
       case SessionEntryType.combat:
-        return const Icon(Icons.local_fire_department, color: AppTheme.error, size: 20);
+        return const Icon(
+          Icons.local_fire_department,
+          color: AppTheme.error,
+          size: 20,
+        );
       case SessionEntryType.discovery:
         return const Icon(Icons.explore, color: AppTheme.secondary, size: 20);
       case SessionEntryType.narrative:
-        return const Icon(Icons.auto_stories, color: AppTheme.primary, size: 20);
+        return const Icon(
+          Icons.auto_stories,
+          color: AppTheme.primary,
+          size: 20,
+        );
       case SessionEntryType.note:
         return const Icon(Icons.edit_note, color: AppTheme.textMuted, size: 20);
     }

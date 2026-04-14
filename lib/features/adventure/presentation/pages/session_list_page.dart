@@ -30,7 +30,8 @@ class SessionListPage extends ConsumerWidget {
         onPressed: () {
           final nextNumber = sessions.isEmpty
               ? 1
-              : sessions.map((s) => s.number).reduce((a, b) => a > b ? a : b) + 1;
+              : sessions.map((s) => s.number).reduce((a, b) => a > b ? a : b) +
+                    1;
           final newSession = Session.create(
             adventureId: adventureId,
             name: 'Sessão $nextNumber',
@@ -49,8 +50,11 @@ class SessionListPage extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.menu_book, size: 64,
-                      color: AppTheme.textMuted.withValues(alpha: 0.3)),
+                  Icon(
+                    Icons.menu_book,
+                    size: 64,
+                    color: AppTheme.textMuted.withValues(alpha: 0.3),
+                  ),
                   const SizedBox(height: 16),
                   const Text('Nenhuma sessão criada ainda.'),
                   const SizedBox(height: 8),
@@ -85,8 +89,10 @@ class SessionListPage extends ConsumerWidget {
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Excluir',
-                                style: TextStyle(color: AppTheme.error)),
+                            child: const Text(
+                              'Excluir',
+                              style: TextStyle(color: AppTheme.error),
+                            ),
                           ),
                         ],
                       ),
@@ -147,7 +153,8 @@ class _SessionCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => context.push('/adventure/$adventureId/session/${session.id}'),
+        onTap: () =>
+            context.push('/adventure/$adventureId/session/${session.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -203,7 +210,9 @@ class _SessionCard extends StatelessWidget {
                               dateStr,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: AppTheme.textMuted.withValues(alpha: 0.7),
+                                color: AppTheme.textMuted.withValues(
+                                  alpha: 0.7,
+                                ),
                               ),
                             ),
                           ],
@@ -268,7 +277,11 @@ class _SessionCard extends StatelessWidget {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.auto_stories, size: 12, color: AppTheme.discovery),
+                          Icon(
+                            Icons.auto_stories,
+                            size: 12,
+                            color: AppTheme.discovery,
+                          ),
                           SizedBox(width: 4),
                           Text(
                             'Recap',
@@ -292,46 +305,22 @@ class _SessionCard extends StatelessWidget {
                 ),
               ],
               // Prep checklist mini-badges
-              if (session.status == SessionStatus.prep) ...[
+              if (session.status == SessionStatus.prep &&
+                  session.strongStart.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    _prepBadge('Cenas', session.scenes.length),
-                    _prepBadge('Segredos', session.secrets.length),
-                    _prepBadge('NPCs', session.npcs.length),
-                    _prepBadge('Tesouros', session.treasures.length),
-                  ],
+                Text(
+                  session.strongStart,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: AppTheme.mutedForeground(context),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _prepBadge(String label, int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: count > 0
-            ? AppTheme.success.withValues(alpha: 0.1)
-            : AppTheme.textMuted.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: count > 0
-              ? AppTheme.success.withValues(alpha: 0.3)
-              : AppTheme.textMuted.withValues(alpha: 0.15),
-        ),
-      ),
-      child: Text(
-        '$label: $count',
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.bold,
-          color: count > 0 ? AppTheme.success : AppTheme.textMuted,
         ),
       ),
     );

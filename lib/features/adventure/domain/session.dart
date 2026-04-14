@@ -23,12 +23,6 @@ class Session {
   final SessionStatus status;
   final int number;
   final String strongStart;
-  final List<String> scenes;
-  final List<String> secrets;
-  final List<String> fantasticLocations;
-  final List<String> npcs;
-  final List<String> monsters;
-  final List<String> treasures;
   final String recap;
   final List<String> stars;
   final List<String> wishes;
@@ -41,12 +35,6 @@ class Session {
     this.status = SessionStatus.prep,
     this.number = 1,
     this.strongStart = '',
-    this.scenes = const [],
-    this.secrets = const [],
-    this.fantasticLocations = const [],
-    this.npcs = const [],
-    this.monsters = const [],
-    this.treasures = const [],
     this.recap = '',
     this.stars = const [],
     this.wishes = const [],
@@ -59,12 +47,6 @@ class Session {
     SessionStatus status = SessionStatus.prep,
     int number = 1,
     String strongStart = '',
-    List<String> scenes = const [],
-    List<String> secrets = const [],
-    List<String> fantasticLocations = const [],
-    List<String> npcs = const [],
-    List<String> monsters = const [],
-    List<String> treasures = const [],
     String recap = '',
     List<String> stars = const [],
     List<String> wishes = const [],
@@ -77,12 +59,6 @@ class Session {
       status: status,
       number: number,
       strongStart: strongStart,
-      scenes: scenes,
-      secrets: secrets,
-      fantasticLocations: fantasticLocations,
-      npcs: npcs,
-      monsters: monsters,
-      treasures: treasures,
       recap: recap,
       stars: stars,
       wishes: wishes,
@@ -97,12 +73,6 @@ class Session {
     'status': status.index,
     'number': number,
     'strongStart': strongStart,
-    'scenes': scenes,
-    'secrets': secrets,
-    'fantasticLocations': fantasticLocations,
-    'npcs': npcs,
-    'monsters': monsters,
-    'treasures': treasures,
     'recap': recap,
     'stars': stars,
     'wishes': wishes,
@@ -118,23 +88,9 @@ class Session {
     status: SessionStatus.values[json['status'] as int? ?? 0],
     number: json['number'] as int? ?? 1,
     strongStart: json['strongStart'] as String? ?? '',
-    scenes:
-        (json['scenes'] as List<dynamic>?)?.cast<String>() ?? const [],
-    secrets:
-        (json['secrets'] as List<dynamic>?)?.cast<String>() ?? const [],
-    fantasticLocations:
-        (json['fantasticLocations'] as List<dynamic>?)?.cast<String>() ??
-        const [],
-    npcs: (json['npcs'] as List<dynamic>?)?.cast<String>() ?? const [],
-    monsters:
-        (json['monsters'] as List<dynamic>?)?.cast<String>() ?? const [],
-    treasures:
-        (json['treasures'] as List<dynamic>?)?.cast<String>() ?? const [],
     recap: json['recap'] as String? ?? '',
-    stars:
-        (json['stars'] as List<dynamic>?)?.cast<String>() ?? const [],
-    wishes:
-        (json['wishes'] as List<dynamic>?)?.cast<String>() ?? const [],
+    stars: (json['stars'] as List<dynamic>?)?.cast<String>() ?? const [],
+    wishes: (json['wishes'] as List<dynamic>?)?.cast<String>() ?? const [],
   );
 
   Session copyWith({
@@ -143,12 +99,6 @@ class Session {
     SessionStatus? status,
     int? number,
     String? strongStart,
-    List<String>? scenes,
-    List<String>? secrets,
-    List<String>? fantasticLocations,
-    List<String>? npcs,
-    List<String>? monsters,
-    List<String>? treasures,
     String? recap,
     List<String>? stars,
     List<String>? wishes,
@@ -161,12 +111,6 @@ class Session {
       status: status ?? this.status,
       number: number ?? this.number,
       strongStart: strongStart ?? this.strongStart,
-      scenes: scenes ?? this.scenes,
-      secrets: secrets ?? this.secrets,
-      fantasticLocations: fantasticLocations ?? this.fantasticLocations,
-      npcs: npcs ?? this.npcs,
-      monsters: monsters ?? this.monsters,
-      treasures: treasures ?? this.treasures,
       recap: recap ?? this.recap,
       stars: stars ?? this.stars,
       wishes: wishes ?? this.wishes,

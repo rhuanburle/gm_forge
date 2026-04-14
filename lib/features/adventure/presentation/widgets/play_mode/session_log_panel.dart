@@ -38,8 +38,18 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
-    final db = ref.read(hiveDatabaseProvider);
     final activeSessionId = ref.read(activeAdventureProvider).activeSessionId;
+    if (activeSessionId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecione uma sessão antes de registrar.'),
+          backgroundColor: AppTheme.warning,
+        ),
+      );
+      return;
+    }
+
+    final db = ref.read(hiveDatabaseProvider);
     final entry = SessionEntry.create(
       adventureId: widget.adventureId,
       text: text,
@@ -92,7 +102,10 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
     await exportService.copyPlayerRecapToClipboard(widget.adventureId);
 
     if (!mounted) return;
-    AppSnackBar.success(context, 'Resumo para jogadores copiado! (sem notas do mestre)');
+    AppSnackBar.success(
+      context,
+      'Resumo para jogadores copiado! (sem notas do mestre)',
+    );
   }
 
   void _exportLog() async {
@@ -100,7 +113,10 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
     await exportService.copySessionLogToClipboard(widget.adventureId);
 
     if (!mounted) return;
-    AppSnackBar.success(context, 'Log da sessão copiado para área de transferência!');
+    AppSnackBar.success(
+      context,
+      'Log da sessão copiado para área de transferência!',
+    );
   }
 
   void _generateAiRecap() async {
@@ -123,13 +139,18 @@ class _SessionLogPanelState extends ConsumerState<SessionLogPanel> {
       final sortedEntries = List<SessionEntry>.from(entries)
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-      final logText = sortedEntries.map((e) {
-        final type = e.entryType.displayName;
-        final turn = e.turnLabel?.isNotEmpty == true ? '[${e.turnLabel}] ' : '';
-        return '- ($type) $turn${e.text}';
-      }).join('\n');
+      final logText = sortedEntries
+          .map((e) {
+            final type = e.entryType.displayName;
+            final turn = e.turnLabel?.isNotEmpty == true
+                ? '[${e.turnLabel}] '
+                : '';
+            return '- ($type) $turn${e.text}';
+          })
+          .join('\n');
 
-      final prompt = '''
+      final prompt =
+          '''
 Você é um mestre de RPG experiente. Com base no log de sessão abaixo, gere um resumo narrativo envolvente da sessão para compartilhar com os jogadores.
 
 **Aventura:** ${adventure?.name ?? 'Sem nome'}
@@ -263,7 +284,9 @@ Instruções:
                   ),
                   PopupMenuItem(
                     value: 'full',
-                    enabled: entries.isNotEmpty || (adventure.sessionNotes?.isNotEmpty ?? false),
+                    enabled:
+                        entries.isNotEmpty ||
+                        (adventure.sessionNotes?.isNotEmpty ?? false),
                     child: const Row(
                       children: [
                         Icon(Icons.copy, size: 16),
@@ -372,10 +395,7 @@ Instruções:
               ? Center(
                   child: Text(
                     'Nenhum acontecimento registrado.',
-                    style: TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
                   ),
                 )
               : ListView.builder(

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
-import '../../../application/adventure_providers.dart';
-import '../../../domain/domain.dart';
+import '../../../../adventure/application/adventure_providers.dart';
+import '../../../../adventure/application/active_adventure_state.dart';
+import '../../../../adventure/domain/domain.dart';
 
-/// Shows a collapsible recap of the most recent session's log entries and prep
-/// data, so the GM remembers where they left off.
+/// Shows the current session's strongStart when playing, or the previous session's recap otherwise.
 class PreviousSessionRecap extends ConsumerWidget {
   final String adventureId;
 
@@ -17,23 +17,32 @@ class PreviousSessionRecap extends ConsumerWidget {
     final sessions = ref.watch(sessionsProvider(adventureId));
     if (sessions.isEmpty) return const SizedBox.shrink();
 
-    // Most recently played/reviewed session
-    final playedSessions = sessions
-        .where((s) => s.status != SessionStatus.prep)
-        .toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+    final activeState = ref.watch(activeAdventureProvider);
+    final activeSessionId = activeState.activeSessionId;
+
+    // If there's an active session, show its strongStart
+    if (activeSessionId != null) {
+      final activeSession = sessions
+          .where((s) => s.id == activeSessionId)
+          .firstOrNull;
+      if (activeSession != null && activeSession.strongStart.isNotEmpty) {
+        return _buildCurrentSessionPanel(context, activeSession);
+      }
+    }
+
+    // Otherwise show previous session recap
+    final playedSessions =
+        sessions.where((s) => s.status != SessionStatus.prep).toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
 
     if (playedSessions.isEmpty) return const SizedBox.shrink();
     final lastSession = playedSessions.first;
 
-    // Get log entries for that session
     final allEntries = ref.watch(sessionEntriesProvider(adventureId));
-    final sessionEntries = allEntries
-        .where((e) => e.sessionId == lastSession.id)
-        .toList()
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final sessionEntries =
+        allEntries.where((e) => e.sessionId == lastSession.id).toList()
+          ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    // Build content pieces
     final hasRecap = lastSession.recap.isNotEmpty;
     final hasEntries = sessionEntries.isNotEmpty;
     final hasStrongStart = lastSession.strongStart.isNotEmpty;
@@ -48,8 +57,7 @@ class PreviousSessionRecap extends ConsumerWidget {
         initiallyExpanded: false,
         tilePadding: const EdgeInsets.symmetric(horizontal: 12),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        leading:
-            const Icon(Icons.history, size: 16, color: AppTheme.discovery),
+        leading: const Icon(Icons.history, size: 16, color: AppTheme.discovery),
         title: Text(
           'Última Sessão: ${lastSession.name}',
           style: const TextStyle(
@@ -103,8 +111,7 @@ class PreviousSessionRecap extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 4),
-            ...sessionEntries
-                .reversed
+            ...sessionEntries.reversed
                 .take(8)
                 .toList()
                 .reversed
@@ -143,10 +150,7 @@ class PreviousSessionRecap extends ConsumerWidget {
             width: 4,
             height: 4,
             margin: const EdgeInsets.only(top: 4),
-            decoration: BoxDecoration(
-              color: typeColor,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -155,6 +159,72 @@ class PreviousSessionRecap extends ConsumerWidget {
               style: const TextStyle(fontSize: 11),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentSessionPanel(BuildContext context, Session session) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: true,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        leading: const Icon(Icons.flash_on, size: 16, color: AppTheme.warning),
+        title: Text(
+          'Sessão Atual: ${session.name}',
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.warning,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          DateFormat('dd/MM/yyyy').format(session.date),
+          style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+        ),
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppTheme.warning.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.bolt, size: 14, color: AppTheme.warning),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Início Forte',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.warning,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  session.strongStart,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
