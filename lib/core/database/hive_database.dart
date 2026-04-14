@@ -295,6 +295,11 @@ class HiveDatabase {
     await _deleteByCampaignId(_notes, id);
     await _deleteByCampaignId(_regions, id);
     await _deleteByCampaignId(_factions, id);
+    await _deleteByCampaignId(_quickRules, id);
+    await _deleteByCampaignId(_items, id);
+    await _deleteByCampaignId(_creatures, id);
+    await _deleteByCampaignId(_timelineEntries, id);
+    await _deleteByCampaignId(_worldConsequences, id);
   }
 
   Box<Map> get _adventures => Hive.box<Map>(_adventuresBox);
@@ -1043,6 +1048,17 @@ class HiveDatabase {
 
   Future<void> deleteQuickRule(String id) async {
     await _quickRules.delete(id);
+  }
+
+  Future<void> deleteAllQuickRules(String campaignId) async {
+    final keysToDelete = <dynamic>[];
+    for (final entry in _quickRules.toMap().entries) {
+      final data = Map<String, dynamic>.from(entry.value);
+      if (data['campaignId'] == campaignId) {
+        keysToDelete.add(entry.key);
+      }
+    }
+    await _quickRules.deleteAll(keysToDelete);
   }
 
   // ── Timeline Entries ──

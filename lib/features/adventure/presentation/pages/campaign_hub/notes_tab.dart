@@ -1,8 +1,13 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../../core/utils/json_download.dart';
 import '../../../../../core/widgets/import_json_dialog.dart';
 import '../../../application/adventure_providers.dart';
 import '../../../domain/domain.dart';
@@ -339,6 +344,17 @@ class _NotesTabState extends ConsumerState<NotesTab> {
           title: 'Escudo do Mestre',
           onAdd: () => _showAddRuleDialog(context),
           onImport: () => _showImportRuleDialog(context),
+          onExport: rules.isEmpty ? null : () => _exportRulesAsJson(context, rules),
+          onClearAll: rules.isEmpty ? null : () => _confirmDelete(
+            context,
+            title: 'Apagar todos os cards',
+            message: 'Isso removerá todos os ${rules.length} cards do Escudo. Essa ação não pode ser desfeita.',
+            onConfirm: () async {
+              await ref.read(hiveDatabaseProvider).deleteAllQuickRules(campaignId);
+              ref.invalidate(quickRulesProvider(campaignId));
+              _markUnsynced();
+            },
+          ),
         ),
         if (rules.isEmpty)
           _emptyState(context, 'Nenhuma regra adicionada.\nCrie cards de referência rápida para usar durante a sessão.')
@@ -422,6 +438,49 @@ class _NotesTabState extends ConsumerState<NotesTab> {
                   ),
                 ),
                 const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Tooltip(
+                      message: 'Negrito — selecione o texto e clique',
+                      child: InkWell(
+                        onTap: () {
+                          final sel = contentCtrl.selection;
+                          if (sel.isValid && sel.start != sel.end) {
+                            final t = contentCtrl.text;
+                            final before = t.substring(0, sel.start);
+                            final selected = t.substring(sel.start, sel.end);
+                            final after = t.substring(sel.end);
+                            contentCtrl.value = TextEditingValue(
+                              text: '$before**$selected**$after',
+                              selection: TextSelection.collapsed(
+                                offset: sel.end + 4,
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: AppTheme.textMuted.withValues(alpha: 0.35),
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'B',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 TextField(
                   controller: contentCtrl,
                   decoration: const InputDecoration(
@@ -436,7 +495,7 @@ class _NotesTabState extends ConsumerState<NotesTab> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Dica: quebras de linha são preservadas no card.',
+                  'Dica: use **texto** para negrito. Selecione e clique B.',
                   style: Theme.of(ctx).textTheme.labelSmall?.copyWith(color: AppTheme.textMuted),
                 ),
               ],
@@ -481,6 +540,91 @@ class _NotesTabState extends ConsumerState<NotesTab> {
   }
 
   // ---------------------------------------------------------------------------
+  // Export
+  // ---------------------------------------------------------------------------
+
+  void _exportRulesAsJson(BuildContext context, List<QuickRule> rules) {
+    final exportList = rules
+        .map((r) => {
+              'title': r.title,
+              'category': r.category,
+              'content': r.content,
+              'order': r.order,
+            })
+        .toList();
+
+    const encoder = JsonEncoder.withIndent('  ');
+    final jsonString = encoder.convert(exportList);
+    const filename = 'escudo_do_mestre.json';
+
+    if (kIsWeb) {
+      downloadJsonFile(jsonString, filename);
+      AppSnackBar.success(context, 'Download iniciado: $filename');
+    } else {
+      Clipboard.setData(ClipboardData(text: jsonString));
+      _showExportDialog(context, jsonString);
+    }
+  }
+
+  void _showExportDialog(BuildContext context, String jsonString) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Exportar Escudo do Mestre'),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'JSON copiado para a área de transferência. Você também pode visualizá-lo abaixo:',
+                style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: AppTheme.textMuted),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 320),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.surfaceLight),
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(12),
+                  child: SelectableText(
+                    jsonString,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11.5,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: jsonString));
+              if (ctx.mounted) {
+                AppSnackBar.success(ctx, 'JSON copiado!');
+              }
+            },
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text('Copiar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
@@ -490,6 +634,8 @@ class _NotesTabState extends ConsumerState<NotesTab> {
     required String title,
     required VoidCallback onAdd,
     VoidCallback? onImport,
+    VoidCallback? onExport,
+    VoidCallback? onClearAll,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -502,6 +648,20 @@ class _NotesTabState extends ConsumerState<NotesTab> {
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const Spacer(),
+          if (onClearAll != null)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+              tooltip: 'Apagar todos os cards',
+              color: AppTheme.error,
+              onPressed: onClearAll,
+            ),
+          if (onExport != null)
+            IconButton(
+              icon: const Icon(Icons.download_outlined, size: 18),
+              tooltip: kIsWeb ? 'Baixar JSON' : 'Exportar JSON',
+              color: AppTheme.textMuted,
+              onPressed: onExport,
+            ),
           if (onImport != null)
             IconButton(
               icon: const Icon(Icons.upload_file, size: 18),
@@ -628,6 +788,27 @@ class _NotesTabState extends ConsumerState<NotesTab> {
 // Grid de cards do escudo
 // ---------------------------------------------------------------------------
 
+/// Parses `**bold**` markers and returns a [Text.rich] that inherits the
+/// theme font (DefaultTextStyle) while applying [base] style overrides.
+Widget _richContent(String text, TextStyle base) {
+  final spans = <InlineSpan>[];
+  int last = 0;
+  for (final m in RegExp(r'\*\*(.+?)\*\*').allMatches(text)) {
+    if (m.start > last) {
+      spans.add(TextSpan(text: text.substring(last, m.start)));
+    }
+    spans.add(TextSpan(
+      text: m.group(1),
+      style: const TextStyle(fontWeight: FontWeight.bold),
+    ));
+    last = m.end;
+  }
+  if (last < text.length) {
+    spans.add(TextSpan(text: text.substring(last)));
+  }
+  return Text.rich(TextSpan(children: spans), style: base);
+}
+
 class _RuleCardGrid extends StatelessWidget {
   final List<QuickRule> rules;
   final ValueChanged<QuickRule> onEdit;
@@ -717,9 +898,9 @@ class _RuleCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 const Divider(height: 1),
                 const SizedBox(height: 6),
-                Text(
+                _richContent(
                   rule.content,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  (Theme.of(context).textTheme.bodySmall ?? const TextStyle()).copyWith(
                     color: AppTheme.textSecondary,
                     height: 1.55,
                     fontSize: 11.5,

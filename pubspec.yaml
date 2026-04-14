@@ -44,6 +44,9 @@ dependencies:
   # Image caching
   cached_network_image: ^3.4.1
 
+  # Web APIs (used for file download on web platform)
+  web: ^1.1.1
+
 
 dev_dependencies:
   flutter_test:
