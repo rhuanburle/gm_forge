@@ -28,10 +28,10 @@ class LegendsTab extends ConsumerWidget {
   "text": "Dizem que o prefeito tem conexões com a guilda dos ladrões",
   "isTrue": false,
   "source": "Taberneiro bêbado",
-  "diceResult": "2-5"
+  "diceResult": ""
 }''',
       legend: 'isTrue: true=verdadeiro  false=falso/exagerado\n'
-          'diceResult: número único ("7") ou intervalo ("2-5")',
+          'diceResult: rótulo opcional (texto livre, pode ficar vazio)',
       onImport: (json) async {
         final db = ref.read(hiveDatabaseProvider);
         final adv = db.getAdventure(adventureId);
@@ -190,6 +190,7 @@ class LegendsTab extends ConsumerWidget {
                       return _LegendCard(
                         legend: legend,
                         adventureId: adventureId,
+                        index: index,
                         onEdit: () => _showLegendDialog(
                           context,
                           ref,
@@ -241,8 +242,8 @@ class LegendsTab extends ConsumerWidget {
                 TextField(
                   controller: diceController,
                   decoration: const InputDecoration(
-                    labelText: 'Resultado 2d6',
-                    hintText: 'ex: 7 ou 6-8',
+                    labelText: 'Referência (opcional)',
+                    hintText: 'ex: categoria, contexto...',
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -343,8 +344,7 @@ class LegendsTab extends ConsumerWidget {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (textController.text.isNotEmpty &&
-                    diceController.text.isNotEmpty) {
+                if (textController.text.isNotEmpty) {
                   final db = ref.read(hiveDatabaseProvider);
 
                   if (isEditing) {
@@ -427,11 +427,13 @@ class _LegendCard extends ConsumerWidget {
   final Legend legend;
   final String adventureId;
   final VoidCallback onEdit;
+  final int index;
 
   const _LegendCard({
     required this.legend,
     required this.adventureId,
     required this.onEdit,
+    required this.index,
   });
 
   @override
@@ -450,7 +452,7 @@ class _LegendCard extends ConsumerWidget {
             ),
           ),
           child: Text(
-            legend.diceResult,
+            '${index + 1}',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),

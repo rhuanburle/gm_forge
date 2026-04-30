@@ -423,9 +423,9 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  event.diceRange,
+                                  '${index + 1}',
                                   style: const TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.warning,
                                   ),
@@ -637,8 +637,10 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              DetailRow('Rolagem', event.diceRange),
-              const SizedBox(height: 8),
+              if (event.diceRange.isNotEmpty) ...[
+                DetailRow('Referência', event.diceRange),
+                const SizedBox(height: 8),
+              ],
               DetailRow('Descrição', event.description),
               const SizedBox(height: 8),
               DetailRow('Impacto', event.impact),
@@ -658,26 +660,8 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
   void _rollEvent(BuildContext context, List<RandomEvent> events) {
     if (events.isEmpty) return;
 
-    final d1 = Random().nextInt(6) + 1;
-    final d2 = Random().nextInt(6) + 1;
-    final resultScore = int.parse('$d1$d2');
-
-    // Find event that matches result
-    RandomEvent? found;
-    for (final e in events) {
-      if (e.diceRange.contains('-')) {
-        final parts = e.diceRange.split('-');
-        final start = int.tryParse(parts[0]) ?? 0;
-        final end = int.tryParse(parts[1]) ?? 0;
-        if (resultScore >= start && resultScore <= end) {
-          found = e;
-          break;
-        }
-      } else if (int.tryParse(e.diceRange) == resultScore) {
-        found = e;
-        break;
-      }
-    }
+    final result = Random().nextInt(events.length) + 1;
+    final found = events[result - 1];
 
     showDialog(
       context: context,
@@ -686,28 +670,42 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
           children: [
             const Icon(Icons.casino, color: AppTheme.warning),
             const SizedBox(width: 8),
-            Text('Resultado: $resultScore'),
+            Text('Evento: d${events.length} → $result'),
           ],
         ),
-        content: found != null
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    found.description,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Impacto: ${found.impact}'),
-                ],
-              )
-            : const Text(
-                'Nenhum evento correspondente encontrado para este resultado.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
               ),
+              child: Text(
+                found.eventType.displayName,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.warning,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              found.description,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            if (found.impact.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Impacto: ${found.impact}'),
+            ],
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

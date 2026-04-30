@@ -371,8 +371,7 @@ class _AdventureGeneratorPageState
                           (e) => _PreviewCard(
                             key: ValueKey(e.id),
                             id: e.id,
-                            title:
-                                "[${e.diceRange}] ${e.eventType.displayName}",
+                            title: e.eventType.displayName,
                             subtitle: e.description,
                             icon: Icons.casino,
                             isSelected: _keepItems[e.id] ?? true,

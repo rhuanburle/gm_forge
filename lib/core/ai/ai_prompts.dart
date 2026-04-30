@@ -321,12 +321,12 @@ Respond with EXACTLY this JSON structure:
       "text": "string",
       "isTrue": true,
       "source": "string",
-      "diceResult": "1-2"
+      "diceResult": ""
     }
   ],
   "events": [
     {
-      "diceRange": "1-2",
+      "diceRange": "",
       "eventType": 0,
       "description": "string",
       "impact": "string"

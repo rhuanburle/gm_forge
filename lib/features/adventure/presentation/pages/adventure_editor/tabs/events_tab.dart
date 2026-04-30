@@ -25,12 +25,12 @@ class EventsTab extends ConsumerWidget {
       context: context,
       title: 'Importar Evento Aleatório',
       exampleJson: '''{
-  "diceRange": "11-15",
+  "diceRange": "",
   "eventType": 0,
   "description": "Patrulha de guardas se aproxima",
   "impact": "Combate inevitável se o grupo for detectado"
 }''',
-      legend: 'diceRange: número único ("11") ou intervalo ("11-15")\n'
+      legend: 'diceRange: rótulo opcional (texto livre, pode ficar vazio)\n'
           'eventType: 0=Patrulha  1=Ambiente  2=Som  3=Calma',
       onImport: (json) async {
         final db = ref.read(hiveDatabaseProvider);
@@ -196,11 +196,11 @@ class EventsTab extends ConsumerWidget {
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              event.diceRange,
+                              '${index + 1}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
-                                fontSize: 10,
+                                fontSize: 12,
                               ),
                             ),
                           ),
@@ -392,8 +392,8 @@ class EventsTab extends ConsumerWidget {
               TextField(
                 controller: diceController,
                 decoration: const InputDecoration(
-                  labelText: 'Resultado (d66)',
-                  hintText: 'ex: 11-16 ou 23',
+                  labelText: 'Referência (opcional)',
+                  hintText: 'ex: categoria, contexto...',
                 ),
               ),
               const SizedBox(height: 16),
@@ -447,8 +447,7 @@ class EventsTab extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (descController.text.isNotEmpty &&
-                  diceController.text.isNotEmpty) {
+              if (descController.text.isNotEmpty) {
                 final db = ref.read(hiveDatabaseProvider);
 
                 if (isEditing) {

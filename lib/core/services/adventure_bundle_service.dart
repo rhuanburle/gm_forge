@@ -352,28 +352,28 @@ class AdventureBundleService {
   "randomEvents": [
     {
       "id": "event-001",
-      "diceRange": "11-33",
+      "diceRange": "",
       "eventType": 0,
       "description": "Patrulha de 1d4 cultistas vasculhando a área",
       "impact": "Se os PJs forem vistos, o culto é alertado e Seravyn acelera o ritual"
     },
     {
       "id": "event-002",
-      "diceRange": "34-55",
+      "diceRange": "",
       "eventType": 1,
       "description": "Queda de neve intensa — visibilidade reduzida a 3m",
       "impact": "Desvantagem em testes de Percepção no exterior por 1 hora"
     },
     {
       "id": "event-003",
-      "diceRange": "56-65",
+      "diceRange": "",
       "eventType": 2,
       "description": "Cânticos necromânticos ecoando das profundezas da tumba",
       "impact": "Os PJs sabem que o ritual está em andamento. Senso de urgência."
     },
     {
       "id": "event-004",
-      "diceRange": "66-100",
+      "diceRange": "",
       "eventType": 3,
       "description": "Silêncio absoluto. Nem o vento sopra.",
       "impact": "Atmosfera tensa mas sem ação imediata"
