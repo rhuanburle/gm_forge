@@ -58,7 +58,7 @@ class LegendsTab extends ConsumerWidget {
         children: [
           SectionHeader(
             icon: Icons.campaign,
-            title: 'Tabela de Rumores (2d6)',
+            title: 'Tabela de Rumores (d${legends.isNotEmpty ? legends.length : "N"})',
             subtitle:
                 '70% de dicas verdadeiras, 30% de rumores falsos/exagerados',
             trailing: IconButton(
@@ -83,7 +83,9 @@ class LegendsTab extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Resultados 2d6: 2-3 (raro), 4-5 (incomum), 6-8 (comum), 9-10 (incomum), 11-12 (raro)',
+                        legends.isEmpty
+                            ? 'Adicione rumores para habilitar a rolagem automática.'
+                            : 'Rola d${legends.length} e seleciona automaticamente um dos ${legends.length} rumores cadastrados.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -94,58 +96,69 @@ class LegendsTab extends ConsumerWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.casino),
-                    label: const Text('Rolar Rumor (2d6)'),
-                    onPressed: () {
-                      final result =
-                          Random().nextInt(6) + 1 + Random().nextInt(6) + 1;
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Row(
-                            children: [
-                              Icon(Icons.casino, color: AppTheme.primary),
-                              SizedBox(width: 8),
-                              Text('Resultado do Dado'),
-                            ],
-                          ),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '$result',
-                                style: const TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primary,
+                    label: Text('Rolar Rumor (d${legends.isNotEmpty ? legends.length : "N"})'),
+                    onPressed: legends.isEmpty
+                        ? null
+                        : () {
+                            final result = Random().nextInt(legends.length) + 1;
+                            final selected = legends[result - 1];
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Row(
+                                  children: [
+                                    const Icon(Icons.casino, color: AppTheme.primary),
+                                    const SizedBox(width: 8),
+                                    Text('d${legends.length} → $result'),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                () {
-                                  if (result <= 3 || result >= 11) {
-                                    return 'Raro!';
-                                  } else if (result >= 6 && result <= 8) {
-                                    return 'Comum';
-                                  } else {
-                                    return 'Incomum';
-                                  }
-                                }(),
-                                style: const TextStyle(
-                                  fontStyle: FontStyle.italic,
-                                  color: AppTheme.textSecondary,
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: (selected.isTrue ? AppTheme.success : AppTheme.error)
+                                            .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        selected.isTrue ? 'VERDADEIRO' : 'FALSO/EXAGERADO',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: selected.isTrue ? AppTheme.success : AppTheme.error,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      selected.text,
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                    ),
+                                    if ((selected.source ?? '').isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Fonte: ${selected.source}',
+                                        style: const TextStyle(
+                                          fontStyle: FontStyle.italic,
+                                          color: AppTheme.textSecondary,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Fechar'),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Fechar'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                            );
+                          },
                   ),
                 ),
               ],

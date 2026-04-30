@@ -27,18 +27,21 @@ class FactionsTab extends ConsumerWidget {
   "type": 0,
   "description": "Controla o comércio da cidade",
   "powerLevel": 2,
+  "memberCount": 200,
   "partyDisposition": 1,
   "objectives": [
-    {"text": "Monopolizar as rotas", "currentProgress": 3, "maxProgress": 5, "trigger": ""}
+    {"text": "Monopolizar as rotas comerciais", "currentProgress": 3, "maxProgress": 5, "trigger": "Nova rota estabelecida"}
   ],
   "allies": ["Casa Varek"],
   "enemies": ["Ladrões da Sombra"],
-  "dangers": [],
-  "tags": ["político", "cidade"]
+  "cast": ["Grão-Mestre Aldric", "Negociante Lira"],
+  "stakes": "Se dominarem o comércio, a cidade inteira fica refém de seus preços.",
+  "dangers": []
 }''',
       legend: 'type: 0=Facção  1=Frente\n'
           'powerLevel: 0=Fraco  1=Moderado  2=Forte  3=Dominante\n'
-          'partyDisposition: -3 a +3 (negativo=hostil, 0=neutro, positivo=amigável)',
+          'partyDisposition: -3 a +3 (negativo=hostil, 0=neutro, positivo=amigável)\n'
+          'cast: lista de NPCs notáveis da facção (nomes, não IDs)',
       onImport: (json) async {
         final db = ref.read(hiveDatabaseProvider);
         final campaignId = ref.read(adventureProvider(adventureId))?.campaignId ?? '';
@@ -848,6 +851,63 @@ class _FactionListItem extends ConsumerWidget {
     }
   }
 
+  String _dispositionLabel(int d) {
+    switch (d) {
+      case -3: return 'Inimigo Mortal';
+      case -2: return 'Hostil';
+      case -1: return 'Desconfiado';
+      case 1:  return 'Amigável';
+      case 2:  return 'Aliado';
+      case 3:  return 'Aliado Fiel';
+      default: return 'Neutro';
+    }
+  }
+
+  Color _dispositionColor(int d) {
+    if (d <= -2) return AppTheme.error;
+    if (d == -1) return AppTheme.warning;
+    if (d >= 2)  return AppTheme.success;
+    if (d == 1)  return AppTheme.info;
+    return AppTheme.textMuted;
+  }
+
+  Widget _buildRelationRow(BuildContext context, String label, List<String> items, Color color, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Wrap(
+            spacing: 4,
+            runSpacing: 2,
+            children: items
+                .map((item) => Chip(
+                      label: Text(item, style: const TextStyle(fontSize: 10)),
+                      padding: EdgeInsets.zero,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
@@ -1025,6 +1085,53 @@ class _FactionListItem extends ConsumerWidget {
               ],
             ),
 
+            // Disposition badge
+            if (faction.partyDisposition != 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    faction.partyDisposition < 0
+                        ? Icons.sentiment_very_dissatisfied
+                        : Icons.sentiment_satisfied_alt,
+                    size: 14,
+                    color: _dispositionColor(faction.partyDisposition),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Grupo: ${_dispositionLabel(faction.partyDisposition)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _dispositionColor(faction.partyDisposition),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            // Stakes
+            if (faction.stakes.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.gavel, size: 13, color: AppTheme.warning),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Em jogo: ${faction.stakes}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.warning,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
             // Objectives with progress bars
             if (faction.objectives.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -1074,6 +1181,19 @@ class _FactionListItem extends ConsumerWidget {
                   ),
                 ),
               ),
+            ],
+
+            // Allies / Enemies / Cast
+            if (faction.allies.isNotEmpty ||
+                faction.enemies.isNotEmpty ||
+                faction.cast.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              if (faction.allies.isNotEmpty)
+                _buildRelationRow(context, 'Aliados', faction.allies, AppTheme.success, Icons.handshake),
+              if (faction.enemies.isNotEmpty)
+                _buildRelationRow(context, 'Inimigos', faction.enemies, AppTheme.error, Icons.shield),
+              if (faction.cast.isNotEmpty)
+                _buildRelationRow(context, 'Elenco Notável', faction.cast, AppTheme.secondary, Icons.star_border),
             ],
 
             // Dangers section (for fronts)

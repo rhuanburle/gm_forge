@@ -59,26 +59,8 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
       return;
     }
 
-    final rng = Random();
-    final d1 = rng.nextInt(6) + 1;
-    final d2 = rng.nextInt(6) + 1;
-    final resultScore = int.parse('$d1$d2');
-
-    RandomEvent? found;
-    for (final e in events) {
-      if (e.diceRange.contains('-')) {
-        final parts = e.diceRange.split('-');
-        final start = int.tryParse(parts[0]) ?? 0;
-        final end = int.tryParse(parts[1]) ?? 0;
-        if (resultScore >= start && resultScore <= end) {
-          found = e;
-          break;
-        }
-      } else if (int.tryParse(e.diceRange) == resultScore) {
-        found = e;
-        break;
-      }
-    }
+    final result = Random().nextInt(events.length) + 1;
+    final found = events[result - 1];
 
     showDialog(
       context: context,
@@ -87,41 +69,39 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
           children: [
             const Icon(Icons.casino, color: AppTheme.warning),
             const SizedBox(width: 8),
-            Expanded(child: Text('Evento Aleatório: $d1$d2')),
+            Expanded(child: Text('Evento: d${events.length} → $result')),
           ],
         ),
-        content: found != null
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.warning.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      found.eventType.displayName,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.warning,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    found.description,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  if (found.impact.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text('Impacto: ${found.impact}'),
-                  ],
-                ],
-              )
-            : const Text('Nenhum evento correspondente para este resultado.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                found.eventType.displayName,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.warning,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              found.description,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            if (found.impact.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Impacto: ${found.impact}'),
+            ],
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

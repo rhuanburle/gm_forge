@@ -58,7 +58,7 @@ class EventsTab extends ConsumerWidget {
         children: [
           SectionHeader(
             icon: Icons.casino,
-            title: 'Tabela de Eventos (d66)',
+            title: 'Tabela de Eventos (d${events.isNotEmpty ? events.length : "N"})',
             subtitle: 'Encontros aleatórios para apimentar a exploração',
             trailing: IconButton(
               icon: const Icon(Icons.upload_file, size: 20),
@@ -82,7 +82,9 @@ class EventsTab extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Role 2d6 (dezena e unidade) para obter resultados de 11 a 66.',
+                        events.isEmpty
+                            ? 'Adicione eventos para habilitar a rolagem automática.'
+                            : 'Rola d${events.length} e seleciona automaticamente um dos ${events.length} eventos cadastrados.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -93,44 +95,67 @@ class EventsTab extends ConsumerWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.casino),
-                    label: const Text('Rolar Evento (d66)'),
-                    onPressed: () {
-                      final d1 = Random().nextInt(6) + 1;
-                      final d2 = Random().nextInt(6) + 1;
-                      final result = int.parse('$d1$d2');
-
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Row(
-                            children: [
-                              Icon(Icons.casino, color: AppTheme.primary),
-                              SizedBox(width: 8),
-                              Text('Resultado d66'),
-                            ],
-                          ),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '$result',
-                                style: const TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primary,
+                    label: Text('Rolar Evento (d${events.isNotEmpty ? events.length : "N"})'),
+                    onPressed: events.isEmpty
+                        ? null
+                        : () {
+                            final result = Random().nextInt(events.length) + 1;
+                            final selected = events[result - 1];
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Row(
+                                  children: [
+                                    const Icon(Icons.casino, color: AppTheme.primary),
+                                    const SizedBox(width: 8),
+                                    Text('d${events.length} → $result'),
+                                  ],
                                 ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.secondary.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        selected.eventType.displayName,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.secondary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      selected.description,
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                    ),
+                                    if (selected.impact.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Impacto: ${selected.impact}',
+                                        style: const TextStyle(
+                                          color: AppTheme.textSecondary,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Fechar'),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Fechar'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                            );
+                          },
                   ),
                 ),
               ],

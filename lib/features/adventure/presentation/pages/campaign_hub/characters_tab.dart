@@ -31,6 +31,9 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
   Widget build(BuildContext context) {
     final pcs = ref.watch(playerCharactersProvider(campaignId));
     final factions = ref.watch(campaignFactionsProvider(campaignId));
+    final npcs = ref.watch(campaignCreaturesProvider(campaignId))
+        .where((c) => c.type == CreatureType.npc)
+        .toList();
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -38,6 +41,8 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
         _buildPcsSection(context, pcs),
         const SizedBox(height: 24),
         _buildFactionsSection(context, factions),
+        const SizedBox(height: 24),
+        _buildNpcsSection(context, npcs),
       ],
     );
   }
@@ -115,33 +120,30 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
         if (factions.isEmpty)
           _emptyState(context, 'Nenhuma faccao adicionada.')
         else
-          GridView.builder(
+          ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: responsiveColumns(context),
-              childAspectRatio: 2.4,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
             itemCount: factions.length,
             itemBuilder: (context, index) {
               final faction = factions[index];
-              return FactionCard(
-                faction: faction,
-                onEdit: () => _showEditFactionDialog(context, faction),
-                onDelete: () => _confirmDelete(
-                  context,
-                  title: 'Excluir Faccao',
-                  message:
-                      'Tem certeza que deseja excluir "${faction.name}"?',
-                  onConfirm: () async {
-                    await ref
-                        .read(hiveDatabaseProvider)
-                        .deleteFaction(faction.id);
-                    ref.invalidate(campaignFactionsProvider(campaignId));
-                    _markUnsynced();
-                  },
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: FactionCard(
+                  faction: faction,
+                  onEdit: () => _showEditFactionDialog(context, faction),
+                  onDelete: () => _confirmDelete(
+                    context,
+                    title: 'Excluir Faccao',
+                    message:
+                        'Tem certeza que deseja excluir "${faction.name}"?',
+                    onConfirm: () async {
+                      await ref
+                          .read(hiveDatabaseProvider)
+                          .deleteFaction(faction.id);
+                      ref.invalidate(campaignFactionsProvider(campaignId));
+                      _markUnsynced();
+                    },
+                  ),
                 ),
               );
             },
@@ -642,6 +644,322 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // NPCs
+  // ---------------------------------------------------------------------------
+
+  Widget _buildNpcsSection(BuildContext context, List<Creature> npcs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          context,
+          icon: Icons.person_pin,
+          title: 'NPCs da Campanha',
+          onAdd: () => _showNpcFormDialog(context, null),
+        ),
+        if (npcs.isEmpty)
+          _emptyState(context, 'Nenhum NPC de campanha adicionado.')
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: npcs.length,
+            itemBuilder: (context, index) {
+              final npc = npcs[index];
+              return _buildNpcCard(context, npc);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildNpcCard(BuildContext context, Creature npc) {
+    final dispColor = _npcDispositionColor(npc.disposition);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: dispColor.withValues(alpha: 0.15),
+                  child: Icon(Icons.person, size: 20, color: dispColor),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        npc.name,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      if (npc.description.isNotEmpty)
+                        Text(
+                          npc.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: dispColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: dispColor.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(
+                    npc.disposition.displayName,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: dispColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                PopupMenuButton<String>(
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
+                  onSelected: (value) {
+                    if (value == 'edit') _showNpcFormDialog(context, npc);
+                    if (value == 'delete') {
+                      _confirmDelete(
+                        context,
+                        title: 'Excluir NPC',
+                        message: 'Tem certeza que deseja excluir "${npc.name}"?',
+                        onConfirm: () async {
+                          await ref.read(hiveDatabaseProvider).deleteCreature(npc.id);
+                          ref.invalidate(campaignCreaturesProvider(campaignId));
+                          _markUnsynced();
+                        },
+                      );
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Editar')]),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [Icon(Icons.delete, size: 16, color: AppTheme.error), SizedBox(width: 8), Text('Excluir', style: TextStyle(color: AppTheme.error))]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            if (npc.motivation.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.flag, size: 12, color: AppTheme.secondary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      npc.motivation,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (npc.roleplayNotes.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.theater_comedy, size: 12, color: AppTheme.textMuted),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      npc.roleplayNotes,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textMuted,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (npc.status != CreatureStatus.alive) ...[
+              const SizedBox(height: 4),
+              Text(
+                npc.status.displayName,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: npc.status == CreatureStatus.dead ? AppTheme.error : AppTheme.warning,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _npcDispositionColor(CreatureDisposition d) {
+    switch (d) {
+      case CreatureDisposition.ally:    return AppTheme.success;
+      case CreatureDisposition.neutral: return AppTheme.textMuted;
+      case CreatureDisposition.hostile: return AppTheme.error;
+      case CreatureDisposition.unknown: return AppTheme.secondary;
+    }
+  }
+
+  void _showNpcFormDialog(BuildContext context, Creature? existing) {
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final descCtrl = TextEditingController(text: existing?.description ?? '');
+    final motivationCtrl = TextEditingController(text: existing?.motivation ?? '');
+    final roleplayCtrl = TextEditingController(text: existing?.roleplayNotes ?? '');
+    CreatureDisposition selectedDisposition =
+        existing?.disposition ?? CreatureDisposition.neutral;
+    CreatureStatus selectedStatus =
+        existing?.status ?? CreatureStatus.alive;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(existing == null ? 'Novo NPC' : 'Editar NPC'),
+          content: SizedBox(
+            width: 440,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Nome *'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: descCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Descrição',
+                      hintText: 'Aparência, papel na campanha...',
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: motivationCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Motivação',
+                      hintText: 'O que esse NPC quer?',
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<CreatureDisposition>(
+                    initialValue: selectedDisposition,
+                    decoration: const InputDecoration(labelText: 'Disposição'),
+                    items: CreatureDisposition.values
+                        .map((d) => DropdownMenuItem(
+                              value: d,
+                              child: Text(d.displayName),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setDialogState(() => selectedDisposition = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<CreatureStatus>(
+                    initialValue: selectedStatus,
+                    decoration: const InputDecoration(labelText: 'Status'),
+                    items: CreatureStatus.values
+                        .map((s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(s.displayName),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setDialogState(() => selectedStatus = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: roleplayCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Notas de Interpretação',
+                      hintText: 'Trejeitos, segredos, como ele reage...',
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) return;
+                final db = ref.read(hiveDatabaseProvider);
+                if (existing != null) {
+                  final updated = existing.copyWith(
+                    name: name,
+                    description: descCtrl.text.trim(),
+                    motivation: motivationCtrl.text.trim(),
+                    disposition: selectedDisposition,
+                    status: selectedStatus,
+                    roleplayNotes: roleplayCtrl.text.trim(),
+                  );
+                  await db.saveCreature(updated);
+                } else {
+                  final npc = Creature.create(
+                    campaignId: campaignId,
+                    name: name,
+                    type: CreatureType.npc,
+                    description: descCtrl.text.trim(),
+                    motivation: motivationCtrl.text.trim(),
+                    losingBehavior: '',
+                    disposition: selectedDisposition,
+                    status: selectedStatus,
+                    roleplayNotes: roleplayCtrl.text.trim(),
+                  );
+                  await db.saveCreature(npc);
+                }
+                ref.invalidate(campaignCreaturesProvider(campaignId));
+                _markUnsynced();
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
       ),
     );
   }

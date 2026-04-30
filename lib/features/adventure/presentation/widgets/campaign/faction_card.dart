@@ -39,6 +39,17 @@ class _FactionCardState extends State<FactionCard> {
               _buildHeader(context),
               const SizedBox(height: 8),
               _buildPowerIndicator(context),
+              if (faction.description.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  faction.description,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
               if (faction.partyDisposition != 0) ...[
                 const SizedBox(height: 6),
                 _buildDispositionBadge(context),
@@ -47,8 +58,7 @@ class _FactionCardState extends State<FactionCard> {
                 const SizedBox(height: 10),
                 _buildObjectives(context),
               ],
-              if (faction.type == FactionType.front &&
-                  (_hasExpandableContent)) ...[
+              if (_hasExpandableContent) ...[
                 const SizedBox(height: 8),
                 _buildExpandableSection(context),
               ],
@@ -62,6 +72,8 @@ class _FactionCardState extends State<FactionCard> {
   bool get _hasExpandableContent =>
       faction.allies.isNotEmpty ||
       faction.enemies.isNotEmpty ||
+      faction.cast.isNotEmpty ||
+      faction.stakes.isNotEmpty ||
       faction.dangers.isNotEmpty;
 
   Widget _buildHeader(BuildContext context) {
@@ -295,6 +307,39 @@ class _FactionCardState extends State<FactionCard> {
           if (faction.enemies.isNotEmpty)
             _buildStringList(
                 context, 'Inimigos', faction.enemies, Icons.shield),
+          if (faction.cast.isNotEmpty)
+            _buildStringList(context, 'Elenco Notável', faction.cast, Icons.star_border),
+          if (faction.stakes.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.gavel, size: 13, color: AppTheme.warning),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Em jogo',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: AppTheme.warning,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        faction.stakes,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondary,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (faction.dangers.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
