@@ -25,6 +25,10 @@ class AdventurePlayPage extends ConsumerStatefulWidget {
 class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _compactTabIndex = 0;
+  double _sidebarWidth = 320.0;
+  static const double _minSidebarWidth = 240.0;
+  static const double _maxSidebarWidth = 640.0;
+  static const double _sidebarStep = 40.0;
 
   @override
   void initState() {
@@ -201,6 +205,49 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
     );
   }
 
+  Widget _buildResizableSidebar() {
+    return SizedBox(
+      width: _sidebarWidth,
+      child: Stack(
+        children: [
+          DMToolsSidebar(
+            adventureId: widget.adventureId,
+            onShrink: _sidebarWidth > _minSidebarWidth
+                ? () => setState(() {
+                      _sidebarWidth = (_sidebarWidth - _sidebarStep)
+                          .clamp(_minSidebarWidth, _maxSidebarWidth);
+                    })
+                : null,
+            onExpand: _sidebarWidth < _maxSidebarWidth
+                ? () => setState(() {
+                      _sidebarWidth = (_sidebarWidth + _sidebarStep)
+                          .clamp(_minSidebarWidth, _maxSidebarWidth);
+                    })
+                : null,
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 6,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.resizeLeftRight,
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  setState(() {
+                    _sidebarWidth = (_sidebarWidth - details.delta.dx)
+                        .clamp(_minSidebarWidth, _maxSidebarWidth);
+                  });
+                },
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSessionWarning() {
     final activeState = ref.watch(activeAdventureProvider);
     final activeSessionId = activeState.activeSessionId;
@@ -331,7 +378,7 @@ class _AdventurePlayPageState extends ConsumerState<AdventurePlayPage> {
               flex: 7,
               child: SceneViewer(adventureId: widget.adventureId),
             ),
-            DMToolsSidebar(adventureId: widget.adventureId),
+            _buildResizableSidebar(),
           ],
         ),
         medium: (context) => Row(

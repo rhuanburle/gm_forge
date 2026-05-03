@@ -20,8 +20,15 @@ import 'gm_inspiration_panel.dart';
 
 class DMToolsSidebar extends ConsumerStatefulWidget {
   final String adventureId;
+  final VoidCallback? onShrink;
+  final VoidCallback? onExpand;
 
-  const DMToolsSidebar({super.key, required this.adventureId});
+  const DMToolsSidebar({
+    super.key,
+    required this.adventureId,
+    this.onShrink,
+    this.onExpand,
+  });
 
   @override
   ConsumerState<DMToolsSidebar> createState() => _DMToolsSidebarState();
@@ -120,7 +127,6 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
     if (adventure == null) return const SizedBox.shrink();
 
     return Container(
-      width: 320,
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(
@@ -138,6 +144,16 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                 _tabButton(1, Icons.flash_on, 'Combate'),
                 _tabButton(2, Icons.menu_book, 'Log'),
                 _tabButton(3, Icons.table_chart, 'Ref'),
+                if (widget.onShrink != null || widget.onExpand != null) ...[
+                  Container(
+                    width: 1,
+                    height: 24,
+                    color: AppTheme.textMuted.withValues(alpha: 0.2),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  _resizeButton(Icons.chevron_left, widget.onShrink),
+                  _resizeButton(Icons.chevron_right, widget.onExpand),
+                ],
               ],
             ),
           ),
@@ -212,6 +228,20 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _resizeButton(IconData icon, VoidCallback? onPressed) {
+    return InkWell(
+      onTap: onPressed,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        child: Icon(
+          icon,
+          size: 16,
+          color: onPressed != null ? AppTheme.textMuted : AppTheme.textMuted.withValues(alpha: 0.3),
+        ),
       ),
     );
   }

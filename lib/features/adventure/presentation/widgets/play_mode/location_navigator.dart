@@ -386,17 +386,15 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
 
                 // EVENTS TAB
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (randomEvents.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.casino),
-                            label: const Text('Rolar Evento'),
-                            onPressed: () => _rollEvent(context, randomEvents),
-                          ),
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.casino),
+                          label: const Text('Rolar Evento'),
+                          onPressed: () => _rollEvent(context, randomEvents),
                         ),
                       ),
                     Expanded(
@@ -406,22 +404,18 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                         itemBuilder: (context, index) {
                           final event = filteredEvents[index];
                           return ListTile(
-                            leading: Container(
-                              constraints: const BoxConstraints(minWidth: 40),
+                            leading: SizedBox(
+                              width: 32,
                               height: 24,
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: AppTheme.warning.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: AppTheme.warning.withValues(
-                                    alpha: 0.5,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppTheme.warning.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: AppTheme.warning.withValues(alpha: 0.5),
                                   ),
                                 ),
-                              ),
-                              alignment: Alignment.center,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.center,
                                 child: Text(
                                   '${index + 1}',
                                   style: const TextStyle(
@@ -432,13 +426,19 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
                                 ),
                               ),
                             ),
-                            title: Text(event.description),
-                            subtitle: Text(
-                              event.impact,
+                            title: Text(
+                              event.description,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 11),
                             ),
+                            subtitle: event.impact.isNotEmpty
+                                ? Text(
+                                    event.impact,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 11),
+                                  )
+                                : null,
                             onTap: () {
                               _showEventDetails(context, event);
                             },
