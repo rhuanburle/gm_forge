@@ -17,6 +17,7 @@ import 'combat_tracker_panel.dart';
 import 'exploration_tracker_panel.dart';
 import 'previous_session_recap.dart';
 import 'gm_inspiration_panel.dart';
+import 'gm_reminders_panel.dart';
 
 class DMToolsSidebar extends ConsumerStatefulWidget {
   final String adventureId;
@@ -341,6 +342,12 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
         controller: _scrollController,
         child: Column(
           children: [
+            // GM Reminders (top of shield — fast, contextual)
+            GmRemindersPanel(
+              adventureId: widget.adventureId,
+              currentPoiId: activeState.currentLocationId,
+            ),
+
             // Dice roller
             const DiceRollerPanel(),
 
@@ -681,7 +688,7 @@ class _DMToolsSidebarState extends ConsumerState<DMToolsSidebar> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  poi.purpose.displayName,
+                  poi.purpose,
                   style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
                 ),
               ),

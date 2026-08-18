@@ -407,7 +407,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                         ),
                       ),
                       title: Text(poi.name),
-                      subtitle: Text(poi.purpose.displayName),
+                      subtitle: Text(poi.purpose),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -474,15 +474,21 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
     );
   }
 
-  Color _getPoiColor(RoomPurpose purpose) {
-    switch (purpose) {
-      case RoomPurpose.danger:
+  Color _getPoiColor(String purpose) {
+    switch (purpose.toLowerCase()) {
+      case 'perigo':
+      case 'danger':
         return AppTheme.error;
-      case RoomPurpose.rest:
+      case 'descanso':
+      case 'rest':
+      case 'social':
         return AppTheme.success;
-      case RoomPurpose.puzzle:
+      case 'enigma':
+      case 'puzzle':
+      case 'investigação':
+      case 'investigacao':
         return AppTheme.accent;
-      case RoomPurpose.narrative:
+      default:
         return AppTheme.primary;
     }
   }
@@ -604,7 +610,10 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
       numberCtrl.text = (maxNum + 1).toString();
     }
 
-    RoomPurpose selectedPurpose = poiToEdit?.purpose ?? RoomPurpose.narrative;
+    String selectedPurpose = poiToEdit?.purpose ?? 'narrativa';
+    final customPurposeCtrl = TextEditingController(
+      text: kPurposeSuggestions.contains(selectedPurpose) ? '' : selectedPurpose,
+    );
     String? poiImageUrl = poiToEdit?.imagePath;
 
     // Creature multi-select
@@ -640,19 +649,49 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<RoomPurpose>(
-                  initialValue: selectedPurpose,
+                DropdownButtonFormField<String>(
+                  initialValue: kPurposeSuggestions.contains(selectedPurpose)
+                      ? selectedPurpose
+                      : '__custom__',
                   decoration: const InputDecoration(labelText: 'Tipo de Sala'),
-                  items: RoomPurpose.values.map((p) {
-                    return DropdownMenuItem(
-                      value: p,
-                      child: Text(p.displayName),
-                    );
-                  }).toList(),
+                  items: [
+                    ...kPurposeSuggestions.map(
+                      (p) => DropdownMenuItem(value: p, child: Text(p)),
+                    ),
+                    const DropdownMenuItem(
+                      value: '__custom__',
+                      child: Text('Outro…'),
+                    ),
+                  ],
                   onChanged: (val) {
-                    if (val != null) setState(() => selectedPurpose = val);
+                    if (val == null) return;
+                    setState(() {
+                      if (val == '__custom__') {
+                        // Sentinel not in kPurposeSuggestions → reveals field.
+                        selectedPurpose = customPurposeCtrl.text.trim();
+                      } else {
+                        selectedPurpose = val;
+                        customPurposeCtrl.clear();
+                      }
+                    });
                   },
                 ),
+                if (!kPurposeSuggestions.contains(selectedPurpose) ||
+                    customPurposeCtrl.text.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: customPurposeCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo customizado',
+                      hintText: 'ex: social, viagem, investigação',
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        selectedPurpose = val.trim().isEmpty ? 'narrativa' : val.trim();
+                      });
+                    },
+                  ),
+                ],
                 const SizedBox(height: 16),
                 SmartTextField(
                   controller: firstImpressionCtrl,
@@ -664,9 +703,9 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   aiContext: {
                     'locationName': _nameController.text,
                     'poiName': nameCtrl.text,
-                    'poiPurpose': selectedPurpose.displayName,
+                    'poiPurpose': selectedPurpose,
                   },
-                  aiExtraContext: {'poiPurpose': selectedPurpose.displayName},
+                  aiExtraContext: {'poiPurpose': selectedPurpose},
                 ),
                 const SizedBox(height: 16),
                 SmartTextField(
@@ -679,7 +718,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   aiContext: {
                     'locationName': _nameController.text,
                     'poiName': nameCtrl.text,
-                    'poiPurpose': selectedPurpose.displayName,
+                    'poiPurpose': selectedPurpose,
                   },
                 ),
                 const SizedBox(height: 16),
@@ -693,7 +732,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   aiContext: {
                     'locationName': _nameController.text,
                     'poiName': nameCtrl.text,
-                    'poiPurpose': selectedPurpose.displayName,
+                    'poiPurpose': selectedPurpose,
                   },
                 ),
                 const SizedBox(height: 16),
@@ -707,7 +746,7 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                   aiContext: {
                     'locationName': _nameController.text,
                     'poiName': nameCtrl.text,
-                    'poiPurpose': selectedPurpose.displayName,
+                    'poiPurpose': selectedPurpose,
                   },
                 ),
                 const SizedBox(height: 16),
@@ -802,7 +841,9 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                     final updatedPoi = poiToEdit.copyWith(
                       number: number,
                       name: nameCtrl.text,
-                      purpose: selectedPurpose,
+                      purpose: selectedPurpose.trim().isEmpty
+                          ? 'narrativa'
+                          : selectedPurpose.trim(),
                       firstImpression: firstImpressionCtrl.text,
                       obvious: obviousCtrl.text,
                       detail: detailCtrl.text,
@@ -858,7 +899,9 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
                       locationId: widget.locationId,
                       number: number,
                       name: nameCtrl.text,
-                      purpose: selectedPurpose,
+                      purpose: selectedPurpose.trim().isEmpty
+                          ? 'narrativa'
+                          : selectedPurpose.trim(),
                       firstImpression: firstImpressionCtrl.text,
                       obvious: obviousCtrl.text,
                       detail: detailCtrl.text,
@@ -909,7 +952,15 @@ class _LocationEditorPageState extends ConsumerState<LocationEditorPage> {
           ],
         ),
       ),
-    );
+    ).then((_) {
+      numberCtrl.dispose();
+      nameCtrl.dispose();
+      firstImpressionCtrl.dispose();
+      obviousCtrl.dispose();
+      detailCtrl.dispose();
+      treasureCtrl.dispose();
+      customPurposeCtrl.dispose();
+    });
   }
 }
 

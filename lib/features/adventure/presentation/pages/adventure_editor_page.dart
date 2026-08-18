@@ -15,6 +15,8 @@ import 'adventure_editor/tabs/summary_tab.dart';
 import 'adventure_editor/tabs/factions_tab.dart';
 import 'adventure_editor/tabs/items_tab.dart';
 import 'adventure_editor/tabs/quests_tab.dart';
+import 'adventure_editor/tabs/structure_tab.dart';
+import 'adventure_editor/widgets/editor_group_tab.dart';
 import '../widgets/global_search_dialog.dart';
 
 class AdventureEditorPage extends ConsumerStatefulWidget {
@@ -34,7 +36,7 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 9, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -153,13 +155,10 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
           tabs: const [
             Tab(icon: Icon(Icons.dashboard), text: 'Resumo'),
             Tab(icon: Icon(Icons.lightbulb_outline), text: 'Conceito'),
-            Tab(icon: Icon(Icons.campaign), text: 'Rumores'),
             Tab(icon: Icon(Icons.map), text: 'Locais'),
-            Tab(icon: Icon(Icons.casino), text: 'Eventos'),
-            Tab(icon: Icon(Icons.pets), text: 'Criaturas'),
-            Tab(icon: Icon(Icons.groups), text: 'Facções'),
-            Tab(icon: Icon(Icons.inventory_2), text: 'Itens'),
-            Tab(icon: Icon(Icons.flag), text: 'Missões'),
+            Tab(icon: Icon(Icons.groups), text: 'Elenco'),
+            Tab(icon: Icon(Icons.workspace_premium), text: 'Tesouro & Missões'),
+            Tab(icon: Icon(Icons.casino), text: 'Na Mesa'),
           ],
         ),
       ),
@@ -171,13 +170,57 @@ class _AdventureEditorPageState extends ConsumerState<AdventureEditorPage>
             onTabChange: (index) => _tabController.animateTo(index),
           ),
           ConceptTab(adventure: adventure),
-          LegendsTab(adventureId: widget.adventureId),
           LocationsTab(adventureId: widget.adventureId),
-          EventsTab(adventureId: widget.adventureId),
-          CreaturesTab(adventureId: widget.adventureId),
-          FactionsTab(adventureId: widget.adventureId),
-          ItemsTab(adventureId: widget.adventureId),
-          QuestsTab(adventureId: widget.adventureId),
+          // Elenco: quem povoa a aventura (criaturas/NPCs + facções).
+          EditorGroupTab(
+            tabs: [
+              EditorSubTab(
+                label: 'Criaturas & NPCs',
+                icon: Icons.pets,
+                child: CreaturesTab(adventureId: widget.adventureId),
+              ),
+              EditorSubTab(
+                label: 'Facções',
+                icon: Icons.groups,
+                child: FactionsTab(adventureId: widget.adventureId),
+              ),
+            ],
+          ),
+          // Tesouro & Missões: recompensas e objetivos.
+          EditorGroupTab(
+            tabs: [
+              EditorSubTab(
+                label: 'Itens & Tesouros',
+                icon: Icons.inventory_2,
+                child: ItemsTab(adventureId: widget.adventureId),
+              ),
+              EditorSubTab(
+                label: 'Missões',
+                icon: Icons.flag,
+                child: QuestsTab(adventureId: widget.adventureId),
+              ),
+            ],
+          ),
+          // Na Mesa: tudo que dispara durante o jogo.
+          EditorGroupTab(
+            tabs: [
+              EditorSubTab(
+                label: 'Rumores',
+                icon: Icons.campaign,
+                child: LegendsTab(adventureId: widget.adventureId),
+              ),
+              EditorSubTab(
+                label: 'Eventos',
+                icon: Icons.casino,
+                child: EventsTab(adventureId: widget.adventureId),
+              ),
+              EditorSubTab(
+                label: 'Timers & Handouts',
+                icon: Icons.timer,
+                child: StructureTab(adventureId: widget.adventureId),
+              ),
+            ],
+          ),
         ],
       ),
     );

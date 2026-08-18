@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/sync/unsynced_changes_provider.dart';
+import '../../../../../core/services/chronicle_service.dart';
 import '../../../../../core/ai/ai_providers.dart';
 import '../../../../adventure/application/adventure_providers.dart';
 import '../../../../adventure/application/active_adventure_state.dart';
@@ -134,6 +135,20 @@ Instruções:
         );
         await ref.read(hiveDatabaseProvider).saveSession(updated);
         ref.invalidate(sessionsProvider(widget.adventureId));
+
+        // Auto-chronicle: log the session onto the campaign timeline.
+        final campaignId =
+            ref.read(adventureProvider(widget.adventureId))?.campaignId ?? '';
+        if (campaignId.isNotEmpty) {
+          await ref.read(chronicleServiceProvider).record(
+                campaignId: campaignId,
+                title: 'Sessão #${session.number} encerrada',
+                description: _recapController.text.trim(),
+                type: TimelineEntryType.session,
+                sessionNumber: session.number,
+              );
+          ref.invalidate(timelineEntriesProvider(campaignId));
+        }
       }
 
       ref.read(activeAdventureProvider.notifier).setActiveSession(null);

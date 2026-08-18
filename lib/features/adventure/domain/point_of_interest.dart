@@ -1,21 +1,21 @@
 import 'package:uuid/uuid.dart';
 
-enum RoomPurpose { rest, danger, puzzle, narrative }
+/// Suggested purpose values for POIs. Free-text — any string accepted.
+/// Old enum-indexed values map here (see _legacyPurposeFromIndex).
+const kPurposeSuggestions = <String>[
+  'descanso',
+  'perigo',
+  'enigma',
+  'narrativa',
+  'social',
+  'investigação',
+  'viagem',
+];
 
-extension RoomPurposeExtension on RoomPurpose {
-  String get displayName {
-    switch (this) {
-      case RoomPurpose.rest:
-        return 'DESCANSO';
-      case RoomPurpose.danger:
-        return 'PERIGO';
-      case RoomPurpose.puzzle:
-        return 'ENIGMA';
-      case RoomPurpose.narrative:
-        return 'NARRATIVA';
-    }
-  }
-}
+const _legacyPurposes = <String>['descanso', 'perigo', 'enigma', 'narrativa'];
+
+String _legacyPurposeFromIndex(int i) =>
+    (i >= 0 && i < _legacyPurposes.length) ? _legacyPurposes[i] : 'narrativa';
 
 class PointOfInterest {
   final String id;
@@ -23,7 +23,10 @@ class PointOfInterest {
   final String? adventureId;
   final int number;
   final String name;
-  final RoomPurpose purpose;
+
+  /// Free-text purpose tag. See [kPurposeSuggestions]. AI or user may set
+  /// any value to match the system being played.
+  final String purpose;
   final String firstImpression;
   final String obvious;
   final String detail;
@@ -34,13 +37,19 @@ class PointOfInterest {
   final String? locationId;
   final bool isVisited;
 
+  /// Short bullets surfaced in the GM Shield when this POI is active.
+  final List<String> gmReminders;
+
+  /// Sidebar IDs to surface when this POI is active in play mode.
+  final List<String> sidebarIds;
+
   const PointOfInterest({
     required this.id,
     required this.campaignId,
     this.adventureId,
     required this.number,
     required this.name,
-    this.purpose = RoomPurpose.narrative,
+    this.purpose = 'narrativa',
     required this.firstImpression,
     required this.obvious,
     required this.detail,
@@ -50,6 +59,8 @@ class PointOfInterest {
     this.imagePath,
     this.locationId,
     this.isVisited = false,
+    this.gmReminders = const [],
+    this.sidebarIds = const [],
   });
 
   factory PointOfInterest.create({
@@ -57,7 +68,7 @@ class PointOfInterest {
     String? adventureId,
     required int number,
     required String name,
-    RoomPurpose purpose = RoomPurpose.narrative,
+    String purpose = 'narrativa',
     required String firstImpression,
     required String obvious,
     required String detail,
@@ -67,6 +78,8 @@ class PointOfInterest {
     String? imagePath,
     String? locationId,
     bool isVisited = false,
+    List<String> gmReminders = const [],
+    List<String> sidebarIds = const [],
   }) {
     return PointOfInterest(
       id: const Uuid().v4(),
@@ -84,6 +97,8 @@ class PointOfInterest {
       imagePath: imagePath,
       locationId: locationId,
       isVisited: isVisited,
+      gmReminders: gmReminders,
+      sidebarIds: sidebarIds,
     );
   }
 
@@ -93,7 +108,7 @@ class PointOfInterest {
     'adventureId': adventureId,
     'number': number,
     'name': name,
-    'purpose': purpose.index,
+    'purpose': purpose,
     'firstImpression': firstImpression,
     'obvious': obvious,
     'detail': detail,
@@ -103,6 +118,8 @@ class PointOfInterest {
     'imagePath': imagePath,
     'locationId': locationId,
     'isVisited': isVisited,
+    'gmReminders': gmReminders,
+    'sidebarIds': sidebarIds,
   };
 
   factory PointOfInterest.fromJson(Map<String, dynamic> json) =>
@@ -110,12 +127,16 @@ class PointOfInterest {
         id: json['id'] as String,
         campaignId: json['campaignId'] as String? ?? json['adventureId'] as String,
         adventureId: json['adventureId'] as String?,
-        number: json['number'] as int,
-        name: json['name'] as String,
-        purpose: RoomPurpose.values[json['purpose'] as int],
-        firstImpression: json['firstImpression'] as String,
-        obvious: json['obvious'] as String,
-        detail: json['detail'] as String,
+        number: json['number'] as int? ?? 0,
+        name: json['name'] as String? ?? '',
+        purpose: switch (json['purpose']) {
+          int i => _legacyPurposeFromIndex(i),
+          String s when s.isNotEmpty => s,
+          _ => 'narrativa',
+        },
+        firstImpression: json['firstImpression'] as String? ?? '',
+        obvious: json['obvious'] as String? ?? '',
+        detail: json['detail'] as String? ?? '',
         connections: (json['connections'] as List<dynamic>?)?.cast<int>() ?? [],
         treasure: json['treasure'] as String? ?? '',
         creatureIds:
@@ -123,12 +144,16 @@ class PointOfInterest {
         imagePath: json['imagePath'] as String?,
         locationId: json['locationId'] as String?,
         isVisited: json['isVisited'] as bool? ?? false,
+        gmReminders:
+            (json['gmReminders'] as List<dynamic>?)?.cast<String>() ?? const [],
+        sidebarIds:
+            (json['sidebarIds'] as List<dynamic>?)?.cast<String>() ?? const [],
       );
 
   PointOfInterest copyWith({
     String? name,
     int? number,
-    RoomPurpose? purpose,
+    String? purpose,
     String? firstImpression,
     String? obvious,
     String? detail,
@@ -141,6 +166,8 @@ class PointOfInterest {
     bool? isVisited,
     String? adventureId,
     bool clearAdventureId = false,
+    List<String>? gmReminders,
+    List<String>? sidebarIds,
   }) {
     return PointOfInterest(
       id: id,
@@ -158,6 +185,8 @@ class PointOfInterest {
       imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
       locationId: locationId ?? this.locationId,
       isVisited: isVisited ?? this.isVisited,
+      gmReminders: gmReminders ?? this.gmReminders,
+      sidebarIds: sidebarIds ?? this.sidebarIds,
     );
   }
 }

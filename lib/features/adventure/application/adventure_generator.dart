@@ -45,17 +45,18 @@ class AdventureGenerator {
     final service = _ref.read(geminiServiceProvider);
     if (service == null) throw Exception('IA não configurada');
 
+    final db = _ref.read(hiveDatabaseProvider);
+    final adv = db.getAdventure(adventureId);
+    final campaignId = adv?.campaignId ?? adventureId;
+
     final prompt = AiPrompts.buildAdventureGenerationPrompt(
       adventureName: adventureName,
       conceptWhat: conceptWhat,
       conceptConflict: conceptConflict,
+      system: adv?.system,
     );
 
     final json = await service.generateStructured(prompt);
-
-    final db = _ref.read(hiveDatabaseProvider);
-    final adv = db.getAdventure(adventureId);
-    final campaignId = adv?.campaignId ?? adventureId;
 
     return _parseAdventure(json, campaignId, adventureId);
   }
@@ -120,15 +121,21 @@ class AdventureGenerator {
           }
         }
 
-        final purposeIndex = poiData['purpose'] as int? ?? 3;
+        final purposeRaw = poiData['purpose'];
+        final purpose = switch (purposeRaw) {
+          String s when s.isNotEmpty => s,
+          int i => (i >= 0 && i < kPurposeSuggestions.length)
+              ? kPurposeSuggestions[i]
+              : 'narrativa',
+          _ => 'narrativa',
+        };
         final poi = PointOfInterest.create(
           campaignId: campaignId,
           adventureId: adventureId,
           locationId: location.id,
           number: poiData['number'] as int? ?? pois.length + 1,
           name: poiData['name'] as String? ?? 'Sem nome',
-          purpose: RoomPurpose
-              .values[purposeIndex.clamp(0, RoomPurpose.values.length - 1)],
+          purpose: purpose,
           firstImpression: poiData['firstImpression'] as String? ?? '',
           obvious: poiData['obvious'] as String? ?? '',
           detail: poiData['detail'] as String? ?? '',

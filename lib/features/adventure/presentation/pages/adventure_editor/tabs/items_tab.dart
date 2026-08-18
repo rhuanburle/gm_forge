@@ -9,6 +9,7 @@ import '../../../../application/adventure_providers.dart';
 import "../../../../domain/domain.dart";
 import '../../../../../../core/widgets/animated_list_item.dart';
 import "../widgets/section_header.dart";
+import "../widgets/scope_hint.dart";
 
 class ItemsTab extends ConsumerWidget {
   final String adventureId;
@@ -67,7 +68,7 @@ class ItemsTab extends ConsumerWidget {
       onImport: (json) async {
         final db = ref.read(hiveDatabaseProvider);
         final adv = db.getAdventure(adventureId);
-        final campaignId = adv?.campaignId ?? adventureId;
+        final campaignId = adv?.campaignId ?? '';
         json['id'] = const Uuid().v4();
         json['campaignId'] = campaignId;
         json['adventureId'] = adventureId;
@@ -100,6 +101,7 @@ class ItemsTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+          ScopeHint(adventureId: adventureId, noun: 'itens'),
           Expanded(
             child: items.isEmpty
                 ? Center(
@@ -287,6 +289,11 @@ class ItemsTab extends ConsumerWidget {
     ItemType selectedType = itemToEdit?.type ?? ItemType.misc;
     ItemRarity selectedRarity = itemToEdit?.rarity ?? ItemRarity.common;
     String? adventureIdForCreation = itemToEdit?.adventureId ?? adventureId;
+    // "Toda a campanha" só existe quando a aventura pertence a uma campanha.
+    final hasCampaign =
+        (ref.read(adventureProvider(adventureId))?.campaignId ?? '')
+            .trim()
+            .isNotEmpty;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -385,23 +392,29 @@ class ItemsTab extends ConsumerWidget {
                     ),
                     maxLines: 3,
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  SwitchListTile(
-                    title: const Text("Disponível em toda a Campanha?"),
-                    subtitle: const Text("Itens globais aparecem em todas as aventuras."),
-                    value: adventureIdForCreation == null,
-                    onChanged: (bool value) {
-                      setState(() {
-                        adventureIdForCreation = value ? null : adventureId;
-                      });
-                    },
-                    secondary: Icon(
-                      adventureIdForCreation == null ? Icons.public : Icons.push_pin,
-                      color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                  if (hasCampaign) ...[
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    SwitchListTile(
+                      title: const Text("Compartilhar com toda a Campanha?"),
+                      subtitle: Text(
+                        adventureIdForCreation == null
+                            ? "Aparece (e é editado) em todas as aventuras da campanha."
+                            : "Fica só nesta aventura. Ligue para reaproveitar em toda a campanha.",
+                      ),
+                      value: adventureIdForCreation == null,
+                      onChanged: (bool value) {
+                        setState(() {
+                          adventureIdForCreation = value ? null : adventureId;
+                        });
+                      },
+                      secondary: Icon(
+                        adventureIdForCreation == null ? Icons.public : Icons.push_pin,
+                        color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                      ),
                     ),
-                  ),
                   ],
+                ],
                 ),
               ),
             ),
@@ -447,7 +460,7 @@ class ItemsTab extends ConsumerWidget {
                         );
                   } else {
                     final adv = db.getAdventure(adventureId);
-                    final campaignId = adv?.campaignId ?? adventureId;
+                    final campaignId = adv?.campaignId ?? '';
 
                     final item = Item.create(
                       campaignId: campaignId,

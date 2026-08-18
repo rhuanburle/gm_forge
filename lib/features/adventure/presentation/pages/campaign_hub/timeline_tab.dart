@@ -32,7 +32,23 @@ class TimelineTab extends ConsumerWidget {
         children: [
           // Current Day card
           _currentDayCard(context, ref, campaign),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 13, color: AppTheme.textMuted),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Sessões encerradas e escalações disparadas entram aqui sozinhas.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
 
           // Upcoming events
           if (upcoming.isNotEmpty) ...[

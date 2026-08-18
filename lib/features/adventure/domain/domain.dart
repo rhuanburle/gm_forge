@@ -1,6 +1,7 @@
 export 'adventure.dart';
 export 'campaign.dart';
 export 'creature.dart';
+export 'escalation.dart';
 export 'faction.dart';
 export 'item.dart';
 export 'legend.dart';
@@ -15,6 +16,7 @@ export 'location.dart';
 export 'fact.dart';
 export 'session.dart';
 export 'session_entry.dart';
+export 'sidebar.dart';
 export 'quick_rule.dart';
 export 'timeline_entry.dart';
 export 'world_consequence.dart';

@@ -117,70 +117,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 24),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.warning.withValues(alpha: 0.1),
-                        border: Border.all(
-                          color: AppTheme.warning.withValues(alpha: 0.5),
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: AppTheme.warning,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Modo Protótipo',
-                                  style: Theme.of(context).textTheme.labelLarge
-                                      ?.copyWith(
-                                        color: AppTheme.warning,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                RichText(
-                                  text: TextSpan(
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(color: AppTheme.warning),
-                                    children: [
-                                      const TextSpan(
-                                        text:
-                                            'Este aplicativo é um protótipo. Lembre-se de salvar suas alterações manualmente clicando no ícone de nuvem ',
-                                      ),
-                                      const WidgetSpan(
-                                        child: Icon(
-                                          Icons.cloud_upload,
-                                          size: 18,
-                                          color: AppTheme.warning,
-                                        ),
-                                      ),
-                                      const TextSpan(
-                                        text:
-                                            ' no canto superior direito. O salvamento automático não está ativo.',
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isCompact = constraints.maxWidth < 500;
@@ -195,6 +131,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                     'assets/images/logo_quest_script.png',
                                     height: 64,
                                     fit: BoxFit.contain,
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.handyman),
+                                    tooltip: 'Kit do Mestre',
+                                    onPressed: () => context.push('/kit'),
                                   ),
                                   const AccountMenu(),
                                 ],
@@ -237,6 +178,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                   ),
                                 ],
                               ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.handyman),
+                              tooltip: 'Kit do Mestre',
+                              onPressed: () => context.push('/kit'),
                             ),
                             const AccountMenu(),
                           ],
@@ -306,6 +252,10 @@ class _OverviewTab extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
+          // First-run guide: teaches the Campaign/Adventure model when empty.
+          if (campaigns.isEmpty && adventures.isEmpty)
+            _buildFirstRunGuide(context, ref),
+
           // Campaign overview cards
           if (campaigns.isNotEmpty) ...[
             Text(
@@ -357,6 +307,88 @@ class _OverviewTab extends ConsumerWidget {
                 )),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildFirstRunGuide(BuildContext context, WidgetRef ref) {
+    Widget step(IconData icon, String title, String body) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: AppTheme.secondary, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleSmall
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text(body,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppTheme.textSecondary)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return Card(
+      color: AppTheme.secondary.withValues(alpha: 0.06),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.waving_hand, color: AppTheme.secondary),
+                const SizedBox(width: 10),
+                Text(
+                  'Comece aqui',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            step(
+              Icons.explore,
+              '1. Crie uma Aventura',
+              'Um local jogável: mapa, salas, criaturas, rumores. É onde você prepara e conduz uma sessão.',
+            ),
+            step(
+              Icons.bookmark,
+              '2. (Opcional) Agrupe numa Campanha',
+              'A campanha é o mundo persistente — facções, NPCs e tesouros que voltam em várias aventuras.',
+            ),
+            step(
+              Icons.shield,
+              '3. Jogue no Escudo do Mestre',
+              'Abra a aventura em modo de jogo: cena, combate, dados e ferramentas à mão.',
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                onPressed: () =>
+                    DashboardController.showCreateOptions(context, ref),
+                icon: const Icon(Icons.add),
+                label: const Text('Criar minha primeira aventura'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../../../../application/adventure_providers.dart';
 import "../../../../domain/domain.dart";
 import '../../../../../../core/widgets/animated_list_item.dart';
 import "../widgets/section_header.dart";
+import "../widgets/scope_hint.dart";
 
 class FactionsTab extends ConsumerWidget {
   final String adventureId;
@@ -46,7 +47,7 @@ class FactionsTab extends ConsumerWidget {
         final db = ref.read(hiveDatabaseProvider);
         final campaignId = ref.read(adventureProvider(adventureId))?.campaignId ?? '';
         json['id'] = const Uuid().v4();
-        json['campaignId'] = campaignId.isEmpty ? adventureId : campaignId;
+        json['campaignId'] = campaignId;
         json['adventureId'] = adventureId;
         try {
           final faction = Faction.fromJson(json);
@@ -77,6 +78,7 @@ class FactionsTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+          ScopeHint(adventureId: adventureId, noun: 'facções'),
           Expanded(
             child: factions.isEmpty
                 ? Center(
@@ -271,6 +273,11 @@ class FactionsTab extends ConsumerWidget {
     List<FactionDanger> dangers =
         List.from(factionToEdit?.dangers ?? []);
     String? adventureIdForCreation = factionToEdit?.adventureId ?? adventureId;
+    // "Toda a campanha" só existe quando a aventura pertence a uma campanha.
+    final hasCampaign =
+        (ref.read(adventureProvider(adventureId))?.campaignId ?? '')
+            .trim()
+            .isNotEmpty;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -713,23 +720,29 @@ class FactionsTab extends ConsumerWidget {
                       );
                     }),
                   ],
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  SwitchListTile(
-                    title: const Text("Disponível em toda a Campanha?"),
-                    subtitle: const Text("Facções globais aparecem em todas as aventuras."),
-                    value: adventureIdForCreation == null,
-                    onChanged: (bool value) {
-                      setState(() {
-                        adventureIdForCreation = value ? null : adventureId;
-                      });
-                    },
-                    secondary: Icon(
-                      adventureIdForCreation == null ? Icons.public : Icons.push_pin,
-                      color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                  if (hasCampaign) ...[
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    SwitchListTile(
+                      title: const Text("Compartilhar com toda a Campanha?"),
+                      subtitle: Text(
+                        adventureIdForCreation == null
+                            ? "Aparece (e é editada) em todas as aventuras da campanha."
+                            : "Fica só nesta aventura. Ligue para reaproveitar em toda a campanha.",
+                      ),
+                      value: adventureIdForCreation == null,
+                      onChanged: (bool value) {
+                        setState(() {
+                          adventureIdForCreation = value ? null : adventureId;
+                        });
+                      },
+                      secondary: Icon(
+                        adventureIdForCreation == null ? Icons.public : Icons.push_pin,
+                        color: adventureIdForCreation == null ? AppTheme.primary : AppTheme.textMuted,
+                      ),
                     ),
-                  ),
                   ],
+                ],
                 ),
               ),
             ),

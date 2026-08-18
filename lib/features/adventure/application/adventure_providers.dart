@@ -102,6 +102,22 @@ final factionsProvider = Provider.family<List<Faction>, String>((
   return db.getFactionsByAdventure(adventureId);
 });
 
+final escalationsProvider = Provider.family<List<Escalation>, String>((
+  ref,
+  adventureId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getEscalations(adventureId);
+});
+
+final sidebarsProvider = Provider.family<List<Sidebar>, String>((
+  ref,
+  adventureId,
+) {
+  final db = ref.watch(hiveDatabaseProvider);
+  return db.getSidebars(adventureId);
+});
+
 // Campaign-level providers
 final campaignQuestsProvider = Provider.family<List<Quest>, String>((
   ref,
@@ -194,9 +210,10 @@ class AdventureListNotifier extends Notifier<List<Adventure>> {
   Future<Adventure> create({
     required String name,
     required String description,
-    required String conceptWhat,
-    required String conceptConflict,
+    String conceptWhat = '',
+    String conceptConflict = '',
     String? campaignId,
+    String? system,
   }) async {
     final db = ref.read(hiveDatabaseProvider);
     final adventure = Adventure.create(
@@ -205,6 +222,7 @@ class AdventureListNotifier extends Notifier<List<Adventure>> {
       conceptWhat: conceptWhat,
       conceptConflict: conceptConflict,
       campaignId: campaignId,
+      system: system,
     );
     await db.saveAdventure(adventure);
     ref.read(unsyncedChangesProvider.notifier).state = true;

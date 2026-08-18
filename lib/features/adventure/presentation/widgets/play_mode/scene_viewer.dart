@@ -158,7 +158,7 @@ class SceneViewer extends ConsumerWidget {
               const SizedBox(width: 8),
               Chip(
                 label: Text(
-                  location.purpose.displayName,
+                  location.purpose,
                   style: Theme.of(
                     context,
                   ).textTheme.labelSmall?.copyWith(fontSize: 10),
@@ -621,6 +621,7 @@ class _FactList extends ConsumerWidget {
           ...relatedFacts.map((fact) {
             final isRevealed = fact.revealed || activeState.revealedFacts.contains(fact.id);
             final isSecret = fact.isSecret;
+            final isClue = fact.tags.contains('clue');
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: InkWell(
@@ -671,23 +672,45 @@ class _FactList extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
-                        isRevealed
-                            ? Icons.visibility
-                            : isSecret
-                                ? Icons.lock
-                                : Icons.lightbulb_outline,
+                        isClue
+                            ? Icons.search
+                            : isRevealed
+                                ? Icons.visibility
+                                : isSecret
+                                    ? Icons.lock
+                                    : Icons.lightbulb_outline,
                         size: 14,
-                        color: isRevealed
-                            ? AppTheme.success
-                            : isSecret
-                                ? AppTheme.combat
-                                : AppTheme.primary,
+                        color: isClue
+                            ? AppTheme.warning
+                            : isRevealed
+                                ? AppTheme.success
+                                : isSecret
+                                    ? AppTheme.combat
+                                    : AppTheme.primary,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text(
-                          fact.content,
-                          style: const TextStyle(fontSize: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fact.content,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            if (isClue)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 2),
+                                child: Text(
+                                  'PISTA',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                    color: AppTheme.warning,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       Tooltip(

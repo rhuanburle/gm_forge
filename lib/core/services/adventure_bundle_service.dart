@@ -34,10 +34,12 @@ class AdventureBundleService {
   /// "id" field entirely.
   static const String exampleJson = r'''
 {
+  "version": 3,
   "adventure": {
     "id": "adv-001",
     "name": "A Tumba do Cavaleiro Dragão",
     "description": "Uma tumba selada nas montanhas, guardada por um culto de mortos-vivos.",
+    "system": "Custom",
     "conceptWhat": "Uma tumba élfica nos picos gelados do norte",
     "conceptConflict": "Um culto quer despertar o cavaleiro para usá-lo como arma",
     "conceptSecondaryConflicts": [
@@ -46,7 +48,15 @@ class AdventureBundleService {
     ],
     "nextAdventureHint": "O sigilo encontrado na tumba aponta para um segundo sepulcro a leste",
     "tags": ["mortos-vivos", "tumba", "cultistas"],
-    "sessionNotes": ""
+    "sessionNotes": "",
+    "gmReminders": [
+      "Cânticos ficam mais altos a cada cena — pressão temporal",
+      "Mestra Seravyn não negocia: pula direto para combate se desafiada"
+    ],
+    "endings": [
+      "Vitória: ritual destruído, Aerindel desperta em paz e entrega a espada",
+      "Catástrofe: o ritual completa, Cavaleiro Dracolich é solto na região"
+    ]
   },
 
   "locations": [
@@ -71,7 +81,7 @@ class AdventureBundleService {
       "id": "poi-001",
       "number": 1,
       "name": "Entrada da Tumba",
-      "purpose": 3,
+      "purpose": "narrativa",
       "firstImpression": "Uma porta de pedra negra ornamentada com dragões entalhados. O frio é mais intenso aqui.",
       "obvious": "A porta está entreaberta. Marcas de arrombamento recentes.",
       "detail": "Atrás da porta há uma câmara com inscrições élficas: 'Aqui jaz Aerindel, Cavaleiro do Dragão Prateado. Que a paz o guarde para sempre.'",
@@ -79,13 +89,18 @@ class AdventureBundleService {
       "treasure": "",
       "creatureIds": ["creature-002"],
       "locationId": "loc-001",
-      "isVisited": false
+      "isVisited": false,
+      "gmReminders": [
+        "Lembrar de Valdric arregaçar a manga se conduzir os PJs — barulho atrai a Mestra",
+        "Marcas de arrombamento são do mago rival, não dos PJs"
+      ],
+      "sidebarIds": ["sidebar-001"]
     },
     {
       "id": "poi-002",
       "number": 2,
       "name": "Câmara dos Guardas",
-      "purpose": 1,
+      "purpose": "perigo",
       "firstImpression": "Esqueletos em armaduras élficas enfileirados nas paredes. Um cheiro de incenso podre.",
       "obvious": "Seis esqueletos estão de pé nas alcoves. Eles não se movem... ainda.",
       "detail": "Se uma tocha for acesa, os esqueletos despertam. Cada um carrega uma espada longa élfica (valor: 50 po cada).",
@@ -99,7 +114,7 @@ class AdventureBundleService {
       "id": "poi-003",
       "number": 3,
       "name": "Câmara do Ritual",
-      "purpose": 2,
+      "purpose": "enigma",
       "firstImpression": "Símbolos arcanos no chão formam um pentáculo. Velas negras ainda queimam.",
       "obvious": "O ritual está pela metade. Um livro aberto no centro do pentáculo.",
       "detail": "O livro é o grimório do mago rival. Quem o ler completo recebe uma maldição (save Con CD 15 ou -2 em saves de magia por 1 semana). Solução: destruir o livro ou completar o ritual ao contrário.",
@@ -113,7 +128,7 @@ class AdventureBundleService {
       "id": "poi-004",
       "number": 4,
       "name": "Câmara do Descanso",
-      "purpose": 0,
+      "purpose": "descanso",
       "firstImpression": "Uma sala pequena com catres de pedra. Curiosamente limpa.",
       "obvious": "Uma fonte ainda jorra água limpa de uma estátua de dragão.",
       "detail": "A água tem propriedades curativas — beber restaura 1d6 PV. A fonte esgota após 3 usos.",
@@ -127,7 +142,7 @@ class AdventureBundleService {
       "id": "poi-005",
       "number": 5,
       "name": "Câmara Final — Sarcófago",
-      "purpose": 3,
+      "purpose": "narrativa",
       "firstImpression": "Um sarcófago de mármore branco no centro. Gravuras de batalhas cobrem as paredes.",
       "obvious": "O sarcófago está fechado com um lacre mágico luminoso. Vozes sussurram em élfico.",
       "detail": "O cavaleiro ainda dorme. Se o ritual em #3 for completado pelo culto, ele desperta como morto-vivo poderoso (Cavaleiro Dracolich). Se os PJs impedirem o ritual, ele pode ser acordado em paz e agradece com sua espada lendária.",
@@ -190,7 +205,13 @@ class AdventureBundleService {
       "status": 0,
       "disposition": 2,
       "tags": ["chefe", "necromante"],
-      "notes": ["Corredor secreto atrás do altar em #3 — Percepção CD 18"]
+      "notes": ["Corredor secreto atrás do altar em #3 — Percepção CD 18"],
+      "quote": "A morte é apenas o primeiro despertar.",
+      "attitude": "fria e implacável",
+      "hides": [
+        "Tem uma poção de teleporte de emergência",
+        "O grimório só responde ao sangue dela"
+      ]
     },
     {
       "id": "creature-004",
@@ -254,7 +275,7 @@ class AdventureBundleService {
       "sourceId": "creature-002",
       "isSecret": false,
       "revealed": false,
-      "tags": ["culto", "ameaça"],
+      "tags": ["culto", "ameaça", "clue"],
       "createdAt": "2026-01-01T00:00:00.000Z"
     },
     {
@@ -413,7 +434,60 @@ class AdventureBundleService {
     }
   ],
 
-  "sessions": []
+  "sessions": [],
+
+  "escalations": [
+    {
+      "id": "esc-001",
+      "title": "Contagem Regressiva do Ritual",
+      "description": "Mestra Seravyn está completando o ritual de despertar. Cada passo aumenta a pressão sobre os PJs.",
+      "defaultOutcome": "Se os PJs nunca intervirem: o Cavaleiro Dracolich é solto e ataca a cidade mais próxima em 3 dias.",
+      "currentStepIndex": 0,
+      "steps": [
+        {
+          "label": "Cânticos crescem",
+          "trigger": "Quando os PJs cruzam o portão da tumba",
+          "effect": "Som baixo de cânticos pode ser ouvido em qualquer câmara",
+          "fired": false
+        },
+        {
+          "label": "Velas explodem",
+          "trigger": "Após 2 cenas dentro da tumba",
+          "effect": "Velas negras da Câmara do Ritual estouram. Todos perto sentem frio repentino.",
+          "fired": false
+        },
+        {
+          "label": "Ritual quase pronto",
+          "trigger": "Se os PJs derem qualquer descanso prolongado",
+          "effect": "Seravyn termina o ritual e Aerindel desperta hostil",
+          "fired": false
+        }
+      ]
+    }
+  ],
+
+  "sidebars": [
+    {
+      "id": "sidebar-001",
+      "title": "O Brasão dos Aerindel",
+      "body": "Três rosas brancas sobre um dragão prateado. Aparece nas armaduras dos esqueletos, na espada do cavaleiro e nas paredes de toda a tumba. PJs com SABER (Heráldica) reconhecem.",
+      "kind": "lore",
+      "playerFacing": false,
+      "attachedPoiId": "poi-001",
+      "attachedCreatureId": null,
+      "adventureId": "adv-001"
+    },
+    {
+      "id": "sidebar-002",
+      "title": "Carta da Família Aerindel",
+      "body": "Caros aventureiros,\n\nNosso nobre ancestral repousa há séculos. Soubemos do culto. Recuperem seus restos antes que o sacrilégio se consume.\n\nGratidão eterna — Lord Eldris Aerindel",
+      "kind": "handout",
+      "playerFacing": true,
+      "attachedPoiId": null,
+      "attachedCreatureId": null,
+      "adventureId": "adv-001"
+    }
+  ]
 }
 ''';
 
@@ -446,6 +520,8 @@ class AdventureBundleService {
       'randomEvents': n('randomEvents'),
       'sessions': n('sessions'),
       'quickRules': n('quickRules'),
+      'escalations': n('escalations'),
+      'sidebars': n('sidebars'),
     };
   }
 
@@ -480,6 +556,8 @@ class AdventureBundleService {
     final randomEvents = parseList(bundle['randomEvents']);
     final sessions     = parseList(bundle['sessions']);
     final quickRules   = parseList(bundle['quickRules']);
+    final escalations  = parseList(bundle['escalations']);
+    final sidebars     = parseList(bundle['sidebars']);
 
     // Build idMap: old key → new UUID.
     // Entities without an "id" field get an auto-generated positional key so
@@ -489,6 +567,7 @@ class AdventureBundleService {
     for (final list in [
       locations, pois, creatures, quests, facts, items,
       factions, legends, randomEvents, sessions, quickRules,
+      escalations, sidebars,
     ]) {
       for (final e in list) {
         var id = e['id'] as String?;
@@ -565,6 +644,7 @@ class AdventureBundleService {
       if (m['locationId'] != null) {
         m['locationId'] = remapN(m['locationId']);
       }
+      m['sidebarIds'] = remapL(m['sidebarIds']);
       m['isVisited'] = false;
       await _db.savePointOfInterest(PointOfInterest.fromJson(m));
     }
@@ -627,6 +707,25 @@ class AdventureBundleService {
     for (final raw in randomEvents) {
       final m = patchAdventure(raw);
       await _db.saveRandomEvent(RandomEvent.fromJson(m));
+    }
+
+    // ---- Escalations ------------------------------------------------------
+    for (final raw in escalations) {
+      final m = patchAdventure(raw);
+      // Steps are embedded — leave as-is.
+      await _db.saveEscalation(Escalation.fromJson(m));
+    }
+
+    // ---- Sidebars ---------------------------------------------------------
+    for (final raw in sidebars) {
+      final m = patchAdventure(raw);
+      if (m['attachedPoiId'] != null) {
+        m['attachedPoiId'] = remapN(m['attachedPoiId']);
+      }
+      if (m['attachedCreatureId'] != null) {
+        m['attachedCreatureId'] = remapN(m['attachedCreatureId']);
+      }
+      await _db.saveSidebar(Sidebar.fromJson(m));
     }
 
     // ---- Sessions (adventure-scoped, no campaignId) -----------------------

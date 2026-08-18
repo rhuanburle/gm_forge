@@ -29,6 +29,7 @@ class _WorldTabState extends ConsumerState<WorldTab> {
     final loreEntries = ref.watch(loreEntriesProvider(campaignId));
     final regions = ref.watch(regionsProvider(campaignId));
     final consequences = ref.watch(worldConsequencesProvider(campaignId));
+    final treasures = ref.watch(campaignItemsProvider(campaignId));
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -38,6 +39,8 @@ class _WorldTabState extends ConsumerState<WorldTab> {
         _buildLoreSection(context, loreEntries),
         const SizedBox(height: 24),
         _buildRegionsSection(context, regions),
+        const SizedBox(height: 24),
+        _buildTreasuresSection(context, treasures),
       ],
     );
   }
@@ -413,6 +416,251 @@ class _WorldTabState extends ConsumerState<WorldTab> {
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Tesouros da Campanha (items with adventureId == null, shared everywhere)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildTreasuresSection(BuildContext context, List<Item> treasures) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          context,
+          icon: Icons.workspace_premium,
+          title: 'Tesouros da Campanha',
+          onAdd: () => _showTreasureDialog(context, null),
+        ),
+        if (treasures.isEmpty)
+          _emptyState(
+            context,
+            'Nenhum tesouro de campanha. Relíquias e artefatos que atravessam aventuras ficam bem aqui.',
+          )
+        else
+          ...treasures.map((item) => _buildTreasureCard(context, item)),
+      ],
+    );
+  }
+
+  Widget _buildTreasureCard(BuildContext context, Item item) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: AppTheme.discovery.withValues(alpha: 0.15),
+              child: const Icon(Icons.diamond, size: 18, color: AppTheme.discovery),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          item.name,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${item.rarity.displayName} · ${item.type.displayName}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(color: AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
+                  if (item.description.isNotEmpty)
+                    Text(
+                      item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppTheme.textMuted),
+                    ),
+                  if (item.mechanics.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.auto_fix_high,
+                            size: 12, color: AppTheme.secondary),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            item.mechanics,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              iconSize: 18,
+              padding: EdgeInsets.zero,
+              onSelected: (value) {
+                if (value == 'edit') _showTreasureDialog(context, item);
+                if (value == 'delete') {
+                  _confirmDelete(
+                    context,
+                    title: 'Excluir Tesouro',
+                    message: 'Tem certeza que deseja excluir "${item.name}"?',
+                    onConfirm: () async {
+                      await ref.read(hiveDatabaseProvider).deleteItem(item.id);
+                      ref.invalidate(campaignItemsProvider(campaignId));
+                      _markUnsynced();
+                    },
+                  );
+                }
+              },
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Editar')]),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(children: [Icon(Icons.delete, size: 16, color: AppTheme.error), SizedBox(width: 8), Text('Excluir', style: TextStyle(color: AppTheme.error))]),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTreasureDialog(BuildContext context, Item? existing) {
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final descCtrl = TextEditingController(text: existing?.description ?? '');
+    final mechanicsCtrl = TextEditingController(text: existing?.mechanics ?? '');
+    ItemType selectedType = existing?.type ?? ItemType.artifact;
+    ItemRarity selectedRarity = existing?.rarity ?? ItemRarity.rare;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(existing == null ? 'Novo Tesouro' : 'Editar Tesouro'),
+          content: SizedBox(
+            width: 440,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Nome *'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: descCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Descrição',
+                      hintText: 'Aparência, história, procedência...',
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: mechanicsCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Mecânicas',
+                      hintText: '+1 em ataques, 2d6 de fogo...',
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<ItemType>(
+                    initialValue: selectedType,
+                    decoration: const InputDecoration(labelText: 'Tipo'),
+                    items: ItemType.values
+                        .map((t) => DropdownMenuItem(
+                              value: t,
+                              child: Text(t.displayName),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) setDialogState(() => selectedType = v);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<ItemRarity>(
+                    initialValue: selectedRarity,
+                    decoration: const InputDecoration(labelText: 'Raridade'),
+                    items: ItemRarity.values
+                        .map((r) => DropdownMenuItem(
+                              value: r,
+                              child: Text(r.displayName),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) setDialogState(() => selectedRarity = v);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) return;
+                final db = ref.read(hiveDatabaseProvider);
+                if (existing != null) {
+                  await db.saveItem(existing.copyWith(
+                    name: name,
+                    description: descCtrl.text.trim(),
+                    mechanics: mechanicsCtrl.text.trim(),
+                    type: selectedType,
+                    rarity: selectedRarity,
+                  ));
+                } else {
+                  await db.saveItem(Item.create(
+                    campaignId: campaignId,
+                    name: name,
+                    description: descCtrl.text.trim(),
+                    mechanics: mechanicsCtrl.text.trim(),
+                    type: selectedType,
+                    rarity: selectedRarity,
+                  ));
+                }
+                ref.invalidate(campaignItemsProvider(campaignId));
+                _markUnsynced();
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) {
+      nameCtrl.dispose();
+      descCtrl.dispose();
+      mechanicsCtrl.dispose();
+    });
+  }
 
   Widget _sectionHeader(
     BuildContext context, {

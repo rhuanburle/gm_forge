@@ -31,19 +31,58 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
   Widget build(BuildContext context) {
     final pcs = ref.watch(playerCharactersProvider(campaignId));
     final factions = ref.watch(campaignFactionsProvider(campaignId));
-    final npcs = ref.watch(campaignCreaturesProvider(campaignId))
-        .where((c) => c.type == CreatureType.npc)
-        .toList();
+    final campaignCreatures = ref.watch(campaignCreaturesProvider(campaignId));
+    final npcs =
+        campaignCreatures.where((c) => c.type == CreatureType.npc).toList();
+    final monsters =
+        campaignCreatures.where((c) => c.type == CreatureType.monster).toList();
+
+    final adventureCount =
+        ref.watch(campaignProvider(campaignId))?.adventureIds.length ?? 0;
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
+        _sharedPoolHint(context, adventureCount),
+        const SizedBox(height: 12),
         _buildPcsSection(context, pcs),
         const SizedBox(height: 24),
         _buildFactionsSection(context, factions),
         const SizedBox(height: 24),
         _buildNpcsSection(context, npcs),
+        const SizedBox(height: 24),
+        _buildMonstersSection(context, monsters),
       ],
+    );
+  }
+
+  /// Reverse of the editor's ScopeHint: explains that everything on this tab is
+  /// the campaign's shared pool, reachable from every adventure, and that
+  /// adventure-specific cast lives inside each adventure instead.
+  Widget _sharedPoolHint(BuildContext context, int adventureCount) {
+    final reach = adventureCount == 1
+        ? 'na aventura desta campanha'
+        : 'nas $adventureCount aventuras desta campanha';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppTheme.r12),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.public, size: 18, color: AppTheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Elenco compartilhado da campanha — aparece $reach. '
+              'Para algo que existe só em uma aventura, edite dentro dela (aba Elenco).',
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -962,5 +1001,241 @@ class _CharactersTabState extends ConsumerState<CharactersTab> {
         ),
       ),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Monstros da Campanha (creatures type == monster, shared across adventures)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildMonstersSection(BuildContext context, List<Creature> monsters) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          context,
+          icon: Icons.pets,
+          title: 'Monstros da Campanha',
+          onAdd: () => _showMonsterFormDialog(context, null),
+        ),
+        if (monsters.isEmpty)
+          _emptyState(
+            context,
+            'Nenhum monstro de campanha. Recorrentes (a fera que persegue o grupo) ficam bem aqui.',
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: monsters.length,
+            itemBuilder: (context, index) =>
+                _buildMonsterCard(context, monsters[index]),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMonsterCard(BuildContext context, Creature monster) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppTheme.combat.withValues(alpha: 0.15),
+                  child: const Icon(Icons.pets, size: 20, color: AppTheme.combat),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        monster.name,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      if (monster.description.isNotEmpty)
+                        Text(
+                          monster.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppTheme.textMuted),
+                        ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
+                  onSelected: (value) {
+                    if (value == 'edit') _showMonsterFormDialog(context, monster);
+                    if (value == 'delete') {
+                      _confirmDelete(
+                        context,
+                        title: 'Excluir Monstro',
+                        message:
+                            'Tem certeza que deseja excluir "${monster.name}"?',
+                        onConfirm: () async {
+                          await ref
+                              .read(hiveDatabaseProvider)
+                              .deleteCreature(monster.id);
+                          ref.invalidate(campaignCreaturesProvider(campaignId));
+                          _markUnsynced();
+                        },
+                      );
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Editar')]),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [Icon(Icons.delete, size: 16, color: AppTheme.error), SizedBox(width: 8), Text('Excluir', style: TextStyle(color: AppTheme.error))]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            if (monster.stats.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.shield, size: 12, color: AppTheme.combat),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      monster.stats,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMonsterFormDialog(BuildContext context, Creature? existing) {
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final descCtrl = TextEditingController(text: existing?.description ?? '');
+    final statsCtrl = TextEditingController(text: existing?.stats ?? '');
+    final motivationCtrl =
+        TextEditingController(text: existing?.motivation ?? '');
+    final losingCtrl =
+        TextEditingController(text: existing?.losingBehavior ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(existing == null ? 'Novo Monstro' : 'Editar Monstro'),
+        content: SizedBox(
+          width: 440,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Nome *'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Descrição',
+                    hintText: 'Aparência, como luta...',
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: statsCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Stats',
+                    hintText: 'HP 18, CA 13, ATK +4 (1d6+2)...',
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: motivationCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivação',
+                    hintText: 'O que essa criatura quer?',
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: losingCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Ao perder',
+                    hintText: 'Foge, negocia, entra em fúria...',
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              final db = ref.read(hiveDatabaseProvider);
+              if (existing != null) {
+                await db.saveCreature(existing.copyWith(
+                  name: name,
+                  description: descCtrl.text.trim(),
+                  stats: statsCtrl.text.trim(),
+                  motivation: motivationCtrl.text.trim(),
+                  losingBehavior: losingCtrl.text.trim(),
+                ));
+              } else {
+                await db.saveCreature(Creature.create(
+                  campaignId: campaignId,
+                  name: name,
+                  type: CreatureType.monster,
+                  description: descCtrl.text.trim(),
+                  stats: statsCtrl.text.trim(),
+                  motivation: motivationCtrl.text.trim(),
+                  losingBehavior: losingCtrl.text.trim(),
+                ));
+              }
+              ref.invalidate(campaignCreaturesProvider(campaignId));
+              _markUnsynced();
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    ).then((_) {
+      nameCtrl.dispose();
+      descCtrl.dispose();
+      statsCtrl.dispose();
+      motivationCtrl.dispose();
+      losingCtrl.dispose();
+    });
   }
 }

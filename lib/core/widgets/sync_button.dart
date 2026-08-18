@@ -51,12 +51,12 @@ class CloudSyncButton extends ConsumerWidget {
                   : (hasUnsyncedChanges ? AppTheme.dubious : AppTheme.secondary),
             ),
       tooltip: syncStatus == SyncStatus.syncing
-          ? 'Sincronizando...'
+          ? 'Salvando na nuvem...'
           : syncStatus == SyncStatus.error
-          ? 'Erro na sincronização'
+          ? 'Erro ao salvar — toque para tentar novamente'
           : (hasUnsyncedChanges
-                ? 'Alterações não salvas na nuvem'
-                : 'Sincronizado'),
+                ? 'Salvando automaticamente...'
+                : 'Tudo salvo na nuvem · toque para sincronizar tudo'),
       onPressed: syncStatus == SyncStatus.syncing
           ? null
           : () async {

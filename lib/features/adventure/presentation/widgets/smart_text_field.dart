@@ -220,7 +220,7 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
                 AiAssistButton(
                   controller: _controller,
                   fieldType: widget.aiFieldType!,
-                  adventureContext: widget.aiContext ?? {},
+                  adventureContext: _enrichContextWithSystem(widget.aiContext ?? {}),
                   extraContext: widget.aiExtraContext,
                 ),
               IconButton(
@@ -254,6 +254,12 @@ class _SmartTextFieldState extends ConsumerState<SmartTextField> {
         maxLines: widget.maxLines,
       ),
     );
+  }
+
+  Map<String, String> _enrichContextWithSystem(Map<String, String> base) {
+    final adv = ref.read(adventureProvider(widget.adventureId));
+    if (adv?.system == null || adv!.system!.isEmpty) return base;
+    return {...base, 'system': adv.system!};
   }
 
   void _insertTrigger(String char) {

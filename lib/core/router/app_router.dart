@@ -9,6 +9,7 @@ import '../../features/adventure/presentation/pages/adventure_generator_page.dar
 import '../../features/adventure/presentation/pages/location_editor_page.dart';
 import '../../features/adventure/presentation/pages/adventure_play_page.dart';
 import '../../features/adventure/presentation/pages/campaign_hub_page.dart';
+import '../../features/master_kit/presentation/master_kit_page.dart';
 import '../../features/adventure/presentation/pages/session_prep_page.dart';
 import '../../features/adventure/presentation/pages/session_list_page.dart';
 import '../../features/public/presentation/pages/public_campaign_page.dart';
@@ -50,6 +51,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(path: '/', builder: (context, state) => const DashboardPage()),
+      GoRoute(
+        path: '/kit',
+        pageBuilder: (context, state) =>
+            _fadeTransition(state, const MasterKitPage()),
+      ),
       GoRoute(
         path: '/adventure/:id',
         pageBuilder: (context, state) {

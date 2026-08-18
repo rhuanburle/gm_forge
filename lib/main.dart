@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/auth/auth_service.dart';
 import 'core/database/hive_database.dart';
 import 'core/router/app_router.dart';
+import 'core/sync/auto_sync.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'core/widgets/mobile_warning_wrapper.dart';
@@ -46,7 +47,7 @@ class QuestScriptApp extends ConsumerWidget {
       routerConfig: ref.watch(appRouterProvider),
       scrollBehavior: MyCustomScrollBehavior(),
       builder: (context, child) {
-        return MobileWarningWrapper(child: child!);
+        return AutoSyncScope(child: MobileWarningWrapper(child: child!));
       },
     );
   }

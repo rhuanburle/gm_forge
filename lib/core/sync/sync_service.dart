@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,6 +33,18 @@ class SyncService {
 
   bool get _isAuthenticated => _userId != null && !_isAnonymous;
 
+  /// Content signature of the last successfully-pushed payload per doc id, so
+  /// the debounced autosave can skip docs that haven't changed instead of
+  /// re-uploading the whole library on every edit. In-memory: a cold start
+  /// re-pushes each doc once, then only what actually changes.
+  final Map<String, String> _pushedSig = {};
+
+  String _sig(Map<String, dynamic> payload) {
+    // Exclude the server-timestamp sentinel (non-deterministic, non-content).
+    final content = Map<String, dynamic>.from(payload)..remove('updatedAt');
+    return jsonEncode(content);
+  }
+
   CollectionReference<Map<String, dynamic>> get _adventuresRef =>
       _firestore.collection('users').doc(_userId).collection('adventures');
 
@@ -54,6 +68,8 @@ class SyncService {
     final quests = _hiveDb.getQuests(adventureId);
     final sessions = _hiveDb.getSessions(adventureId);
     final factions = _hiveDb.getFactionsByAdventure(adventureId);
+    final escalations = _hiveDb.getEscalations(adventureId);
+    final sidebars = _hiveDb.getSidebars(adventureId);
 
     final payload = {
       'adventure': adventure.toJson(),
@@ -68,8 +84,10 @@ class SyncService {
       'quests': quests.map((q) => q.toJson()).toList(),
       'sessions': sessions.map((s) => s.toJson()).toList(),
       'factions': factions.map((f) => f.toJson()).toList(),
+      'escalations': escalations.map((e) => e.toJson()).toList(),
+      'sidebars': sidebars.map((s) => s.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
-      'version': 2,
+      'version': 3,
     };
 
     await _adventuresRef.doc(adventureId).set(payload);
@@ -93,6 +111,8 @@ class SyncService {
       final quests = _hiveDb.getQuests(adventure.id);
       final sessions = _hiveDb.getSessions(adventure.id);
       final factions = _hiveDb.getFactionsByAdventure(adventure.id);
+      final escalations = _hiveDb.getEscalations(adventure.id);
+      final sidebars = _hiveDb.getSidebars(adventure.id);
 
       allPayloads[adventure.id] = {
         'adventure': adventure.toJson(),
@@ -107,14 +127,28 @@ class SyncService {
         'quests': quests.map((q) => q.toJson()).toList(),
         'sessions': sessions.map((s) => s.toJson()).toList(),
         'factions': factions.map((f) => f.toJson()).toList(),
+        'escalations': escalations.map((e) => e.toJson()).toList(),
+        'sidebars': sidebars.map((s) => s.toJson()).toList(),
         'updatedAt': FieldValue.serverTimestamp(),
-        'version': 2,
+        'version': 3,
       };
     }
 
+    // Skip docs unchanged since the last successful push (write amplification).
+    final changed = <String, Map<String, dynamic>>{};
+    final newSigs = <String, String>{};
+    for (final entry in allPayloads.entries) {
+      final sig = _sig(entry.value);
+      if (_pushedSig[entry.key] != sig) {
+        changed[entry.key] = entry.value;
+        newSigs[entry.key] = sig;
+      }
+    }
+    if (changed.isEmpty) return;
+
     // Firebase batch limit is 500 operations — split if needed
     const batchLimit = 400;
-    final entries = allPayloads.entries.toList();
+    final entries = changed.entries.toList();
     for (int i = 0; i < entries.length; i += batchLimit) {
       final batch = _firestore.batch();
       final chunk = entries.skip(i).take(batchLimit);
@@ -123,6 +157,8 @@ class SyncService {
       }
       await batch.commit();
     }
+    // Only remember signatures once the writes actually landed.
+    _pushedSig.addAll(newSigs);
   }
 
   Future<void> pushCampaign(String campaignId) async {
@@ -139,8 +175,9 @@ class SyncService {
     final quickRules = _hiveDb.getQuickRules(campaignId);
     final campaignItems = _hiveDb.getCampaignItems(campaignId);
     final campaignCreatures = _hiveDb.getCampaignCreatures(campaignId);
+    final timelineEntries = _hiveDb.getTimelineEntries(campaignId);
 
-    await _campaignsRef.doc(campaignId).set({
+    final payload = <String, dynamic>{
       'campaign': campaign.toJson(),
       'playerCharacters':
           playerCharacters.map((pc) => pc.toJson()).toList(),
@@ -151,8 +188,15 @@ class SyncService {
       'quickRules': quickRules.map((qr) => qr.toJson()).toList(),
       'items': campaignItems.map((i) => i.toJson()).toList(),
       'creatures': campaignCreatures.map((c) => c.toJson()).toList(),
+      'timelineEntries': timelineEntries.map((t) => t.toJson()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    // Skip the write when nothing in this campaign changed.
+    final sig = _sig(payload);
+    if (_pushedSig[campaignId] == sig) return;
+    await _campaignsRef.doc(campaignId).set(payload);
+    _pushedSig[campaignId] = sig;
   }
 
   Future<void> pullAllAdventures() async {
@@ -229,6 +273,10 @@ class SyncService {
         data['sessions'], Session.fromJson, _hiveDb.saveSession);
       await _importList<Faction>(
         data['factions'], Faction.fromJson, _hiveDb.saveFaction);
+      await _importList<Escalation>(
+        data['escalations'], Escalation.fromJson, _hiveDb.saveEscalation);
+      await _importList<Sidebar>(
+        data['sidebars'], Sidebar.fromJson, _hiveDb.saveSidebar);
 
       return true;
     } catch (e, stack) {
@@ -330,6 +378,23 @@ class SyncService {
         final creature = Creature.fromJson(_m(cJson));
         await _hiveDb.saveCreature(creature);
       }
+
+      final timelineJson = data['timelineEntries'] as List<dynamic>? ?? [];
+      for (final tJson in timelineJson) {
+        final entry = TimelineEntry.fromJson(_m(tJson));
+        await _hiveDb.saveTimelineEntry(entry);
+      }
+      // Reconcile deletions: the campaign doc carries the full timeline, so a
+      // local entry absent from the cloud list was deleted on another device.
+      final cloudTimelineIds = timelineJson
+          .map((t) => _m(t)['id'] as String?)
+          .whereType<String>()
+          .toSet();
+      for (final local in _hiveDb.getTimelineEntries(campaign.id)) {
+        if (!cloudTimelineIds.contains(local.id)) {
+          await _hiveDb.deleteTimelineEntry(local.id);
+        }
+      }
     }
 
     // Remove local campaigns that were deleted on another device
@@ -359,6 +424,20 @@ class SyncService {
       await pullAllCampaigns();
     } catch (e) {
       rethrow;
+    }
+  }
+
+  /// Push-only sync used by the debounced autosave: uploads local changes to
+  /// the cloud without pulling. Pulling on every edit would be wasteful and
+  /// could clobber in-progress work, so the periodic full pull stays with
+  /// [fullSync] (login / manual button).
+  Future<void> pushAll() async {
+    if (!_isAuthenticated) return;
+
+    await pushAllAdventures();
+    final campaigns = _hiveDb.getAllCampaigns();
+    for (final campaign in campaigns) {
+      await pushCampaign(campaign.id);
     }
   }
 

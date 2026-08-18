@@ -93,6 +93,15 @@ class Creature {
   final List<String> tags;
   final List<String> notes;
 
+  /// Signature line for play mode (the quoted phrase the NPC says).
+  final String? quote;
+
+  /// Free-text roleplay attitude/tone: "guarded", "curious", "weary".
+  final String? attitude;
+
+  /// Secrets the NPC won't volunteer — surfaced only in GM Shield drilldown.
+  final List<String> hides;
+
   /// Legacy field — preserved from old data where location was free-text.
   /// Read-only: NOT written to toJson(). Used during migration only.
   final String? legacyLocation;
@@ -116,6 +125,9 @@ class Creature {
     this.currentLocationId,
     this.tags = const [],
     this.notes = const [],
+    this.quote,
+    this.attitude,
+    this.hides = const [],
     this.legacyLocation,
   });
 
@@ -137,6 +149,9 @@ class Creature {
     String? currentLocationId,
     List<String> tags = const [],
     List<String> notes = const [],
+    String? quote,
+    String? attitude,
+    List<String> hides = const [],
   }) {
     return Creature(
       id: const Uuid().v4(),
@@ -157,6 +172,9 @@ class Creature {
       currentLocationId: currentLocationId,
       tags: tags,
       notes: notes,
+      quote: quote,
+      attitude: attitude,
+      hides: hides,
     );
   }
 
@@ -179,6 +197,9 @@ class Creature {
     "currentLocationId": currentLocationId,
     "tags": tags,
     "notes": notes,
+    "quote": quote,
+    "attitude": attitude,
+    "hides": hides,
   };
 
   factory Creature.fromJson(Map<String, dynamic> json) => Creature(
@@ -202,6 +223,9 @@ class Creature {
     currentLocationId: json["currentLocationId"] as String?,
     tags: (json["tags"] as List<dynamic>?)?.cast<String>() ?? const [],
     notes: (json["notes"] as List<dynamic>?)?.cast<String>() ?? const [],
+    quote: json["quote"] as String?,
+    attitude: json["attitude"] as String?,
+    hides: (json["hides"] as List<dynamic>?)?.cast<String>() ?? const [],
     // Preserve the old free-text "location" field for migration purposes
     legacyLocation: json["location"] as String?,
   );
@@ -227,6 +251,11 @@ class Creature {
     bool clearCurrentLocation = false,
     List<String>? tags,
     List<String>? notes,
+    String? quote,
+    bool clearQuote = false,
+    String? attitude,
+    bool clearAttitude = false,
+    List<String>? hides,
   }) {
     return Creature(
       id: id,
@@ -249,6 +278,9 @@ class Creature {
           : (currentLocationId ?? this.currentLocationId),
       tags: tags ?? this.tags,
       notes: notes ?? this.notes,
+      quote: clearQuote ? null : (quote ?? this.quote),
+      attitude: clearAttitude ? null : (attitude ?? this.attitude),
+      hides: hides ?? this.hides,
     );
   }
 }

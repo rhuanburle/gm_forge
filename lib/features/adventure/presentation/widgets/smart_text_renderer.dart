@@ -543,7 +543,7 @@ class SmartTextRenderer extends ConsumerWidget {
               Wrap(
                 spacing: 8,
                 children: [
-                  Chip(label: Text(poi.purpose.displayName)),
+                  Chip(label: Text(poi.purpose)),
                   if (poi.connections.isNotEmpty)
                     Chip(
                       avatar: const Icon(Icons.arrow_forward, size: 14),

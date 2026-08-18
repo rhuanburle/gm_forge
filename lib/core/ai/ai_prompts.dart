@@ -80,6 +80,11 @@ Return ONLY the text content, nothing else. No labels, no explanations, no markd
   static String _buildContextBlock(Map<String, String> context) {
     final parts = <String>[];
 
+    if (context['system']?.isNotEmpty == true) {
+      parts.add(
+        'RPG System: ${context['system']} — use vocabulary, tone, and structure idiomatic to this system.',
+      );
+    }
     if (context['adventureName']?.isNotEmpty == true) {
       parts.add('Adventure Name: ${context['adventureName']}');
     }
@@ -265,21 +270,25 @@ Return ONLY the text content, nothing else. No labels, no explanations, no markd
     required String adventureName,
     required String conceptWhat,
     required String conceptConflict,
+    String? system,
   }) {
+    final systemLine = (system != null && system.isNotEmpty)
+        ? '\n- RPG System: $system — adapt tone, terminology, and idioms to this system.'
+        : '';
     return '''
 You are generating a COMPLETE adventure site for a tabletop RPG using the "Adventure Sites" methodology.
 
 ADVENTURE CONCEPT:
 - Name: $adventureName
 - Setting/What: $conceptWhat
-- Central Conflict: $conceptConflict
+- Central Conflict: $conceptConflict$systemLine
 
 Generate a full adventure with the following structure. Respond in Brazilian Portuguese (PT-BR).
 
 RULES:
 1. Create 2-3 Locations (zones/areas)
 2. For each Location, create 3-5 Points of Interest (POIs/rooms) numbered sequentially
-3. Each POI must have a purpose: 0=danger, 1=rest, 2=puzzle, 3=narrative
+3. Each POI must have a purpose as a free-text string (suggestions: descanso, perigo, enigma, narrativa, social, investigação, viagem)
 4. Create 3-5 Creatures/NPCs (mix of monsters and NPCs). type: 0=monster, 1=npc
 5. Create 4-6 Legends/Rumors (mix of true and false)
 6. Create 4-6 Random Events with types: 0=patrol, 1=environment, 2=sound, 3=calm

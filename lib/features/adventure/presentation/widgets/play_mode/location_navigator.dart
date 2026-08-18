@@ -1102,7 +1102,7 @@ class _LocationNavigatorState extends ConsumerState<LocationNavigator> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
-            poi.purpose.displayName,
+            poi.purpose,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
           ),
           if (poi.creatureIds.isNotEmpty)

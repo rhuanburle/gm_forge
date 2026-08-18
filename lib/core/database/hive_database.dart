@@ -24,6 +24,8 @@ class HiveDatabase {
   static const String _quickRulesBox = 'quick_rules';
   static const String _timelineEntriesBox = 'timeline_entries';
   static const String _worldConsequencesBox = 'world_consequences';
+  static const String _escalationsBox = 'escalations';
+  static const String _sidebarsBox = 'sidebars';
 
   static HiveDatabase? _instance;
 
@@ -60,6 +62,8 @@ class HiveDatabase {
     await Hive.openBox<Map>(_quickRulesBox);
     await Hive.openBox<Map>(_timelineEntriesBox);
     await Hive.openBox<Map>(_worldConsequencesBox);
+    await Hive.openBox<Map>(_escalationsBox);
+    await Hive.openBox<Map>(_sidebarsBox);
 
     try {
       final packageInfo = await PackageInfo.fromPlatform();
@@ -91,6 +95,12 @@ class HiveDatabase {
         _settings.get('migration_v3_campaign_id_population') as bool? ?? false;
     if (!migrationV3Done) {
       await _runMigrationV3();
+    }
+
+    final migrationV4Done =
+        _settings.get('migration_v4_room_purpose_string') as bool? ?? false;
+    if (!migrationV4Done) {
+      await _runMigrationV4();
     }
   }
 
@@ -238,6 +248,30 @@ class HiveDatabase {
     }
   }
 
+  /// v4: convert POI `purpose` from enum index (int) to free-text string.
+  /// Old data: 0=descanso, 1=perigo, 2=enigma, 3=narrativa.
+  Future<void> _runMigrationV4() async {
+    try {
+      const fallback = ['descanso', 'perigo', 'enigma', 'narrativa'];
+      final poisBox = Hive.box<Map>(_poisBox);
+      for (final key in poisBox.keys.toList()) {
+        final raw = poisBox.get(key);
+        if (raw == null) continue;
+        final data = Map<String, dynamic>.from(raw);
+        final p = data['purpose'];
+        if (p is int) {
+          data['purpose'] =
+              (p >= 0 && p < fallback.length) ? fallback[p] : 'narrativa';
+          await poisBox.put(key, data);
+        }
+      }
+      await _settings.put('migration_v4_room_purpose_string', true);
+    } catch (e, stack) {
+      // ignore: avoid_print
+      print('[HiveDB] Migration v4 failed (non-fatal): $e\n$stack');
+    }
+  }
+
   Box<dynamic> get _settings => Hive.box<dynamic>(_settingsBox);
 
   bool get isGuestMode =>
@@ -300,6 +334,8 @@ class HiveDatabase {
     await _deleteByCampaignId(_creatures, id);
     await _deleteByCampaignId(_timelineEntries, id);
     await _deleteByCampaignId(_worldConsequences, id);
+    await _deleteByCampaignId(_escalations, id);
+    await _deleteByCampaignId(_sidebars, id);
   }
 
   Box<Map> get _adventures => Hive.box<Map>(_adventuresBox);
@@ -417,6 +453,8 @@ class HiveDatabase {
     await _deleteByAdventureId(_quests, id);
     await _deleteByAdventureId(_sessions, id);
     await _deleteByAdventureId(_factions, id);
+    await _deleteByAdventureId(_escalations, id);
+    await _deleteByAdventureId(_sidebars, id);
   }
 
   Box<Map> get _locations => Hive.box<Map>(_locationsBox);
@@ -1105,6 +1143,66 @@ class HiveDatabase {
 
   Future<void> deleteWorldConsequence(String id) async {
     await _worldConsequences.delete(id);
+  }
+
+  // ── Escalations ──
+
+  Box<Map> get _escalations => Hive.box<Map>(_escalationsBox);
+
+  List<Escalation> getEscalations(String adventureId) {
+    final items = <Escalation>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
+    for (final entry in _escalations.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final esc = Escalation.fromJson(data);
+      final isLocal = esc.adventureId == adventureId;
+      final isGlobal = esc.adventureId == null &&
+          campaignId != null &&
+          esc.campaignId == campaignId;
+      if (isLocal || isGlobal) items.add(esc);
+    }
+    items.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return items;
+  }
+
+  Future<void> saveEscalation(Escalation escalation) async {
+    await _escalations.put(escalation.id, escalation.toJson());
+  }
+
+  Future<void> deleteEscalation(String id) async {
+    await _escalations.delete(id);
+  }
+
+  // ── Sidebars ──
+
+  Box<Map> get _sidebars => Hive.box<Map>(_sidebarsBox);
+
+  List<Sidebar> getSidebars(String adventureId) {
+    final items = <Sidebar>[];
+    final adv = getAdventure(adventureId);
+    final campaignId = adv?.campaignId;
+
+    for (final entry in _sidebars.values) {
+      final data = Map<String, dynamic>.from(entry);
+      final sb = Sidebar.fromJson(data);
+      final isLocal = sb.adventureId == adventureId;
+      final isGlobal = sb.adventureId == null &&
+          campaignId != null &&
+          sb.campaignId == campaignId;
+      if (isLocal || isGlobal) items.add(sb);
+    }
+    items.sort((a, b) => a.title.compareTo(b.title));
+    return items;
+  }
+
+  Future<void> saveSidebar(Sidebar sidebar) async {
+    await _sidebars.put(sidebar.id, sidebar.toJson());
+  }
+
+  Future<void> deleteSidebar(String id) async {
+    await _sidebars.delete(id);
   }
 
   Future<void> _deleteByCampaignId(Box<Map> box, String campaignId) async {
